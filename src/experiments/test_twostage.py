@@ -387,8 +387,11 @@ async def main():
     # Load prompts from specified directory
     prompt_paths = get_prompt_paths(args.prompt_dir)
     prompts = {key: load_prompt(path) for key, path in prompt_paths.items()}
-    # Format stage2 system prompt with dataset-specific answer format
+    # Format stage2 prompts with dataset-specific answer format
     prompts['stage2_system'] = format_system_prompt(prompts['stage2_system'], args.dataset)
+    # User prompt has {stage1_code} placeholder, so use simple replace for answer_format
+    answer_format_str = "True/False/Uncertain" if args.dataset == "folio" else "Yes/No/Uncertain"
+    prompts['stage2_user'] = prompts['stage2_user'].replace("{answer_format}", answer_format_str)
     print(f"Using prompts from: {args.prompt_dir}")
 
     # Load dataset
