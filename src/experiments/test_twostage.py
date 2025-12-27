@@ -31,17 +31,21 @@ from utils.prompts import load_prompt
 from utils.datasets import load_folio, load_multilogieval_sampled
 
 
-# Prompt paths
-PROMPTS = {
-    "stage1_system": "prompts/twostage/two-stage1_system.txt",
-    "stage1_user": "prompts/twostage/two-stage1_user.txt",
-    "stage1_feedback": "prompts/twostage/two-stage1_feedback.txt",
-    "stage1_no_code": "prompts/twostage/two-stage1_no_code.txt",
-    "stage2_system": "prompts/twostage/two-stage2_system.txt",
-    "stage2_user": "prompts/twostage/two-stage2_user.txt",
-    "stage2_feedback": "prompts/twostage/two-stage2_feedback.txt",
-    "stage2_no_proof": "prompts/twostage/two-stage2_no_proof.txt",
-}
+# Default prompt directory
+DEFAULT_PROMPT_DIR = "prompts/twostage"
+
+def get_prompt_paths(prompt_dir: str) -> dict:
+    """Get prompt paths for a given directory."""
+    return {
+        "stage1_system": f"{prompt_dir}/two-stage1_system.txt",
+        "stage1_user": f"{prompt_dir}/two-stage1_user.txt",
+        "stage1_feedback": f"{prompt_dir}/two-stage1_feedback.txt",
+        "stage1_no_code": f"{prompt_dir}/two-stage1_no_code.txt",
+        "stage2_system": f"{prompt_dir}/two-stage2_system.txt",
+        "stage2_user": f"{prompt_dir}/two-stage2_user.txt",
+        "stage2_feedback": f"{prompt_dir}/two-stage2_feedback.txt",
+        "stage2_no_proof": f"{prompt_dir}/two-stage2_no_proof.txt",
+    }
 
 # Answer format for parsing
 ANSWER_FORMAT = "true_false"  # For FOLIO: True/False/Uncertain
@@ -368,11 +372,16 @@ async def main():
     parser.add_argument('--data_file', default=None, help='Pre-sampled data file')
     # FOLIO options
     parser.add_argument('--folio_file', default='data/folio/original/folio-validation.json')
+    # Prompt options
+    parser.add_argument('--prompt_dir', default=DEFAULT_PROMPT_DIR,
+                        help='Directory containing prompt files (default: prompts/twostage)')
 
     args = parser.parse_args()
 
-    # Load prompts
-    prompts = {key: load_prompt(path) for key, path in PROMPTS.items()}
+    # Load prompts from specified directory
+    prompt_paths = get_prompt_paths(args.prompt_dir)
+    prompts = {key: load_prompt(path) for key, path in prompt_paths.items()}
+    print(f"Using prompts from: {args.prompt_dir}")
 
     # Load dataset
     if args.dataset == 'folio':
@@ -407,9 +416,12 @@ async def main():
     client = create_client(model=args.model)
     lean_server = create_lean_server()
 
+    # Determine output subdirectory based on prompt type
+    prompt_suffix = "_nosample" if "nosample" in args.prompt_dir else ""
+
     # Initialize saver
     saver = TwoStageSaver(
-        output_dir=f"results/{args.dataset}/twostage",
+        output_dir=f"results/{args.dataset}/twostage{prompt_suffix}",
         dataset=args.dataset,
         model=args.model,
         resume_dir=args.resume,
