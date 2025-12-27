@@ -27,7 +27,7 @@ from utils.lean_utils import extract_lean_code, create_lean_server, verify_with_
 from utils.api_client import create_client
 from utils.savers import TwoStageSaver
 from utils.answer_parsing import parse_answer
-from utils.prompts import load_prompt
+from utils.prompts import load_prompt, format_system_prompt
 from utils.datasets import load_folio, load_multilogieval_sampled
 
 
@@ -47,8 +47,9 @@ def get_prompt_paths(prompt_dir: str) -> dict:
         "stage2_no_proof": f"{prompt_dir}/two-stage2_no_proof.txt",
     }
 
-# Answer format for parsing
-ANSWER_FORMAT = "true_false"  # For FOLIO: True/False/Uncertain
+# Answer format for parsing (set per dataset)
+# FOLIO: "true_false" (True/False/Uncertain)
+# MultiLogiEval: "yes_no" (Yes/No/Uncertain)
 
 
 def get_token_usage(response) -> dict:
@@ -80,6 +81,7 @@ async def run_stage1(
     user_prompt_template: str,
     feedback_template: str,
     no_code_template: str,
+    answer_format: str,
 ) -> tuple:
     """
     Stage 1: Generate and type-check axioms + theorem with sorry.
@@ -113,7 +115,7 @@ async def run_stage1(
         conversation_history.append({"role": "assistant", "content": llm_response})
 
         # Parse prediction
-        prediction, parse_status = parse_answer(llm_response, ANSWER_FORMAT)
+        prediction, parse_status = parse_answer(llm_response, answer_format)
         last_prediction = prediction
 
         # Extract Lean code
@@ -172,6 +174,7 @@ async def run_stage2(
     user_prompt_template: str,
     feedback_template: str,
     no_proof_template: str,
+    answer_format: str,
 ) -> tuple:
     """
     Stage 2: Generate proof term to replace sorry.
@@ -202,7 +205,7 @@ async def run_stage2(
         conversation_history.append({"role": "assistant", "content": llm_response})
 
         # Parse prediction
-        prediction, parse_status = parse_answer(llm_response, ANSWER_FORMAT)
+        prediction, parse_status = parse_answer(llm_response, answer_format)
         last_prediction = prediction
 
         # Extract complete Lean code (with proof replacing sorry)
@@ -262,10 +265,11 @@ async def run_two_stage_case(
     max_stage2_iterations: int,
     prompts: dict,
     dataset: str,
+    answer_format: str,
 ) -> dict:
     """Run complete two-stage pipeline for one case."""
     async with semaphore:
-        ground_truth = case.get('ground_truth', case.get('label', ''))
+        ground_truth = case.get('ground_truth', case.get('label', case.get('answer', '')))
 
         result = {
             'case_idx': case.get('idx', case.get('id')),
@@ -302,6 +306,7 @@ async def run_two_stage_case(
                 user_prompt_template=prompts['stage1_user'],
                 feedback_template=prompts['stage1_feedback'],
                 no_code_template=prompts['stage1_no_code'],
+                answer_format=answer_format,
             )
 
             result['stage1_iterations'] = s1_iters
@@ -327,6 +332,7 @@ async def run_two_stage_case(
                 user_prompt_template=prompts['stage2_user'],
                 feedback_template=prompts['stage2_feedback'],
                 no_proof_template=prompts['stage2_no_proof'],
+                answer_format=answer_format,
             )
 
             result['stage2_iterations'] = s2_iters
@@ -381,6 +387,8 @@ async def main():
     # Load prompts from specified directory
     prompt_paths = get_prompt_paths(args.prompt_dir)
     prompts = {key: load_prompt(path) for key, path in prompt_paths.items()}
+    # Format stage2 system prompt with dataset-specific answer format
+    prompts['stage2_system'] = format_system_prompt(prompts['stage2_system'], args.dataset)
     print(f"Using prompts from: {args.prompt_dir}")
 
     # Load dataset
@@ -393,9 +401,7 @@ async def main():
         logic_types = args.logic_types.split(',') if args.logic_types else None
 
         if args.data_file:
-            import json
-            with open(args.data_file, 'r') as f:
-                cases = json.load(f)
+            cases = load_multilogieval_sampled(args.data_file)
             print(f"Loaded {len(cases)} cases from {args.data_file}")
         else:
             cases = load_multilogieval_sampled(
@@ -443,6 +449,7 @@ async def main():
 
     # Run experiments with concurrency control
     semaphore = asyncio.Semaphore(args.concurrency)
+    answer_format = "true_false" if args.dataset == "folio" else "yes_no"
 
     async def process_case(case):
         result = await run_two_stage_case(
@@ -455,6 +462,7 @@ async def main():
             max_stage2_iterations=args.max_stage2_iterations,
             prompts=prompts,
             dataset=args.dataset,
+            answer_format=answer_format,
         )
         await saver.save_result(result, result['case_idx'])
         return result
