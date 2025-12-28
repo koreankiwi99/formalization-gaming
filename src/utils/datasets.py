@@ -73,6 +73,7 @@ def load_multilogieval_sampled(data_file: str) -> list:
     cases = []
     for sample in data:
         cases.append({
+            'idx': sample.get('idx'),  # Unique index from data file
             'id': sample.get('id'),
             'context': sample.get('context', ''),
             'question': sample.get('question', ''),
