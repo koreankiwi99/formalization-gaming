@@ -167,6 +167,8 @@ async def run_stage1(
 async def run_stage2(
     client,
     stage1_code: str,
+    premises: str,
+    conclusion: str,
     lean_server,
     model: str,
     max_iterations: int,
@@ -181,7 +183,11 @@ async def run_stage2(
 
     Returns: (full_code, success, iterations_data, last_prediction)
     """
-    user_prompt = user_prompt_template.format(stage1_code=stage1_code)
+    user_prompt = user_prompt_template.format(
+        stage1_code=stage1_code,
+        premises=premises,
+        conclusion=conclusion
+    )
 
     conversation_history = [
         {"role": "system", "content": system_prompt},
@@ -322,9 +328,13 @@ async def run_two_stage_case(
                 return result
 
             # STAGE 2: Proving
+            premises = case.get('premises', case.get('context', ''))
+            conclusion = case.get('conclusion', case.get('question', ''))
             stage2_code, s2_success, s2_iters, s2_pred = await run_stage2(
                 client=client,
                 stage1_code=stage1_code,
+                premises=premises,
+                conclusion=conclusion,
                 lean_server=lean_server,
                 model=model,
                 max_iterations=max_stage2_iterations,
