@@ -138,16 +138,21 @@ class SimpleLeanSaver(BaseSaver):
     def _load_existing(self):
         """Load existing results for resume support from JSONL."""
         if os.path.exists(self.jsonl_file):
+            error_count = 0
             with open(self.jsonl_file, 'r') as f:
                 for line in f:
                     if line.strip():
                         result = json.loads(line)
                         case_idx = result.get('case_idx')
                         if case_idx is not None:
+                            # Skip error cases so they get retried
+                            if result.get('error'):
+                                error_count += 1
+                                continue
                             self.completed.add(case_idx)
                             self.results.append(result)
 
-            print(f"Loaded {len(self.completed)} existing results for resume")
+            print(f"Loaded {len(self.completed)} existing results for resume (skipping {error_count} errors)")
 
             with open(self.progress_file, 'a') as f:
                 f.write(f"\n{'='*70}\n")
@@ -348,12 +353,17 @@ class TwoStageSaver(BaseSaver):
     def _load_existing(self):
         """Load existing results for resume support from JSONL."""
         if os.path.exists(self.jsonl_file):
+            error_count = 0
             with open(self.jsonl_file, 'r') as f:
                 for line in f:
                     if line.strip():
                         result = json.loads(line)
                         case_idx = result.get('case_idx')
                         if case_idx is not None:
+                            # Skip error cases so they get retried
+                            if result.get('error'):
+                                error_count += 1
+                                continue
                             self.completed.add(case_idx)
                             self.results.append(result)
                             # Update stage counters
@@ -362,7 +372,7 @@ class TwoStageSaver(BaseSaver):
                             if result.get('stage2_success'):
                                 self.stage2_success += 1
 
-            print(f"Loaded {len(self.completed)} existing results for resume")
+            print(f"Loaded {len(self.completed)} existing results for resume (skipping {error_count} errors)")
 
             with open(self.progress_file, 'a') as f:
                 f.write(f"\n{'='*70}\n")
