@@ -81,8 +81,9 @@ def parse_answer(response, answer_format="true_false"):
         pattern = r'ANSWER:\s*(True|False|Unknown|Uncertain)'
         fallback_pattern = r'\b(True|False|Unknown|Uncertain)\b'
     else:  # yes_no
-        pattern = r'ANSWER:\s*(Yes|No|Unknown|Uncertain)'
-        fallback_pattern = r'\b(Yes|No|Unknown|Uncertain)\b'
+        # Accept both Yes/No and True/False (normalize later)
+        pattern = r'ANSWER:\s*(Yes|No|True|False|Unknown|Uncertain)'
+        fallback_pattern = r'\b(Yes|No|True|False|Unknown|Uncertain)\b'
 
     # Look for ANSWER: format first
     answer_match = re.search(pattern, response, re.IGNORECASE)
