@@ -1,0 +1,53 @@
+<lean>
+axiom obj : Type
+axiom John : obj
+
+-- Predicates
+axiom Water : obj → Prop
+axiom Bloom : obj → Prop
+axiom Attract : obj → Prop
+axiom Fertilizer : obj → Prop
+axiom SoilImproved : obj → Prop
+axiom Healthier : obj → Prop
+
+-- Context axioms
+axiom T1 : ∀ x : obj, Water x → Bloom x
+axiom T2 : ∀ x : obj, Bloom x → Attract x
+-- Inclusive "either water or use organic fertilizers or both"
+axiom T3 : ∀ x : obj, Water x ∨ Fertilizer x ∨ (Water x ∧ Fertilizer x)
+axiom T4 : ∀ x : obj, Fertilizer x → SoilImproved x
+axiom T5 : ∀ x : obj, SoilImproved x → Healthier x
+
+-- Derived: watering implies attraction
+theorem water_implies_attract : ∀ x : obj, Water x → Attract x :=
+  fun x hW => T2 x (T1 x hW)
+
+-- The statement to evaluate is actually provable:
+-- If John's garden does not attract, then his soil quality is high (improved).
+theorem john_soil_improved_from_not_attract : (¬Attract John → SoilImproved John) := by
+  intro hNotA
+  -- From ¬Attract and (Water → Attract), we get ¬Water
+  have hNotW : ¬Water John := by
+    intro hW
+    have hA : Attract John := water_implies_attract John hW
+    exact hNotA hA
+  -- Use the inclusive disjunction to deduce Fertilizer John
+  have hdisj : Water John ∨ Fertilizer John ∨ (Water John ∧ Fertilizer John) := T3 John
+  have hF : Fertilizer John := by
+    cases hdisj with
+    | inl hW =>
+      exact False.elim (hNotW hW)
+    | inr h2 =>
+      cases h2 with
+      | inl hF => exact hF
+      | inr hWF =>
+        have : False := hNotW hWF.left
+        exact False.elim this
+  -- Fertilizer implies soil quality improves
+  exact T4 John hF
+
+-- Since the implication is provable, we cannot prove its negation from the premises.
+-- Hence we cannot derive: ¬(¬Attract John → SoilImproved John).
+</lean>
+
+ANSWER: Failure

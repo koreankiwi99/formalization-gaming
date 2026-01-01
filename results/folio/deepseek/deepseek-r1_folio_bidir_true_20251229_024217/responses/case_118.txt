@@ -1,0 +1,114 @@
+<lean>
+axiom Place : Type
+
+-- Constants
+axiom BarutinCove : Place
+axiom SnowIsland : Place
+axiom SouthShetlandIslands : Place
+axiom Antarctica : Place
+axiom Barutin : Place
+axiom Bulgaria : Place
+
+-- Predicates
+axiom isCove : Place → Prop
+axiom namedAfter : Place → Place → Prop
+axiom locatedIn : Place → Place → Prop
+
+-- Axioms from context
+axiom A1 : isCove BarutinCove
+axiom A2 : namedAfter BarutinCove Barutin
+axiom A3 : locatedIn Barutin Bulgaria
+axiom A4 : locatedIn BarutinCove SnowIsland           -- "on the coast" implies located in
+axiom A5 : locatedIn SnowIsland SouthShetlandIslands
+axiom A6 : locatedIn Antarctica SouthShetlandIslands  -- text: "Antarctica is located on the South Shetland Islands"
+axiom Trans : ∀ (X Y Z : Place), locatedIn X Y → locatedIn Y Z → locatedIn X Z
+
+-- Prove: ∃ (c: Place), isCove c ∧ (∃ (p: Place), locatedIn p Bulgaria ∧ namedAfter c p) ∧ locatedIn c Antarctica
+theorem target : ∃ c, isCove c ∧ (∃ p, locatedIn p Bulgaria ∧ namedAfter c p) ∧ locatedIn c Antarctica := 
+  -- We have BarutinCove as candidate with isCove and naming proven.
+  have nameProof : ∃ p, locatedIn p Bulgaria ∧ namedAfter BarutinCove p := ⟨Barutin, A3, A2⟩ 
+  -- But cannot prove locatedIn BarutinCove Antarctica:
+  -- 1. BarutinCove is in SnowIsland (A4)
+  -- 2. SnowIsland is in SouthShetlandIslands (A5)
+  -- 3. Thus BarutinCove is in SouthShetlandIslands (by Trans)
+  have BC_in_SS : locatedIn BarutinCove SouthShetlandIslands := Trans BarutinCove SnowIsland SouthShetlandIslands A4 A5
+  -- Antarctica is also IN SouthShetlandIslands (A6)
+  -- But we have no axiom that SouthShetlandIslands is contained in anything beyond itself.
+  -- Importantly, we require BarutinCove ∈ Antarctica, but we only have:
+  --   BarutinCove ∈ SouthShetlandIslands and Antarctica ∈ SouthShetlandIslands (A6),
+  -- no transitive chain to Antarctica as the target *container*.
+  -- Cannot prove locatedIn BarutinCove Antarctica.
+  -- No other coves existentially quantified are mentioned. Thus, theorem is unprovable.
+  by
+    unfold locatedIn -- Does nothing but illustrate no progress
+    admit            -- Proof fails without constructive path
+
+-- Admitted indicates failure to prove, so ultimately:
+-- We return "Failure"
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+After analyzing the reasoning problem and the compilation errors in the previous Lean code, I've resolved the issues by renaming conflicting axioms and aligning with Lean 4 syntax. The translation now correctly models the natural language context, but we still cannot prove the conclusion.
+
+Key insights:
+1. `Trans` renamed to `locatedIn_trans` to avoid name conflicts
+2. Context interpreted as:
+   - Barutin Cove is located *in* Snow Island
+   - Snow Island is located in South Shetland Islands
+   - Antarctica is located *in* South Shetland Islands (containment relationship)
+3. Candidate cove (Barutin Cove) is named after Barutin (in Bulgaria)
+4. But we can't prove Barutin Cove is in Antarctica because:
+   - Both Barutin Cove and Antarctica are contained in South Shetland Islands
+   - No axiom states South Shetland Islands is contained in Antarctica
+   - Transitivity doesn't help since the containment chain goes "up" to South Shetland, not "down" to Antarctica
+
+Here's the corrected Lean code:
+
+<lean>
+axiom Place : Type
+
+axiom BarutinCove : Place
+axiom SnowIsland : Place
+axiom SouthShetlandIslands : Place
+axiom Antarctica : Place
+axiom Barutin : Place
+axiom Bulgaria : Place
+
+axiom isCove : Place → Prop
+axiom namedAfter : Place → Place → Prop
+axiom locatedIn : Place → Place → Prop
+
+axiom A1 : isCove BarutinCove
+axiom A2 : namedAfter BarutinCove Barutin
+axiom A3 : locatedIn Barutin Bulgaria
+axiom A4 : locatedIn BarutinCove SnowIsland
+axiom A5 : locatedIn SnowIsland SouthShetlandIslands
+axiom A6 : locatedIn Antarctica SouthShetlandIslands  -- Antarctica CONTAINED IN South Shetlands
+
+axiom locatedIn_trans : ∀ (X Y Z : Place), locatedIn X Y → locatedIn Y Z → locatedIn X Z
+
+-- Proof attempt fails for Antarctica location
+theorem target : ∃ c, isCove c ∧ (∃ p, locatedIn p Bulgaria ∧ namedAfter c p) ∧ locatedIn c Antarctica := by
+  -- Candidate: BarutinCove satisfies cove, naming, and Bulgaria parts
+  apply Exists.intro BarutinCove
+  constructor
+  · exact A1  -- Proof for isCove
+  · constructor
+    · -- Proof for named after Bulgarian place
+      apply Exists.intro Barutin
+      exact ⟨A3, A2⟩  
+    · -- Attempt to prove locatedIn BarutinCove Antarctica
+      have step1 : locatedIn BarutinCove SnowIsland := A4
+      have step2 : locatedIn SnowIsland SouthShetlandIslands := A5
+      have : locatedIn BarutinCove SouthShetlandIslands := locatedIn_trans _ _ _ step1 step2
+      -- But need Antarctica (container), not SouthShetlands (container)
+      -- Cannot reverse containment: Antarctica ∈ SouthShetlands doesn't imply coves ∈ Antarctica
+      admit  -- Critical gap: Cannot establish Antarctica chain
+</lean>
+
+ANSWER: Failure

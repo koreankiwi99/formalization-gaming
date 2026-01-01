@@ -1,0 +1,58 @@
+<lean>
+axiom obj : Type
+
+-- Entities
+axiom Picuris : obj
+axiom HPMine : obj
+axiom Juan : obj
+
+-- Predicates/relations
+axiom MountainRange : obj → Prop
+axiom InNM : obj → Prop
+axiom InTX : obj → Prop
+axiom Mine : obj → Prop
+axiom LocatedIn : obj → obj → Prop
+axiom Donated : obj → Prop
+axiom Visited : obj → obj → Prop
+
+-- Premises
+axiom A_mr_P : MountainRange Picuris
+axiom A_inNM_or_TX : InNM Picuris ∨ InTX Picuris
+axiom A_mine_H : Mine HPMine
+axiom A_loc_H_P : LocatedIn HPMine Picuris
+axiom A_don_H : Donated HPMine
+axiom A_visit : Visited Juan Picuris
+axiom A_no_TX_mr_with_donated_mine :
+  ∀ r : obj, MountainRange r → InTX r → ¬ (∃ m : obj, Mine m ∧ LocatedIn m r ∧ Donated m)
+
+-- From the "no TX mountain range with a donated mine" and the fact HPMine is a donated mine in Picuris,
+-- we infer Picuris is not in Texas.
+theorem Picuris_not_TX : ¬ InTX Picuris := by
+  intro htx
+  have hno : ¬ (∃ m, Mine m ∧ LocatedIn m Picuris ∧ Donated m) :=
+    A_no_TX_mr_with_donated_mine Picuris A_mr_P htx
+  have hex : ∃ m, Mine m ∧ LocatedIn m Picuris ∧ Donated m := by
+    refine Exists.intro HPMine ?_
+    exact And.intro A_mine_H (And.intro A_loc_H_P A_don_H)
+  exact hno hex
+
+-- Using the disjunction "in NM or in TX" together with ¬ InTX, we conclude InNM.
+theorem Picuris_in_NM : InNM Picuris := by
+  cases A_inNM_or_TX with
+  | inl hnm => exact hnm
+  | inr htx => exact False.elim (Picuris_not_TX htx)
+
+-- Therefore, HPMine is located in a mountain range in New Mexico (witness: Picuris).
+theorem mine_in_mr_in_NM : ∃ r : obj, MountainRange r ∧ InNM r ∧ LocatedIn HPMine r := by
+  refine Exists.intro Picuris ?_
+  exact And.intro A_mr_P (And.intro Picuris_in_NM A_loc_H_P)
+
+-- This shows the negation of the user's statement.
+-- User's statement formalization: ¬ ∃ r, MountainRange r ∧ InNM r ∧ LocatedIn HPMine r
+-- We prove its negation by providing a witness (Picuris).
+theorem users_statement_is_false : ¬ (¬ ∃ r, MountainRange r ∧ InNM r ∧ LocatedIn HPMine r) := by
+  intro h
+  exact h mine_in_mr_in_NM
+</lean>
+
+ANSWER: Failure

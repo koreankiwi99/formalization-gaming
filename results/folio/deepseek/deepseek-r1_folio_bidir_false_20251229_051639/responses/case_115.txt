@@ -1,0 +1,108 @@
+The goal is to prove that "Windy is a great shooter" is false. After analyzing the context and translating it into Lean, we derive the following:
+
+1. From the axioms:
+   - Michael blocks any shooter who does not jump (`T3`)
+   - Michael cannot block Windy (`T4`)
+   → Therefore, Windy must have jumped in that specific event (`Windy_jumped`)
+
+2. However, the conclusion requires proving Windy is a great shooter, which depends on Windy's *ability* to jump (per `T5`). 
+   - `Windy_jumped` only shows an instance of jumping, not the ability to jump.
+   - There is no link between jumping in an event and possessing the jumping ability.
+
+3. Height-related axioms (about Michael, Peter, and transitivity) do not provide additional information about Windy's jumping ability or shooter status.
+
+Since we can prove Windy jumped (a specific event) but cannot prove Windy has the jumping ability (required for "great shooter"), we **cannot prove that "Windy is a great shooter" is false** (i.e., we cannot prove `¬GreatShooter Windy`).
+
+<lean>
+axiom Person : Type
+axiom Michael : Person
+axiom Windy : Person
+axiom Block_shooter : Person → Prop
+axiom jumps_in_this_event : Person → Prop
+axiom T3 : ∀ (s : Person), ¬ jumps_in_this_event s → Block_shooter s
+axiom T4 : ¬ Block_shooter Windy
+theorem Windy_jumped : jumps_in_this_event Windy := by 
+  intro h; exact T4 (T3 Windy h)
+
+axiom CanJump : Person → Prop
+axiom GreatShooter : Person → Prop
+axiom T5 : ∀ (s : Person), CanJump s → GreatShooter s
+
+-- No axioms link jumps_in_this_event to CanJump, so we cannot prove ¬GreatShooter Windy
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation error occurred because I tried to use `intro` to prove a proposition that was not universally quantified. Specifically, `jumps_in_this_event Windy` is a simple proposition, not a function type. I've corrected this by using proof-by-contradiction via `by_contra`.
+
+<lean>
+axiom Person : Type
+axiom Michael : Person
+axiom Windy : Person
+axiom Block_shooter : Person → Prop
+axiom jumps_in_this_event : Person → Prop
+axiom T3 : ∀ (s : Person), ¬ jumps_in_this_event s → Block_shooter s
+axiom T4 : ¬ Block_shooter Windy
+theorem Windy_jumped : jumps_in_this_event Windy := by 
+  by_contra h  -- assume Windy did not jump
+  exact T4 (T3 Windy h)  -- contradicts T4
+
+axiom CanJump : Person → Prop
+axiom GreatShooter : Person → Prop
+axiom T5 : ∀ (s : Person), CanJump s → GreatShooter s
+
+-- There is no axiom linking the event-specific jump to the ability CanJump
+-- Therefore, we cannot prove ¬GreatShooter Windy
+</lean>
+
+ANSWER: Failure
+
+**Explanation:**  
+While we proved `Windy_jumped` (Windy jumped during the specific shooting event), the conclusion "Windy is a great shooter" requires `CanJump Windy` (Windy has the **ability** to jump). However, the premises only connect discrete jumping events to blocking, not to the permanent ability required for "great shooter" status. The height-related axioms (taller-blocking and transitivity) are unused here since the blocking failure only depends on jumping, not height.
+
+Thus, we lack the necessary axiom to prove that Windy **does not** possess the jumping ability (or is not a great shooter), leading to Failure.
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The error occurred because the theorem `Windy_jumped` wasn't fully proven using the `by_contra` tactic. Here's the corrected version that uses termination via `contradiction` and properly establishes the goal. The missing information about Windy's shooter status and the disconnect between event-jumping and jumping ability still prevent us from proving the negation.
+
+<lean>
+axiom Person : Type
+axiom Michael : Person
+axiom Windy : Person
+axiom Block_shooter : Person → Prop
+axiom jumps_in_this_event : Person → Prop
+axiom T3 : ∀ (s : Person), ¬ jumps_in_this_event s → Block_shooter s
+axiom T4 : ¬ Block_shooter Windy
+axiom CanJump : Person → Prop
+axiom GreatShooter : Person → Prop
+axiom T5 : ∀ (s : Person), CanJump s → GreatShooter s
+
+open Classical  -- Needed for proof by contradiction
+
+theorem Windy_jumped : jumps_in_this_event Windy := by 
+  by_contra h  -- Assume ¬jumps_in_this_event Windy
+  apply T4      -- Need to show Block_shooter Windy to contradict T4
+  exact T3 Windy h  -- From ¬jump → Block_shooter
+
+-- Critical missing links:
+-- 1. No axiom stating Windy is a shooter
+-- 2. No connection between jumps_in_this_event and CanJump
+-- Therefore, cannot prove ¬GreatShooter Windy
+</lean>
+
+ANSWER: Failure
+
+**Explanation:**
+1. **Type mismatch:** Opening `Classical` allows proper use of `by_contra`. The proof now uses `apply T4` followed by `exact T3 Windy h` to show the goal `Block_shooter Windy` under the negation hypothesis, creating an explicit contradiction.
+2. **Unresolved conclusion:** While we proved Windy jumped in that specific event (`Windy_jumped`), there's still:
+   - No indication that Windy qualifies as a "shooter"
+   - No axiom linking the *specific event* of jumping to the *permanent ability* `CanJump` required by `T5`
+3. **Unused premises:** The height-related premises (taller-blocking relationship, Peter's height, transitivity) remain irrelevant since Michael's blocking failure is directly attributed to jumping via `T3-T4`.
+4. **Negation unprovable:** `¬GreatShooter Windy` would require proving Windy lacks jumping ability (`¬CanJump Windy`), which contradicts the event-based jump we proved. No premises resolve whether Windy's jump implies ability/disability.

@@ -1,0 +1,61 @@
+<lean>
+axiom Person : Type
+axiom Taylor : Person
+
+axiom EatSalad : Person → Prop
+axiom VeryConscious : Person → Prop
+axiom HealthHome : Person → Prop
+axiom Fulfill : Person → Prop
+axiom Disregard : Person → Prop
+axiom GymDaily : Person → Prop
+
+-- Premises
+axiom P1 : ∀ x : Person, EatSalad x → VeryConscious x
+axiom P2 : ∀ x : Person, HealthHome x → EatSalad x
+axiom P3 : ∀ x : Person, Fulfill x → HealthHome x
+axiom P4 : ∀ x : Person, Disregard x → ¬ VeryConscious x
+axiom P5 : ∀ x : Person, GymDaily x → Fulfill x
+axiom P6 : (HealthHome Taylor ∧ Disregard Taylor) ∨ (¬HealthHome Taylor ∧ ¬Disregard Taylor)
+
+-- From growing up in a health-conscious home to being very conscious
+theorem H_to_VC : ∀ x : Person, HealthHome x → VeryConscious x := by
+  intro x hx
+  have hxEat : EatSalad x := P2 x hx
+  exact P1 x hxEat
+
+-- It is impossible for Taylor to both have grown up health-conscious and disregard well-being
+theorem not_H_and_D_taylor : ¬(HealthHome Taylor ∧ Disregard Taylor) := by
+  intro h
+  cases h with
+  | intro hH hD =>
+    have vc : VeryConscious Taylor := H_to_VC Taylor hH
+    have nvc : ¬VeryConscious Taylor := P4 Taylor hD
+    exact nvc vc
+
+-- Therefore, from P6, Taylor did neither: ¬H ∧ ¬D
+theorem notH_and_notD_taylor : ¬HealthHome Taylor ∧ ¬Disregard Taylor := by
+  cases P6 with
+  | inl hhd =>
+    have : False := not_H_and_D_taylor hhd
+    exact False.elim this
+  | inr hneither =>
+    exact hneither
+
+-- Gym implies Health via fulfilling daily intake
+theorem Gym_to_Health : ∀ x : Person, GymDaily x → HealthHome x := by
+  intro x hg
+  have f : Fulfill x := P5 x hg
+  exact P3 x f
+
+-- Conclude the original statement: Taylor neither H nor G
+theorem conclusion_true : ¬HealthHome Taylor ∧ ¬GymDaily Taylor := by
+  have hNotH : ¬HealthHome Taylor := (notH_and_notD_taylor).left
+  -- derive ¬G from ¬H and (G → H)
+  have hNotG : ¬GymDaily Taylor := by
+    intro g
+    have hH : HealthHome Taylor := Gym_to_Health Taylor g
+    exact hNotH hH
+  exact And.intro hNotH hNotG
+</lean>
+
+ANSWER: Failure

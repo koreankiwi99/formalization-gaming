@@ -1,0 +1,46 @@
+<lean>
+axiom obj : Type
+
+-- Entities
+axiom ETS : obj
+axiom Tom : obj
+
+-- Predicates
+axiom TakingGRE : obj → Prop
+axiom ApplicantGRE : obj → Prop
+axiom ProvesHardship : obj → Prop
+axiom SingleParentFamily : obj → Prop
+axiom FewResources : obj → Prop
+axiom ProvidesAid : obj → obj → Prop  -- provider → person
+
+-- Rules from the context
+axiom AidRule : ∀ x : obj, ApplicantGRE x → ProvesHardship x → ProvidesAid ETS x
+axiom HardshipFromSingleParent : ∀ x : obj, SingleParentFamily x → ProvesHardship x
+axiom HardshipFromFewResources : ∀ x : obj, FewResources x → ProvesHardship x
+axiom ApplicantsAreTaking : ∀ x : obj, ApplicantGRE x → TakingGRE x
+
+-- Facts about Tom
+axiom TomSingleParent : SingleParentFamily Tom
+axiom TomFewResources : FewResources Tom
+axiom TomApplicant : ApplicantGRE Tom
+
+-- A witness that someone taking the GRE has financial aid provided by something
+theorem exists_counterexample :
+  ∃ x : obj, TakingGRE x ∧ ∃ y : obj, ProvidesAid y x := by
+  have h_hard : ProvesHardship Tom := HardshipFromSingleParent Tom TomSingleParent
+  have h_aid : ProvidesAid ETS Tom := AidRule Tom TomApplicant h_hard
+  have h_taking : TakingGRE Tom := ApplicantsAreTaking Tom TomApplicant
+  exact ⟨Tom, h_taking, ⟨ETS, h_aid⟩⟩
+
+-- The queried statement is false:
+-- "No one taking the GRE test has financial aid provided to them by something."
+-- Formalization: ∀ x, TakingGRE x → ¬ ∃ y, ProvidesAid y x
+theorem no_one_taking_has_aid_false :
+  ¬ (∀ x : obj, TakingGRE x → ¬ ∃ y : obj, ProvidesAid y x) := by
+  intro h
+  have ⟨x, hx_taking, ⟨y, hy_aid⟩⟩ := exists_counterexample
+  have hx_none : ¬ ∃ y : obj, ProvidesAid y x := h x hx_taking
+  exact hx_none ⟨y, hy_aid⟩
+</lean>
+
+ANSWER: False

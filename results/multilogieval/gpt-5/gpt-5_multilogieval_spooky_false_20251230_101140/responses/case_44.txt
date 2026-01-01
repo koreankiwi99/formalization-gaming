@@ -1,0 +1,45 @@
+<lean>
+axiom obj : Type
+axiom Mark : obj
+
+axiom PlantsGarden : obj → Prop
+axiom NeedToWater : obj → Prop
+axiom NeedToCare : obj → Prop
+axiom Drought : Prop
+axiom WateringBan : Prop
+axiom NotEnoughWater : obj → Prop
+axiom FailsToThrive : obj → Prop
+
+-- If someone plants a garden, they will need to water and care for the plants.
+axiom A1 : ∀ x : obj, PlantsGarden x → (NeedToWater x ∧ NeedToCare x)
+-- If there is a drought, there will be a ban on watering gardens.
+axiom A2 : Drought → WateringBan
+-- Either Mark plants a garden, or there is a drought (or both).
+axiom A3 : PlantsGarden Mark ∨ Drought
+-- If there is a watering ban, the plants will not get enough water (for anyone).
+axiom A4 : WateringBan → ∀ x : obj, NotEnoughWater x
+-- If the plants don't get watered (enough), the garden will fail to thrive.
+axiom A5 : ∀ x : obj, NotEnoughWater x → FailsToThrive x
+-- Mark did not need to care for garden plants.
+axiom A6 : ¬NeedToCare Mark
+
+theorem mark_garden_failed : FailsToThrive Mark := by
+  -- From "plant → need care" and "¬need care", get "¬plant" for Mark
+  have hNotPlant : ¬PlantsGarden Mark := by
+    intro hPlant
+    have hBoth : NeedToWater Mark ∧ NeedToCare Mark := A1 Mark hPlant
+    have hCare : NeedToCare Mark := And.right hBoth
+    exact A6 hCare
+  -- From (Plant ∨ Drought) and ¬Plant, deduce Drought
+  have hDrought : Drought := by
+    cases A3 with
+    | inl hPlant => exact False.elim (hNotPlant hPlant)
+    | inr hD => exact hD
+  -- Chain implications to failure to thrive
+  have hBan : WateringBan := A2 hDrought
+  have hNEW_all : ∀ x : obj, NotEnoughWater x := A4 hBan
+  have hNEW_mark : NotEnoughWater Mark := hNEW_all Mark
+  exact A5 Mark hNEW_mark
+</lean>
+
+ANSWER: Failure

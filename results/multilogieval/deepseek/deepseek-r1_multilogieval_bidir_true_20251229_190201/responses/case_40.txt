@@ -1,0 +1,83 @@
+<lean>
+axiom Person : Type
+axiom James : Person
+
+axiom StartsNewWorkout : Person → Prop
+axiom Motivated : Person → Prop
+axiom GymCloses : Prop
+axiom CannotFollowRoutine : Person → Prop
+axiom Frustrated : Person → Prop
+axiom IndulgeUnhealthySnacks : Person → Prop
+
+axiom motivation_rule : ∀ (p : Person), StartsNewWorkout p → Motivated p
+axiom gym_closure_effect : GymCloses → ∀ (p : Person), CannotFollowRoutine p
+axiom event_disjunction : StartsNewWorkout James ∨ GymCloses
+axiom frustration_rule : ∀ (p : Person), CannotFollowRoutine p → Frustrated p
+axiom indulgence_rule : ∀ (p : Person), Frustrated p → IndulgeUnhealthySnacks p
+
+axiom not_motivated : ¬ Motivated James
+
+theorem james_indulged : IndulgeUnhealthySnacks James := by
+  have no_start : ¬ StartsNewWorkout James := by
+    intro h_start
+    have h_mot := motivation_rule James h_start
+    contradiction
+  cases event_disjunction with
+  | inl start => contradiction
+  | inr gym_closed =>
+      have cannot_follow := gym_closure_effect gym_closed James
+      have frustrated := frustration_rule James cannot_follow
+      exact indulgence_rule James frustrated
+</lean>
+
+ANSWER: Yes
+
+======================================================================
+ITERATION 2
+======================================================================
+
+After analyzing the errors, the issue occurred because the `contradiction` tactic failed to find the hypothesis `not_motivated` in the nested context during the initial attempt. The proof structure has been refactored to explicitly handle the disjunction without an intermediate `have` statement, using `absurd` to derive contradictions where needed.
+
+Here's the corrected Lean code:
+
+<lean>
+axiom Person : Type
+axiom James : Person
+
+axiom StartsNewWorkout : Person → Prop
+axiom Motivated : Person → Prop
+axiom GymCloses : Prop
+axiom CannotFollowRoutine : Person → Prop
+axiom Frustrated : Person → Prop
+axiom IndulgeUnhealthySnacks : Person → Prop
+
+axiom motivation_rule : ∀ (p : Person), StartsNewWorkout p → Motivated p
+axiom gym_closure_effect : GymCloses → ∀ (p : Person), CannotFollowRoutine p
+axiom event_disjunction : StartsNewWorkout James ∨ GymCloses
+axiom frustration_rule : ∀ (p : Person), CannotFollowRoutine p → Frustrated p
+axiom indulgence_rule : ∀ (p : Person), Frustrated p → IndulgeUnhealthySnacks p
+
+axiom not_motivated : ¬ Motivated James
+
+theorem james_indulged : IndulgeUnhealthySnacks James := by
+  cases event_disjunction with
+  | inl start => 
+      have h_mot : Motivated James := motivation_rule James start
+      exact absurd h_mot not_motivated
+  | inr gym_closed => 
+      have cannot_follow := gym_closure_effect gym_closed James
+      have frustrated := frustration_rule James cannot_follow
+      exact indulgence_rule James frustrated
+</lean>
+
+**Proof explanation:**
+- We first decompose `event_disjunction` into two cases:
+  1. Case 1: `StartsNewWorkout James`  
+     - This implies `Motivated James` via `motivation_rule`.  
+     - This contradicts `not_motivated`, resolved explicitly with `absurd`.
+  2. Case 2: `GymCloses`  
+     - Triggers `CannotFollowRoutine James` (via `gym_closure_effect`).  
+     - Leads to `Frustrated James` (via `frustration_rule`).  
+     - Proves the goal `IndulgeUnhealthySnacks James` (via `indulgence_rule`).
+
+ANSWER: Yes

@@ -1,0 +1,103 @@
+<lean>
+axiom obj : Type
+axiom Cake : obj
+axiom Set350 : obj → Prop
+axiom BakesProperly : obj → Prop
+axiom ContainsEggs : obj → Prop
+axiom Fluffy : obj → Prop
+axiom TastesDelicious : obj → Prop
+axiom GuestsHappy : Prop
+
+axiom A1 : ∀ x : obj, Set350 x → BakesProperly x
+axiom A2 : ∀ x : obj, ContainsEggs x → Fluffy x
+axiom A3 : Set350 Cake ∨ ¬ ContainsEggs Cake
+axiom A4 : ∀ x : obj, BakesProperly x → TastesDelicious x
+axiom A5 : TastesDelicious Cake → GuestsHappy
+
+-- Attempt to prove: ContainsEggs Cake → ¬GuestsHappy (to disprove the original conditional)
+theorem attempt_proof : ContainsEggs Cake → ¬GuestsHappy :=
+  fun hEggs : ContainsEggs Cake =>
+    fun hHappy : GuestsHappy =>
+      -- From A3: either Set350 Cake or ¬ContainsEggs Cake
+      have hDisj : Set350 Cake ∨ ¬ContainsEggs Cake := A3
+      -- Case split on disjunction
+      Or.elim hDisj
+        (fun hSet : Set350 Cake =>
+          -- If oven set correctly, cake bakes properly
+          have hBake : BakesProperly Cake := A1 Cake hSet
+          -- Then it tastes delicious
+          have hTaste : TastesDelicious Cake := A4 Cake hBake
+          -- Then guests happy (contradicts ¬GuestsHappy)
+          have hHappy' : GuestsHappy := A5 hTaste
+          False.elim (hHappy hHappy')  -- Contradiction: hHappy and ¬GuestsHappy
+        )
+        (fun noEggs : ¬ContainsEggs Cake =>
+          -- But we have hEggs (ContainsEggs Cake), contradiction
+          False.elim (noEggs hEggs)
+        )
+-- This proof fails because we derive GuestsHappy when Set350 holds, which contradicts ¬GuestsHappy.
+-- However, note that we cannot actually prove ¬GuestsHappy under hEggs; we get a contradiction in the proof attempt.
+
+-- Alternate approach: try to prove negation of the original implication
+theorem neg_implication : ¬(ContainsEggs Cake → GuestsHappy) :=
+  fun h : ContainsEggs Cake → GuestsHappy =>
+    -- We need to show ContainsEggs Cake ∧ ¬GuestsHappy
+    -- But from A3 and other axioms, when ContainsEggs Cake is true:
+    have hSet : Set350 Cake := by
+      cases A3 with
+      | inl h1 => exact h1
+      | inr h2 => exact absurd hEggs h2  -- Contradiction if ¬ContainsEggs
+    have hBake : BakesProperly Cake := A1 Cake hSet
+    have hTaste : TastesDelicious Cake := A4 Cake hBake
+    have hHappy : GuestsHappy := A5 hTaste
+    -- This shows GuestsHappy, so we cannot have ¬GuestsHappy
+    -- Therefore, we cannot construct ContainsEggs Cake ∧ ¬GuestsHappy
+    sorry  -- Placeholder for unprovable statement
+
+-- Since both attempts fail, we conclude we cannot prove the negation.
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors occurred due to incorrect handling of the contradiction in the proof attempt. Specifically, the term `hHappy` was incorrectly applied as a function when it was actually a proposition. Additionally, the case splitting in the disjunction did not properly handle the context of assumptions.
+
+The corrected Lean code properly handles the disjunction and avoids incorrect function application. The proof attempt shows that when assuming the cake contains eggs, we can derive that the guests will be happy (via the oven being set correctly and the cake baking properly). Therefore, we cannot prove that the guests will not be happy under this assumption.
+
+<lean>
+axiom obj : Type
+axiom Cake : obj
+axiom Set350 : obj → Prop
+axiom BakesProperly : obj → Prop
+axiom ContainsEggs : obj → Prop
+axiom Fluffy : obj → Prop
+axiom TastesDelicious : obj → Prop
+axiom GuestsHappy : Prop
+
+axiom A1 : ∀ x : obj, Set350 x → BakesProperly x
+axiom A2 : ∀ x : obj, ContainsEggs x → Fluffy x
+axiom A3 : Set350 Cake ∨ ¬ ContainsEggs Cake
+axiom A4 : ∀ x : obj, BakesProperly x → TastesDelicious x
+axiom A5 : TastesDelicious Cake → GuestsHappy
+
+-- Attempt to prove: ContainsEggs Cake → ¬GuestsHappy
+theorem attempt_proof : ContainsEggs Cake → ¬GuestsHappy :=
+  fun hEggs : ContainsEggs Cake =>
+    fun hHappy : GuestsHappy =>  -- This is the assumption that guests are happy (which we're trying to contradict)
+      -- Case split on A3: either oven set correctly or no eggs
+      match A3 with
+      | Or.inl hSet =>
+          have hBake : BakesProperly Cake := A1 Cake hSet
+          have hTaste : TastesDelicious Cake := A4 Cake hBake
+          have hHappy' : GuestsHappy := A5 hTaste
+          -- We now have two proofs of GuestsHappy (hHappy and hHappy'), but no contradiction
+          sorry  -- Cannot produce False here
+      | Or.inr noEggs =>
+          -- Contradiction: we have eggs (hEggs) but A3 says no eggs
+          False.elim (noEggs hEggs)
+</lean>
+
+ANSWER: Failure

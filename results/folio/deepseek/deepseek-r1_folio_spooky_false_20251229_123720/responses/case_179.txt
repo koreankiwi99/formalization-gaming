@@ -1,0 +1,98 @@
+The premises provide enough information to prove that Susan does not fly from LGA airport. Specifically:
+
+1. Susan's flight arrives at LGA (given)
+2. No flight can have the same departure and arrival airport (general rule)
+3. Therefore, Susan's departure airport cannot be LGA (since the arrival is already LGA)
+
+The additional information about John's flight (departure from LGA) does not affect this conclusion. The Lean proof formally derives a contradiction by assuming Susan departs from LGA, demonstrating the statement is false.
+
+<lean>
+axiom airport : Type
+axiom flight : Type
+axiom LGA : airport
+axiom departure : flight → airport
+axiom arrival : flight → airport
+axiom susanFlight : flight
+
+premise arrives_susan : arrival susanFlight = LGA
+premise distinct_airports : ∀ f : flight, departure f ≠ arrival f
+
+-- Statement to disprove: Susan departs from LGA
+theorem disprove : ¬(departure susanFlight = LGA) := 
+  fun (assume_depart : departure susanFlight = LGA) => 
+    have same_airport : departure susanFlight = arrival susanFlight := by rw [assume_depart, arrives_susan]
+    distinct_airports susanFlight same_airport
+
+-- Prove the statement leads to False
+example : False := 
+  have H : departure susanFlight = LGA := by 
+    -- Attempt to assume the negation of the theorem fails, so use contradiction
+    contradict disprove
+    exact disprove 
+  disprove H
+</lean>
+
+ANSWER: False
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors occurred due to incorrect syntax and unnecessary tactics. The main issues were:
+1. Using `premise` instead of `axiom`
+2. Attempting to prove `False` directly when only the negation was needed
+3. Tactics (`by rw`) were misapplied in theorem definitions
+
+The corrected approach:
+1. Declare types and constants with `axiom`
+2. State premises with `axiom`
+3. Prove negation directly without tactics
+4. Remove unnecessary `example : False` block
+
+The key insight is that Susan's arrival at LGA combined with "no same airport departures/arrivals" proves she cannot depart from LGA.
+
+<lean>
+axiom airport : Type
+axiom flight : Type
+axiom LGA : airport
+axiom departure : flight → airport
+axiom arrival : flight → airport
+axiom susanFlight : flight
+
+axiom arrives_susan : arrival susanFlight = LGA
+axiom distinct_airports : ∀ f : flight, departure f ≠ arrival f
+
+theorem susan_not_from_LGA : ¬(departure susanFlight = LGA) := 
+  fun h : departure susanFlight = LGA => 
+    distinct_airports susanFlight (h.symm ▸ arrives_susan)
+</lean>
+
+ANSWER: False
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The compilation error occurred because the equality direction was mismatched. The proof required showing `departure susanFlight = arrival susanFlight`, but the premises provided:
+1. `arrives_susan : arrival susanFlight = LGA` (arrival equals LGA)
+2. Assumption `h : departure susanFlight = LGA` (departure equals LGA)
+
+The correct proof combines these equalities through transitivity: `h.trans arrives_susan.symm` proves `departure susanFlight = arrival susanFlight`, which contradicts the axiom that departure and arrival cannot be equal.
+
+<lean>
+axiom airport : Type
+axiom flight : Type
+axiom LGA : airport
+axiom departure : flight → airport
+axiom arrival : flight → airport
+axiom susanFlight : flight
+
+axiom arrives_susan : arrival susanFlight = LGA
+axiom distinct_airports : ∀ f : flight, departure f ≠ arrival f
+
+theorem disprove : ¬(departure susanFlight = LGA) := 
+  fun h : departure susanFlight = LGA => 
+    distinct_airports susanFlight (h.trans arrives_susan.symm)
+</lean>
+
+ANSWER: False

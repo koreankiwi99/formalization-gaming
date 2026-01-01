@@ -1,0 +1,239 @@
+We are given several statements and need to determine if Marvin is an alien. Here's the reasoning:
+
+1. **Axioms**:
+   - `∀x, Alien x → Extraterrestrial x`
+   - `∀x, FromMars x → Alien x`
+   - `∀x, Extraterrestrial x → ¬Human x`
+   - `∀x, (HighlyIntelligent x ∧ FromEarth x) → Human x`
+   - `HighlyIntelligent Marvin`
+   - `(FromEarth Marvin ∧ FromMars Marvin) ∨ (¬FromEarth Marvin ∧ ¬FromMars Marvin)`
+   - `¬FromEarth Marvin → Extraterrestrial Marvin`
+
+2. **Analysis**:
+   - Case 1: Assume Marvin is from both Earth and Mars.
+     - From `FromMars Marvin`, we get `Alien Marvin` (by axiom 2).
+     - Then `Extraterrestrial Marvin` (by axiom 1).
+     - `¬Human Marvin` (by axiom 3).
+     - But since Marvin is from Earth and highly intelligent, we get `Human Marvin` (by axiom 4).
+     - **Contradiction**: `Human Marvin` and `¬Human Marvin`.
+     - Thus, this case is impossible.
+
+   - Case 2: Marvin is from neither Earth nor Mars.
+     - `¬FromEarth Marvin` holds, so `Extraterrestrial Marvin` (by axiom 7).
+     - Thus, `¬Human Marvin` (by axiom 3).
+     - However, we cannot prove `Alien Marvin`:
+       - Axiom 2 only states that being from Mars implies being an alien, not vice versa.
+       - There is no axiom forcing an extraterrestrial (like Marvin) to be an alien.
+     - Similarly, we cannot prove `¬Alien Marvin` because there might be aliens not from Mars.
+
+   - Since Case 1 is impossible, Case 2 must hold. In Case 2, we know `Extraterrestrial Marvin` and `¬FromMars Marvin`, but we have insufficient information to prove or disprove `Alien Marvin`.
+
+3. **Lean Representation**: 
+   - We model the predicates and axioms.
+   - We prove Case 1 is impossible (`case1_impossible`).
+   - We prove Case 2 must hold (`case2`).
+   - We show `Extraterrestrial Marvin` in Case 2 (`extraterrestrial`).
+   - However, we cannot prove or disprove `Alien Marvin`.
+
+<lean>
+axiom obj : Type
+axiom Marvin : obj
+axiom Alien : obj → Prop
+axiom Extraterrestrial : obj → Prop
+axiom Human : obj → Prop
+axiom FromMars : obj → Prop
+axiom FromEarth : obj → Prop
+axiom HighlyIntelligent : obj → Prop
+
+-- All aliens are extraterrestrials
+axiom A1 : ∀ x, Alien x → Extraterrestrial x
+-- If someone is from Mars, they are an alien
+axiom A2 : ∀ x, FromMars x → Alien x
+-- No extraterrestrial is human
+axiom A3 : ∀ x, Extraterrestrial x → ¬ Human x
+-- Highly intelligent beings from Earth are human
+axiom A4 : ∀ x, (HighlyIntelligent x ∧ FromEarth x) → Human x
+-- Marvin is highly intelligent
+axiom A5 : HighlyIntelligent Marvin
+-- Marvin is either from both Earth and Mars, or neither
+axiom A6 : (FromEarth Marvin ∧ FromMars Marvin) ∨ (¬FromEarth Marvin ∧ ¬FromMars Marvin)
+-- If not from Earth, Marvin is extraterrestrial
+axiom A7 : ¬FromEarth Marvin → Extraterrestrial Marvin
+
+-- Case 1 (from Earth and from Mars) is impossible
+lemma case1_impossible : ¬ (FromEarth Marvin ∧ FromMars Marvin) :=
+  fun ⟨hE, hM⟩ =>
+    have alien : Alien Marvin := A2 Marvin hM
+    have extraterrestrial : Extraterrestrial Marvin := A1 Marvin alien
+    have notHuman : ¬ Human Marvin := A3 Marvin extraterrestrial
+    have human : Human Marvin := A4 Marvin ⟨A5, hE⟩
+    notHuman human
+
+-- Therefore, Case 2 must hold: not from Earth and not from Mars
+lemma case2 : ¬FromEarth Marvin ∧ ¬FromMars Marvin := by
+  cases A6 with
+  | inl c1 => exact absurd c1 case1_impossible
+  | inr c2 => exact c2
+
+-- Marvin is extraterrestrial by axiom 7 in Case 2
+have notE : ¬FromEarth Marvin := case2.1
+have extraterrestrial : Extraterrestrial Marvin := A7 notE
+
+-- We cannot prove or disprove Alien Marvin:
+-- A2 provides Alien only for those from Mars (which Marvin is not)
+-- A1 states Alien implies Extraterrestrial, but not the converse
+</lean>
+
+ANSWER: Uncertain
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors occurred because top-level `have` statements were used outside of a proof context. In Lean, `have` can only be used within a proof block (e.g., inside a lemma or theorem). The solution involves encapsulating the final statements as lemmas and explicitly handling contradictions.
+
+Here's the corrected Lean code:
+
+<lean>
+axiom obj : Type
+axiom Marvin : obj
+axiom Alien : obj → Prop
+axiom Extraterrestrial : obj → Prop
+axiom Human : obj → Prop
+axiom FromMars : obj → Prop
+axiom FromEarth : obj → Prop
+axiom HighlyIntelligent : obj → Prop
+
+-- All aliens are extraterrestrials
+axiom A1 : ∀ x, Alien x → Extraterrestrial x
+-- If someone is from Mars, they are an alien
+axiom A2 : ∀ x, FromMars x → Alien x
+-- No extraterrestrial is human
+axiom A3 : ∀ x, Extraterrestrial x → ¬ Human x
+-- Highly intelligent beings from Earth are human
+axiom A4 : ∀ x, (HighlyIntelligent x ∧ FromEarth x) → Human x
+-- Marvin is highly intelligent
+axiom A5 : HighlyIntelligent Marvin
+-- Marvin is either from both Earth and Mars, or neither
+axiom A6 : (FromEarth Marvin ∧ FromMars Marvin) ∨ (¬FromEarth Marvin ∧ ¬FromMars Marvin)
+-- If not from Earth, Marvin is extraterrestrial
+axiom A7 : ¬FromEarth Marvin → Extraterrestrial Marvin
+
+-- Case 1 (from Earth and from Mars) leads to contradiction
+lemma case1_impossible : ¬(FromEarth Marvin ∧ FromMars Marvin) := by
+  intro ⟨hE, hM⟩
+  have alien := A2 Marvin hM
+  have extraterrestrial := A1 Marvin alien
+  have notHuman := A3 Marvin extraterrestrial
+  have human := A4 Marvin ⟨A5, hE⟩
+  exact notHuman human
+
+-- Therefore, Case 2 must hold: not from Earth and not from Mars
+lemma case2 : ¬FromEarth Marvin ∧ ¬FromMars Marvin := by
+  cases A6 with
+  | inl c1 => exact absurd c1 case1_impossible
+  | inr c2 => exact c2
+
+-- Marvin is extraterrestrial (from A7 and Case2)
+lemma marvin_extraterrestrial : Extraterrestrial Marvin := 
+  A7 (case2.1)
+
+-- No axioms force Alien Marvin to be true or false
+-- Attempt to prove Alien Marvin (fails)
+example : Alien Marvin := by
+  -- Cannot progress: A2 requires FromMars, but case2.2 says ¬FromMars Marvin
+  sorry
+
+-- Attempt to prove ¬Alien Marvin (fails)
+example : ¬Alien Marvin := by
+  -- No axiom prevents Marvin from being Alien via other means
+  sorry
+
+</lean>
+
+**Explanation of uncertainty:**  
+We've established that Marvin is extraterrestrial but not from Mars. While:
+- Axiom A2 provides *one way* to be Alien (via Mars origin), it doesn't cover *all possible ways*.
+- Axiom A1 states that Aliens are Extraterrestrials, but not the converse.
+- No axioms connect Extraterrestrial status directly to Alien status beyond A2's narrow condition.
+
+Thus, we have insufficient information to prove or disprove "Marvin is an alien."
+
+ANSWER: Uncertain
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The compilation errors occurred due to an issue with using projection notation (`case2.1`) in the definition of `marvin_extraterrestrial`. The solution is to restructure the proof using explicit hypotheses derived from `case2` and to use full lemma names instead of projections.
+
+Here's the corrected Lean code:
+
+<lean>
+axiom obj : Type
+axiom Marvin : obj
+axiom Alien : obj → Prop
+axiom Extraterrestrial : obj → Prop
+axiom Human : obj → Prop
+axiom FromMars : obj → Prop
+axiom FromEarth : obj → Prop
+axiom HighlyIntelligent : obj → Prop
+
+-- All aliens are extraterrestrials
+axiom A1 : ∀ x, Alien x → Extraterrestrial x
+-- If someone is from Mars, they are an alien
+axiom A2 : ∀ x, FromMars x → Alien x
+-- No extraterrestrial is human
+axiom A3 : ∀ x, Extraterrestrial x → ¬ Human x
+-- Highly intelligent beings from Earth are human
+axiom A4 : ∀ x, (HighlyIntelligent x ∧ FromEarth x) → Human x
+-- Marvin is highly intelligent
+axiom A5 : HighlyIntelligent Marvin
+-- Marvin is either from both Earth and Mars, or neither
+axiom A6 : (FromEarth Marvin ∧ FromMars Marvin) ∨ (¬FromEarth Marvin ∧ ¬FromMars Marvin)
+-- If not from Earth, Marvin is extraterrestrial
+axiom A7 : ¬FromEarth Marvin → Extraterrestrial Marvin
+
+-- Case 1 (from Earth and from Mars) leads to contradiction
+lemma case1_impossible : ¬(FromEarth Marvin ∧ FromMars Marvin) := by
+  intro ⟨hE, hM⟩
+  have alien := A2 Marvin hM
+  have extraterrestrial := A1 Marvin alien
+  have notHuman := A3 Marvin extraterrestrial
+  have human := A4 Marvin ⟨A5, hE⟩
+  exact notHuman human
+
+-- Therefore, Case 2 must hold: not from Earth and not from Mars
+lemma case2 : ¬FromEarth Marvin ∧ ¬FromMars Marvin := by
+  cases A6 with
+  | inl c1 => exact absurd c1 case1_impossible
+  | inr c2 => exact c2
+
+-- Marvin is not from Earth (derived from case2)
+lemma not_earth : ¬FromEarth Marvin := And.left case2
+
+-- Marvin is an extraterrestrial (using axiom A7)
+lemma marvin_extraterrestrial : Extraterrestrial Marvin := 
+  A7 not_earth
+
+-- Attempt to prove Marvin is an alien (fails)
+example : Alien Marvin := by
+  -- We know ¬FromMars Marvin (by case2), so A2 doesn't apply
+  -- No other axioms force Marvin to be alien
+  sorry
+
+-- Attempt to prove Marvin is not an alien (fails)
+example : ¬Alien Marvin := by
+  -- We know Marvin is extraterrestrial, but A1 doesn't reverse
+  -- No axioms prevent non-Martian extraterrestrials from being aliens
+  sorry
+</lean>
+
+**Explanation of Uncertainty:**
+1. We've established that Marvin is extraterrestrial
+2. Axioms show aliens are extraterrestrials (A1), but not the converse
+3. The only path to alien status is through Mars origin (A2), which Marvin lacks
+4. No other axioms link extraterrestrial status directly to alien status
+5. Neither "Alien Marvin" nor "¬Alien Marvin" can be proven with given axioms
+
+ANSWER: Uncertain

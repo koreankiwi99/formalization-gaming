@@ -1,0 +1,82 @@
+<lean>
+axiom obj : Type
+
+-- Individuals
+axiom James : obj
+
+-- Predicates
+axiom Employee : obj → Prop
+axiom Manager : obj → Prop
+axiom LunchInBuilding : obj → Prop
+axiom LunchAtHome : obj → Prop
+axiom RemoteFromHome : obj → Prop
+axiom InOtherCountry : obj → Prop
+axiom SchedulesWithCustomers : obj → Prop
+axiom InCompanyToday : obj → Prop
+
+-- Premises
+-- 1. All employees who schedule a meeting with their customers will go to the company building today.
+axiom P1 : ∀ x : obj, Employee x → SchedulesWithCustomers x → InCompanyToday x
+
+-- 2. Everyone who has lunch in the company building schedules meetings with their customers.
+axiom P2 : ∀ x : obj, LunchInBuilding x → SchedulesWithCustomers x
+
+-- 3. Employees have lunch either in the company building or at home (taken as exclusive or).
+axiom P3_or : ∀ x : obj, Employee x → (LunchInBuilding x ∨ LunchAtHome x)
+axiom P3_excl1 : ∀ x : obj, Employee x → LunchInBuilding x → ¬LunchAtHome x
+axiom P3_excl2 : ∀ x : obj, Employee x → LunchAtHome x → ¬LunchInBuilding x
+
+-- 4. If an employee has lunch at home, they are working remotely from home.
+axiom P4 : ∀ x : obj, LunchAtHome x → RemoteFromHome x
+
+-- 5. All employees who are in other countries work remotely from home.
+axiom P5 : ∀ x : obj, InOtherCountry x → RemoteFromHome x
+
+-- 6. No managers work remotely from home.
+axiom P6 : ∀ x : obj, Manager x → ¬RemoteFromHome x
+
+-- 7. James will appear in the company today iff he is a manager.
+axiom P7_fwd : InCompanyToday James → Manager James
+axiom P7_bwd : Manager James → InCompanyToday James
+
+-- Assume James is an employee (contextual to apply employee-specific premises).
+axiom JamesEmployee : Employee James
+
+-- Useful derived lemmas
+theorem manager_not_lunch_at_home : Manager James → ¬LunchAtHome James := by
+  intro hM
+  intro hLH
+  have hR : RemoteFromHome James := P4 James hLH
+  have hNR : ¬RemoteFromHome James := P6 James hM
+  exact hNR hR
+
+theorem lunch_at_home_not_manager : LunchAtHome James → ¬Manager James := by
+  intro hLH
+  intro hM
+  have hR : RemoteFromHome James := P4 James hLH
+  have hNR : ¬RemoteFromHome James := P6 James hM
+  exact hNR hR
+
+theorem manager_implies_lunch_in_building : Manager James → LunchInBuilding James := by
+  intro hM
+  have hnotLH : ¬LunchAtHome James := manager_not_lunch_at_home hM
+  have hdisj : LunchInBuilding James ∨ LunchAtHome James := P3_or James JamesEmployee
+  cases hdisj with
+  | inl hLB =>
+      exact hLB
+  | inr hLH =>
+      exact False.elim (hnotLH hLH)
+
+theorem lunch_in_building_implies_manager : LunchInBuilding James → Manager James := by
+  intro hLB
+  have hSched : SchedulesWithCustomers James := P2 James hLB
+  have hInCo : InCompanyToday James := P1 James JamesEmployee hSched
+  exact P7_fwd hInCo
+
+theorem manager_iff_lunch_in_building : Manager James ↔ LunchInBuilding James := by
+  apply Iff.intro
+  · exact manager_implies_lunch_in_building
+  · exact lunch_in_building_implies_manager
+</lean>
+
+ANSWER: Failure

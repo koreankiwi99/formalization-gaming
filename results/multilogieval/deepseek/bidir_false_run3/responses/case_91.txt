@@ -1,0 +1,64 @@
+The context describes a neighborhood scenario with specific conditions leading to noise and subsequent events. The Lean code models this using propositions and derives the answer to whether the police were called when there was no noise.
+
+Key insights:
+1. If no noise occurs, both party and drums scenarios must be absent (since they cause noise)
+2. Axiom T3 forces the presence of either party or drums, creating inconsistency with ¬Noisy
+3. This contradiction allows proving any proposition by explosion
+4. Specifically, ¬PoliceCalled can be proven even without using T4/T5
+
+<lean>
+variable Neighborhood : Type
+axiom Party : Prop
+axiom Drums : Prop
+axiom Noisy : Prop
+axiom NeighborsComplain : Prop
+axiom PoliceCalled : Prop
+axiom T1 : Party → Noisy
+axiom T2 : Drums → Noisy
+axiom T3 : Party ∨ Drums
+axiom T4 : Party → NeighborsComplain
+axiom T5 : NeighborsComplain → PoliceCalled
+
+theorem main (noNoise : ¬Noisy) : ¬PoliceCalled := by
+  cases T3
+  case inl p => apply noNoise; exact T1 p
+  case inr d => apply noNoise; exact T2 d
+</lean>
+
+ANSWER: No
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors occurred because the `apply` tactic was misused. The goal was to prove `¬PoliceCalled` (which is `PoliceCalled → False`), but `apply noNoise` was incorrectly used since `noNoise` has type `¬Noisy` (i.e., `Noisy → False`), which doesn't match the goal. 
+
+The corrected approach:
+1. Assume `¬Noisy` (no noise)
+2. Use `T3` (party or drums) to show both cases lead to contradiction:
+   - If there's a party (`T1`), it must be noisy (contradicts `¬Noisy`)
+   - If there are drums (`T2`), it must be noisy (contradicts `¬Noisy`)
+3. Since both cases yield `False`, we can derive any conclusion (including `¬PoliceCalled`) by explosion
+
+Note: `T4` and `T5` are unused because the contradiction arises directly from `T1`/`T2` and `T3`.
+
+<lean>
+axiom Party : Prop
+axiom Drums : Prop
+axiom Noisy : Prop
+axiom NeighborsComplain : Prop
+axiom PoliceCalled : Prop
+axiom T1 : Party → Noisy
+axiom T2 : Drums → Noisy
+axiom T3 : Party ∨ Drums
+axiom T4 : Party → NeighborsComplain
+axiom T5 : NeighborsComplain → PoliceCalled
+
+theorem main (h : ¬Noisy) : ¬PoliceCalled := by
+  intro _  -- Assume PoliceCalled (unused)
+  cases T3 with
+  | inl p => exact h (T1 p)  -- Party case → contradiction
+  | inr d => exact h (T2 d)  -- Drums case → contradiction
+</lean>
+
+ANSWER: No

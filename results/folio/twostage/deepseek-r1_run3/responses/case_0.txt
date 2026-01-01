@@ -1,0 +1,767 @@
+======================================================================
+STAGE 1: TRANSLATION
+======================================================================
+
+--- Iteration 1 ---
+
+=== REASONING ===
+We are formalizing the given premises and conclusion about Bonnie and the club.
+ We have several premises and a conclusion about Bonnie.
+
+ Steps:
+ 1. We need a type for the people (maybe called `Person`).
+ 2. Define predicates for the properties.
+ 3. Formalize each premise as an axiom.
+ 4. The conclusion is that Bonnie performs in school talent shows often.
+
+ Let's define:
+   - `Person` : the type of people.
+   - `Bonnie` : a specific person (constant of type `Person`).
+   - Predicates:
+        InClub : Person → Prop   (but note: all mentioned are in the club, so we might not need a separate "InClub" because the premises specify "People in this club")
+        However, note: the premises talk about "People in this club". So every person we are talking about in the premises is in the club? 
+        But Bonnie is specified to be in the club. We have two options:
+          Option 1: Assume that the domain is restricted to club members. Then we don't need an `InClub` predicate because we are only talking about club members.
+          Option 2: Use `InClub` and then the premises use `∀ p, InClub p → ...`.
+
+        Since the premises say "People in this club", it is natural to have:
+          `∀ p, InClub p → ...`
+
+        However, the conclusion only involves Bonnie and we know Bonnie is in the club. So we'll define:
+
+        `axiom InClub : Person → Prop`
+
+        But note: the premises do not say anything about people not in the club. So we can restrict our axioms to club members.
+
+        Alternatively, we can define all our predicates as being about club members and then have Bonnie as one.
+
+        Considering the structure, let's define:
+
+          - `Person` : Type
+          - `Bonnie : Person`
+          - `InClub : Person → Prop`   (but note: premises start with "People in this club", meaning that the properties are conditional on being in the club)
+
+        However, in the premises, the quantifiers are over people in the club. So we will use:
+
+          `axiom P1 : ∀ p, InClub p → (PerformsInShows p ∧ AttendsSchoolEvents p ∧ EngagedInEvents p)`
+
+        But wait, the first premise: "People in this club who perform in school talent shows often attend and are very engaged with school events."
+
+        This is actually: ∀ p in club, if p performs in shows then (attends and engaged).
+
+        Similarly, the second premise: "People in this club either perform in school talent shows often or are inactive and disinterested community members."
+
+        This is: ∀ p in club, (PerformsInShows p) ∨ (Inactive p ∧ Disinterested p)
+
+        Third: "People in this club who chaperone high school dances are not students who attend the school."
+
+        ∀ p in club, ChaperonesDances p → ¬ StudentAttendsSchool p
+
+        Fourth: "All people in this club who are inactive and disinterested members of their community chaperone high school dances."
+
+        ∀ p in club, (Inactive p ∧ Disinterested p) → ChaperonesDances p
+
+        Fifth: "All young children and teenagers in this club who wish to further their academic careers and educational opportunities are students who attend the school."
+
+        This is more complex: It says for young children and teenagers in the club who wish to further ... they are students.
+
+        We can break it down:
+
+          Let YoungChildOrTeenager : Person → Prop
+          Let WishesToFurther : Person → Prop
+
+        Then: ∀ p in club, YoungChildOrTeenager p → WishesToFurther p → StudentAttendsSchool p
+
+        But note: the premise says "young children and teenagers in this club who wish ...", so it is restricted to those that are young and wish.
+
+        Alternatively, we might combine: ∀ p in club, (YoungChildOrTeenager p ∧ WishesToFurther p) → StudentAttendsSchool p
+
+        Finally, the premise about Bonnie:
+
+          "Bonnie is in this club and she either both attends and is very engaged with school events and is a student who attends the school or is not someone who both attends and is very engaged with school events and is not a student who attends the school."
+
+        This is a bit tricky. Let me parse:
+
+          Let A = "attends and is very engaged with school events" (we have two predicates? or one? Actually, the first premise says "attend and are very engaged", so we can split? 
+                The premise: "attend and are very engaged" might be two separate things.
+
+        Looking back at the first premise: it says "attend and are very engaged". We have:
+
+          AttendsSchoolEvents : Person → Prop
+          EngagedInEvents : Person → Prop
+
+        So the first premise: for a club member who performs, we have both AttendsSchoolEvents and EngagedInEvents? Or is it one property? 
+
+        However, the fifth premise about Bonnie uses: "both attends and is very engaged", which we can represent as:
+
+          (AttendsSchoolEvents p ∧ EngagedInEvents p)
+
+        Then the statement about Bonnie:
+
+          Bonnie is in the club and she has two cases:
+
+          Case 1: (AttendsSchoolEvents Bonnie ∧ EngagedInEvents Bonnie) ∧ (StudentAttendsSchool Bonnie)
+
+          Case 2: ¬(AttendsSchoolEvents Bonnie ∧ EngagedInEvents Bonnie) and ¬(StudentAttendsSchool Bonnie)
+
+          But wait, the disjunction is:
+
+            ( (A and B) )   OR   ( not A and not B )
+
+          where A = (AttendsSchoolEvents Bonnie ∧ EngagedInEvents Bonnie) and B = StudentAttendsSchool Bonnie.
+
+          Actually, the text: "either both ... and ... or is not someone who both ... and ... and is not ..." 
+
+          This is a bit ambiguous. Let me rephrase:
+
+            Bonnie is in this club and she either:
+              (attends and engaged) and is a student
+            or
+              not (attends and engaged) and is not a student.
+
+          That is:  ( (A ∧ B) ) ∨ ( (¬A) ∧ (¬B) )
+
+          where A = (AttendsSchoolEvents Bonnie ∧ EngagedInEvents Bonnie)
+                B = StudentAttendsSchool Bonnie
+
+        Alternatively, it could be read as:
+
+          she either (both A and B) OR (she is not someone who is both A and ...) ... but the last part says "and is not a student" so the second part is clearly ¬A ∧ ¬B.
+
+        So we write:
+
+          axiom BonniePremise : 
+            InClub Bonnie ∧ 
+            ( ( (AttendsSchoolEvents Bonnie ∧ EngagedInEvents Bonnie) ∧ StudentAttendsSchool Bonnie ) ∨ 
+              ( ¬ (AttendsSchoolEvents Bonnie ∧ EngagedInEvents Bonnie) ∧ ¬ StudentAttendsSchool Bonnie ) )
+
+        Now, conclusion: Bonnie performs in school talent shows often: `PerformsInShows Bonnie`
+
+        We need to define:
+          - `InClub : Person → Prop`
+          - `PerformsInShows : Person → Prop`
+          - `AttendsSchoolEvents : Person → Prop`
+          - `EngagedInEvents : Person → Prop`   (or maybe combine the last two? But the first premise has two: "attend" and "very engaged". But in Bonnie's premise they are combined again. So having two is fine.)
+
+          - `Inactive : Person → Prop`
+          - `Disinterested : Person → Prop`
+
+          - `ChaperonesDances : Person → Prop`
+          - `StudentAttendsSchool : Person → Prop`
+
+          - For the fifth premise: we define:
+               `YoungChildOrTeenager : Person → Prop`
+               `WishesToFurther : Person → Prop`
+
+        Now, let's write the axioms:
+
+        Premise 1: People in this club who perform in school talent shows often attend and are very engaged with school events.
+          This is: ∀ p, InClub p → PerformsInShows p → (AttendsSchoolEvents p ∧ EngagedInEvents p)
+          But note: the premise says "often attend and are very engaged", which might be interpreted as that they do both. So we can write:
+
+          axiom P1 : ∀ p : Person, InClub p → PerformsInShows p → AttendsSchoolEvents p ∧ EngagedInEvents p
+
+        Premise 2: People in this club either perform in school talent shows often or are inactive and disinterested community members.
+          ∀ p, InClub p → (PerformsInShows p ∨ (Inactive p ∧ Disinterested p))
+
+        Premise 3: People in this club who chaperone high school dances are not students who attend the school.
+          ∀ p, InClub p → ChaperonesDances p → ¬ (StudentAttendsSchool p)
+
+        Premise 4: People in this club who are inactive and disinterested chaperone.
+          ∀ p, InClub p → (Inactive p ∧ Disinterested p) → ChaperonesDances p
+
+        Premise 5: All young children and teenagers in this club who wish to further ... are students.
+          ∀ p, InClub p → (YoungChildOrTeenager p ∧ WishesToFurther p) → StudentAttendsSchool p
+
+        We do not have any information about Bonnie being a young child or teenager or wishing to further, so we won't use this for Bonnie? But we have to include it.
+
+        Now, the conclusion theorem:
+
+          theorem goal : PerformsInShows Bonnie
+
+        We must remember that we have `axiom BonnieInClub : InClub Bonnie` from the Bonnie premise? Actually, the Bonnie premise says "Bonnie is in this club", so we can split:
+
+          axiom BonnieInClub : InClub Bonnie
+          axiom BonnieCase : 
+            ( (AttendsSchoolEvents Bonnie ∧ EngagedInEvents Bonnie) ∧ StudentAttendsSchool Bonnie ) ∨ 
+            ( ¬ (AttendsSchoolEvents Bonnie ∧ EngagedInEvents Bonnie) ∧ ¬ StudentAttendsSchool Bonnie )
+
+        But note: the Bonnie premise is one axiom: `InClub Bonnie ∧ ...`, so we can split it.
+
+        However, we can write:
+
+          axiom BonniePremise : 
+            InClub Bonnie ∧ 
+            ( ( (AttendsSchoolEvents Bonnie ∧ EngagedInEvents Bonnie) ∧ StudentAttendsSchool Bonnie ) ∨ 
+              ( ¬ (AttendsSchoolEvents Bonnie ∧ EngagedInEvents Bonnie) ∧ ¬ StudentAttendsSchool Bonnie ) )
+
+        Then in our axioms we can use:
+
+          let BonnieInClub := BonniePremise.left
+          and BonnieCase := BonniePremise.right
+
+        But in Lean, we can split it into two if we want? Alternatively, we leave it as one and then in the theorem we use cases.
+
+        But since we are using `axiom` and not a lemma, we can have one axiom for Bonnie and then use it.
+
+        However, let me write each axiom separately.
+
+        Alternatively, we can write:
+
+          axiom Bonnie_in_club : InClub Bonnie
+          axiom Bonnie_bistable : 
+            ( (AttendsSchoolEvents Bonnie ∧ EngagedInEvents Bonnie) ∧ StudentAttendsSchool Bonnie ) ∨ 
+            ( ¬ (AttendsSchoolEvents Bonnie ∧ EngagedInEvents Bonnie) ∧ ¬ StudentAttendsSchool Bonnie )
+
+        Now, the formalization:
+
+        IMPORTANT: We have to be cautious about the fifth premise: we defined two additional predicates. Since the problem does not mention anything else about young children or wishes, we might not use it for Bonnie? But we don't know if Bonnie is young or not. So we will still include it.
+
+        Let's define all the predicates and axioms.
+
+        Note: The domain is set of `Person`. We have:
+
+          Person : Type
+          Bonnie : Person   [a constant]
+
+        The predicates:
+
+          InClub, PerformsInShows, AttendsSchoolEvents, EngagedInEvents, Inactive, Disinterested, ChaperonesDances, StudentAttendsSchool, YoungChildOrTeenager, WishesToFurther.
+
+        Now, the axioms:
+
+          P1: ∀ p, InClub p → PerformsInShows p → (AttendsSchoolEvents p ∧ EngagedInEvents p)
+          P2: ∀ p, InClub p → PerformsInShows p ∨ (Inactive p ∧ Disinterested p)
+          P3: ∀ p, InClub p → ChaperonesDances p → ¬ StudentAttendsSchool p
+          P4: ∀ p, InClub p → (Inactive p ∧ Disinterested p) → ChaperonesDances p
+          P5: ∀ p, InClub p → (YoungChildOrTeenager p ∧ WishesToFurther p) → StudentAttendsSchool p
+
+          Bonnie_in_club: InClub Bonnie
+          Bonnie_bistable: 
+            ( (AttendsSchoolEvents Bonnie ∧ EngagedInEvents Bonnie) ∧ StudentAttendsSchool Bonnie ) ∨ 
+            ( ¬ (AttendsSchoolEvents Bonnie ∧ EngagedInEvents Bonnie) ∧ ¬ StudentAttendsSchool Bonnie )
+
+        Conclusion: PerformsInShows Bonnie
+
+        Now, we write the Lean code accordingly.
+
+
+=== RESPONSE ===
+Here is the Lean 4 formalization of the given premises and conclusion:
+
+<lean>
+axiom Person : Type
+axiom Bonnie : Person
+
+-- Properties and predicates
+axiom InClub : Person → Prop
+axiom PerformsInShows : Person → Prop
+axiom AttendsSchoolEvents : Person → Prop
+axiom EngagedInEvents : Person → Prop
+axiom Inactive : Person → Prop
+axiom Disinterested : Person → Prop
+axiom ChaperonesDances : Person → Prop
+axiom StudentAttendsSchool : Person → Prop
+axiom YoungChildOrTeenager : Person → Prop
+axiom WishesToFurther : Person → Prop
+
+-- Premises
+axiom Premise1 : ∀ p : Person, 
+  InClub p → PerformsInShows p → AttendsSchoolEvents p ∧ EngagedInEvents p
+
+axiom Premise2 : ∀ p : Person, 
+  InClub p → (PerformsInShows p ∨ (Inactive p ∧ Disinterested p))
+
+axiom Premise3 : ∀ p : Person, 
+  InClub p → ChaperonesDances p → ¬ StudentAttendsSchool p
+
+axiom Premise4 : ∀ p : Person, 
+  InClub p → (Inactive p ∧ Disinterested p) → ChaperonesDances p
+
+axiom Premise5 : ∀ p : Person, 
+  InClub p → YoungChildOrTeenager p → WishesToFurther p → StudentAttendsSchool p
+
+axiom BonniePremise1 : InClub Bonnie
+
+axiom BonniePremise2 :
+  ( (AttendsSchoolEvents Bonnie ∧ EngagedInEvents Bonnie) ∧ StudentAttendsSchool Bonnie ) ∨
+  ( ¬ (AttendsSchoolEvents Bonnie ∧ EngagedInEvents Bonnie) ∧ ¬ StudentAttendsSchool Bonnie )
+
+-- Conclusion to prove
+theorem conclusion : PerformsInShows Bonnie := sorry
+</lean>
+
+This formalization:
+1. Declares `Person` as the base type and `Bonnie` as a specific person
+2. Defines all necessary predicates for properties mentioned in the premises
+3. Formalizes each premise as a separate axiom using universal quantifiers for club members
+4. Includes Bonnie-specific premises:
+   - She is in the club (`BonniePremise1`)
+   - Her bistable condition about engagement/student status (`BonniePremise2`)
+5. Declares the conclusion theorem about Bonnie performing in talent shows (using `sorry` as placeholder)
+
+The logical structure follows the original statements while maintaining type correctness in Lean 4.
+
+
+======================================================================
+STAGE 2: PROVING
+======================================================================
+
+--- Iteration 1 ---
+
+=== REASONING ===
+We are given several premises and two premises about Bonnie.
+ We need to prove that Bonnie performs in school talent shows often.
+
+ Steps:
+ 1. We know Bonnie is in the club (BonniePremise1).
+ 2. By Premise2, Bonnie either performs in shows or is inactive and disinterested.
+    So we can try to show that Bonnie is not inactive and disinterested, then she must perform.
+
+ 3. Alternatively, we can use the other premises to derive a contradiction if she is inactive and disinterested.
+
+ 4. We also have BonniePremise2 which is a disjunction:
+      (A) (AttendsSchoolEvents Bonnie ∧ EngagedInEvents Bonnie) ∧ StudentAttendsSchool Bonnie
+      (B) ¬ (AttendsSchoolEvents Bonnie ∧ EngagedInEvents Bonnie) ∧ ¬ StudentAttendsSchool Bonnie
+
+ 5. Let us consider the two cases from BonniePremise2.
+
+ Case (A): 
+   She attends school events and is engaged, and is a student.
+
+   From Premise1: if she performed in shows, then she would attend and be engaged (which she does). 
+   But note: Premise1 says that if she is in the club and performs, then she attends and is engaged. 
+   However, we don't have the converse. So we cannot directly get that she performs from attending and being engaged.
+
+   But we have Premise2: she must either perform or be inactive and disinterested.
+
+   We need to rule out the inactive and disinterested branch.
+
+   If she were inactive and disinterested, then by Premise4 she would chaperone dances.
+   Then by Premise3, if she chaperones dances then she is not a student. 
+   But in this case she is a student (from case A). Contradiction.
+
+   Therefore, in case A, she cannot be inactive and disinterested, so she must perform.
+
+ Case (B):
+   She does not attend school events or is not engaged (i.e., not both) and she is not a student.
+
+   Now, if she were inactive and disinterested, then by Premise4 she would chaperone dances.
+   Then by Premise3, she would not be a student. That matches the second part of case B.
+
+   But note: Premise1 says that if she performed, then she would attend and be engaged. 
+   In this case, she does not attend and is not engaged (or at least not both). Therefore, she cannot be performing? 
+   Actually, Premise1 is an implication: PerformsInShows → AttendsSchoolEvents ∧ EngagedInEvents.
+   The contrapositive: if she does not attend or is not engaged, then she does not perform.
+
+   So in case B, if she does not have (AttendsSchoolEvents and EngagedInEvents), then she cannot be performing.
+
+   But Premise2 says she must either perform or be inactive and disinterested.
+
+   Therefore, in case B, she must be inactive and disinterested (since she cannot perform).
+
+   So in case B, she does not perform.
+
+ Therefore, the conclusion that Bonnie performs in school talent shows often is true in case A and false in case B.
+
+ However, we have two possibilities from BonniePremise2. We cannot determine which one holds.
+
+ But wait: let us see if we can derive a contradiction in case B?
+
+ Actually, we don't have any information that forces Bonnie to be a student or not. 
+ And we don't have that Bonnie is a young child or teenager who wishes to further? 
+ We have Premise5, but we don't know if Bonnie is a young child or teenager or if she wishes to further.
+
+ Therefore, we have two consistent scenarios: 
+   Case A: Bonnie performs (and we proved she must perform in this case).
+   Case B: Bonnie does not perform (because she is inactive and disinterested).
+
+ Since we cannot determine which case holds (without additional information), the conclusion is uncertain.
+
+ However, let me double-check:
+
+ In case B: 
+   Bonnie is in the club and is inactive and disinterested (by Premise2, because she doesn't perform).
+   Then by Premise4, she chaperones dances.
+   Then by Premise3, she is not a student. That matches case B.
+
+   And Premise1: if she performed, she would have to attend and be engaged, but she doesn't. So she doesn't perform.
+
+   So case B is consistent.
+
+ Therefore, we cannot prove that Bonnie performs in school talent shows often.
+
+ But wait: the problem asks for a proof of the conclusion. We have shown that in one case she does and in the other she doesn't.
+
+ Therefore, the theorem as stated (that Bonnie performs) is not always true. However, note that the theorem is:
+
+   theorem conclusion : PerformsInShows Bonnie
+
+ We are asked to replace the sorry. But if we cannot prove it, then we must not provide a proof.
+
+ However, the problem says: "Given validated Lean 4 axiom definitions and a theorem declaration with 'sorry', your task is to provide the complete code with a valid proof."
+
+ But if the conclusion is not provable from the premises, then we cannot provide a proof.
+
+ Therefore, we must conclude that the proof is not possible. But note: the problem says "After your code, provide your answer: ANSWER: True/False/Uncertain"
+
+ We are to provide the Lean code? But we cannot prove it. So we must leave it as sorry? Or we can try to use classical reasoning?
+
+ Alternatively, we can try to show that case B leads to a contradiction? But we don't have any additional information.
+
+ Let me check if there is a contradiction in case B:
+
+   In case B: 
+      ¬ (AttendsSchoolEvents Bonnie ∧ EngagedInEvents Bonnie)
+      ¬ StudentAttendsSchool Bonnie
+
+   And if she is inactive and disinterested (which we assume in case B), then she chaperones dances (Premise4) and then Premise3 says she is not a student -> which is consistent.
+
+   Also, we don't have any premise that forces Bonnie to be a student? Premise5 only applies if she is a young child or teenager and wishes to further. We don't know that about Bonnie.
+
+   Therefore, case B is consistent.
+
+ So we cannot prove the theorem.
+
+ But wait: the problem says "Bonnie is in this club and she either both attends and is very engaged with school events and is a student who attends the school or is not someone who both attends and is very engaged with school events and is not a student who attends the school."
+
+ This is BonniePremise2. It is an exclusive or? Actually, it is written as:
+
+      (A ∧ B) ∨ (¬A ∧ ¬B)
+
+ where A = (AttendsSchoolEvents Bonnie ∧ EngagedInEvents Bonnie) and B = StudentAttendsSchool Bonnie.
+
+ This is the same as (A ↔ B). Because:
+      (A ∧ B) ∨ (¬A ∧ ¬B)  is equivalent to A ↔ B.
+
+ So BonniePremise2 says: 
+      (AttendsSchoolEvents Bonnie ∧ EngagedInEvents Bonnie) ↔ StudentAttendsSchool Bonnie
+
+ Now, let us see if we can derive a contradiction from case B? Actually, case B is ¬A ∧ ¬B, which is consistent.
+
+ However, note that we have Premise1: 
+      ∀ p, InClub p → PerformsInShows p → AttendsSchoolEvents p ∧ EngagedInEvents p
+
+ And Premise2: 
+      ∀ p, InClub p → PerformsInShows p ∨ (Inactive p ∧ Disinterested p)
+
+ Now, suppose Bonnie is inactive and disinterested (case B). Then she doesn't perform. And she doesn't attend/engaged and isn't a student.
+
+ But we have no contradiction.
+
+ Therefore, the conclusion is not provable.
+
+ However, let me try to see if Bonnie must be a student? We don't have that information.
+
+ Alternatively, we might try to use the fact that if she is inactive and disinterested, then she chaperones dances, and then she is not a student. That is consistent with case B.
+
+ So we have two possibilities: 
+   Case A: she is a student, attends and is engaged, and she must perform (because if she were inactive and disinterested, she would chaperone and then not be a student, contradiction).
+   Case B: she is not a student, does not attend/engaged, and she is inactive and disinterested (so she doesn't perform).
+
+ Therefore, the conclusion (that she performs) is true in case A and false in case B.
+
+ Since we don't know which case holds, the theorem as stated cannot be proven.
+
+ But note: the problem says "Provide the complete code with 'sorry' replaced by your proof." 
+
+ If we cannot prove it, we cannot replace the sorry. Therefore, we must indicate that the proof is not possible.
+
+ However, the problem says: "After your code, you MUST provide your final answer: ANSWER: True/False/Uncertain"
+
+ So we can write:
+
+   We cannot prove the theorem because there is a scenario (case B) where Bonnie does not perform.
+
+   Therefore, we answer Uncertain.
+
+ But wait: the problem says "Given validated Lean 4 axiom definitions", meaning we have to work within the axioms.
+
+ How can we express in Lean that we cannot prove it? We cannot. We must either provide a proof or leave it as sorry.
+
+ However, the instruction says: "Replace 'sorry' with a valid proof term." 
+
+ But we don't have a valid proof term. Therefore, we must conclude that the theorem is not provable.
+
+ But note: the problem says "your task is to provide the complete code with a valid proof". If we cannot, then we must not pretend we can.
+
+ However, after reevaluating, I see that we can actually prove the negation of the conclusion in case B? But that doesn't help.
+
+ Alternatively, we can use classical reasoning to do case analysis on BonniePremise2 and then in case A we can prove PerformsInShows Bonnie, but in case B we cannot. Therefore, overall we cannot prove it.
+
+ But Lean is a constructive logic? Actually, we can use classical case analysis and then in case A we have a proof, but in case B we don't. So we cannot write a proof term that works for both.
+
+ Therefore, we must leave the theorem unproven.
+
+ However, note: the problem says "validated Lean 4 axiom definitions". We are allowed to use classical logic? The problem doesn't specify.
+
+ But even in classical logic, we cannot prove a disjunction without knowing which case holds.
+
+ Alternatively, we might try to show that case B leads to a contradiction? We thought it didn't, but let me try again:
+
+   In case B: 
+      ¬ (AttendsSchoolEvents Bonnie ∧ EngagedInEvents Bonnie)   ... (1)
+      ¬ StudentAttendsSchool Bonnie                             ... (2)
+
+   And if she is inactive and disinterested (by Premise2, since she doesn't perform? Actually, Premise2 says she must perform OR be inactive and disinterested. In case B, we don't know yet if she performs? But we have the equivalence from BonniePremise2: 
+        (AttendsSchoolEvents Bonnie ∧ EngagedInEvents Bonnie) ↔ StudentAttendsSchool Bonnie
+   So in case B, we have ¬A and ¬B.
+
+   Now, if she were to perform, then by Premise1 she would have A (attends and engaged). But we have ¬A, so she cannot perform. Therefore, by Premise2, she must be inactive and disinterested.
+
+   Then by Premise4, she chaperones dances.
+
+   Then by Premise3, she is not a student -> which is (2). So consistent.
+
+   Therefore, no contradiction.
+
+ So we cannot prove the theorem.
+
+ However, let me see if there is an additional constraint: 
+
+   Premise5: ∀ p, InClub p → YoungChildOrTeenager p → WishesToFurther p → StudentAttendsSchool p.
+
+   We don't have any information that Bonnie is a young child or teenager or that she wishes to further. So we cannot apply Premise5 to Bonnie.
+
+ Therefore, the answer is Uncertain.
+
+ But the problem says: "After your code, provide your final answer: ANSWER: True/False/Uncertain"
+
+ So we will write:
+
+   We cannot replace 'sorry' with a proof because the theorem is not provable from the premises.
+
+   However, note: the problem says "Provide the complete code with 'sorry' replaced by your proof." 
+
+   If we cannot, then we must leave it as sorry? But that would be against the task.
+
+   Alternatively, we can try to prove it by contradiction? But we don't have classical reasoning? 
+
+   Actually, we can use `by_contra` and then assume ¬PerformsInShows Bonnie and then derive a contradiction? But we saw that in case B it is consistent.
+
+   Therefore, we must conclude that we cannot provide a proof.
+
+   But the problem says we are a theorem prover. We must only provide a proof if it exists.
+
+   Since it does not exist, we cannot.
+
+   However, the problem says "Given validated Lean 4 axiom definitions and a theorem declaration with 'sorry'", meaning we are to fill the proof. If we cannot, we must indicate so.
+
+   But the instructions do not say what to do if the theorem is not provable.
+
+   Given the ambiguity, and since the problem asks for an answer of True/False/Uncertain, we will output the code with 'sorry' replaced by a proof that uses the case A, but that would be incorrect because it doesn't cover case B.
+
+   Alternatively, we can use the fact that BonniePremise2 is an exclusive or? Actually, it is not exclusive? It is inclusive? But note: it is written as:
+
+        (A ∧ B) ∨ (¬A ∧ ¬B)
+
+   This is equivalent to A ↔ B, and it is classical. We can split on this.
+
+   We can write:
+
+        have h : (AttendsSchoolEvents Bonnie ∧ EngagedInEvents Bonnie) ↔ StudentAttendsSchool Bonnie := BonniePremise2
+
+   Then we can consider two cases: 
+        case h1 : StudentAttendsSchool Bonnie
+        case h2 : ¬ StudentAttendsSchool Bonnie
+
+   But note: the ↔ gives both directions.
+
+   In the case h1: 
+        we have A (because from h1 and the ↔ we get A)
+        then we can use the same argument as in case A: 
+            if Bonnie were inactive and disinterested, then she would chaperone (Premise4) and then by Premise3 she wouldn't be a student -> contradiction with h1.
+            Therefore, by Premise2, she must perform.
+
+   In the case h2:
+        we have ¬A (because from h2 and the ↔ we get ¬A)
+        then if she performed, by Premise1 she would have A -> contradiction. So she doesn't perform.
+
+   Therefore, we have:
+
+        if StudentAttendsSchool Bonnie then PerformsInShows Bonnie
+        else ¬ PerformsInShows Bonnie
+
+   So we cannot prove PerformsInShows Bonnie unconditionally.
+
+   Hence, we cannot replace the sorry.
+
+   Therefore, we must leave the theorem unproven.
+
+   But the problem says "Replace 'sorry' with a valid proof term". Since we don't have one, we cannot.
+
+   However, note: the problem says "your task is to provide the complete code with a valid proof". If we don't have a valid proof, we cannot.
+
+   Therefore, we must output the code as is, with sorry, and then answer Uncertain.
+
+   But the problem says "Replace 'sorry'", meaning we are expected to replace it.
+
+   Alternatively, we can try to prove it using classical logic and the law of excluded middle on Bonnie being a student? But then we would have:
+
+        by_cases h : StudentAttendsSchool Bonnie
+
+   But then in the positive case we can prove she performs, but in the negative case we cannot.
+
+   So overall, we cannot prove the theorem.
+
+   Therefore, we must not provide a proof.
+
+   Given the instructions, we will output the code with sorry and then answer Uncertain.
+
+   However, the problem says "Provide the complete code with proof (not just the proof term)".
+
+   But we don't have a proof.
+
+   Alternatively, we can write a proof that uses classical.em and then in one branch proves it and in the other branch gets stuck? But that is not a complete proof.
+
+   We are stuck.
+
+   After careful thought, I realize that the problem might be expecting us to see that Bonnie must perform. But our analysis shows she doesn't in one case.
+
+   Therefore, I think the intended answer might be Uncertain.
+
+   So we output:
+
+        <lean>
+        ... the same code ...
+        theorem conclusion : PerformsInShows Bonnie := sorry   -- we leave it as sorry
+        </lean>
+
+        ANSWER: Uncertain
+
+   But the problem says "Replace 'sorry' with a valid proof term". We cannot, so we leave it as sorry and answer Uncertain.
+
+   However, this might not be acceptable because the task says to replace it.
+
+   Alternatively, we can try to prove it by showing that the inactive and disinterested branch leads to a contradiction? We did that in case A, but not in case B.
+
+   But overall, we cannot prove it for Bonnie.
+
+   Therefore, I will output the code with sorry and then answer Uncertain.
+
+   But note: the problem says "After your code, you MUST provide your final answer: ANSWER: True/False/Uncertain"
+
+   We will do that.
+
+   However, let me see if there is a way to prove it:
+
+   Another approach: use BonniePremise2 to derive that Bonnie is a student if and only if she attends and is engaged.
+
+   Now, if Bonnie is not a student, then she is not attending and engaged. Then if she performed, she would be attending and engaged (by Premise1) -> contradiction. So she doesn't perform.
+
+   If Bonnie is a student, then she is attending and engaged. Now, if she is inactive and disinterested, then she would chaperone (Premise4) and then not be a student (Premise3) -> contradiction. So she cannot be inactive and disinterested. Therefore, by Premise2, she must perform.
+
+   So we have: 
+        if Bonnie is a student, then she performs.
+
+   But wait: we don't know if she is a student.
+
+   However, we have Premise5: 
+        ∀ p, InClub p → YoungChildOrTeenager p → WishesToFurther p → StudentAttendsSchool p.
+
+   But we don't know if Bonnie is a young child or teenager, or if she wishes to further.
+
+   So we cannot establish that she is a student.
+
+   Therefore, we cannot prove she performs.
+
+   So the answer is Uncertain.
+
+   We will output the code with sorry and then answer Uncertain.
+
+   However, the problem says "Replace 'sorry' with a valid proof term", but we cannot. Therefore, we must leave it as sorry.
+
+   This is the best we can do.
+
+   Final output:
+
+        <lean>
+        ... the given code without changing the sorry ...
+        </lean>
+        ANSWER: Uncertain
+
+   But wait, the problem says "complete code with a valid proof". We are not providing a valid proof. So we are not following the task.
+
+   Alternatively, we might try to use the law of excluded middle on `StudentAttendsSchool Bonnie` and then in the case where she is a student, we prove she performs, and in the other case we admit (or something)? But that is not a proof.
+
+   We are not allowed to use sorry in the proof.
+
+   Given the above, I think the problem might have been intended to have an additional premise or the premises might force Bonnie to be a student. But as given, they do not.
+
+   Therefore, we must answer Uncertain.
+
+   We will output the code as given (with sorry) and then answer Uncertain.
+
+   But note: the problem says "Provide the complete code with 'sorry' replaced by your proof." 
+
+   Since we cannot, we will not replace it.
+
+   This is a dilemma.
+
+   After reading the problem again, it says: "Given validated Lean 4 axiom definitions and a theorem declaration with 'sorry', your task is to provide the complete code with a valid proof."
+
+   If we cannot provide a valid proof, then we should not claim we can.
+
+   Therefore, we will output the code with sorry and then answer Uncertain.
+
+   I hope that is acceptable.
+
+   Alternatively, if the problem expects us to see that the premises are inconsistent or something, but they are not.
+
+   So here is the output:
+
+
+=== RESPONSE ===
+The premises do not provide sufficient information to prove that Bonnie performs in school talent shows often. The analysis shows two possible scenarios consistent with the premises:
+
+1. **Case A (Bonnie is a student who attends/engages):**  
+   Bonnie must perform to avoid contradiction (since inactivity would imply chaperoning and not being a student).
+
+2. **Case B (Bonnie is not a student and doesn't attend/engage):**  
+   Bonnie cannot perform (as performing requires attendance/engagement), so she must be inactive/disinterested.
+
+Since the premises allow both scenarios, and Case B does not require Bonnie to perform, the conclusion is **Uncertain**.
+
+<lean>
+axiom Person : Type
+axiom Bonnie : Person
+
+-- Properties and predicates
+axiom InClub : Person → Prop
+axiom PerformsInShows : Person → Prop
+axiom AttendsSchoolEvents : Person → Prop
+axiom EngagedInEvents : Person → Prop
+axiom Inactive : Person → Prop
+axiom Disinterested : Person → Prop
+axiom ChaperonesDances : Person → Prop
+axiom StudentAttendsSchool : Person → Prop
+axiom YoungChildOrTeenager : Person → Prop
+axiom WishesToFurther : Person → Prop
+
+-- Premises
+axiom Premise1 : ∀ p : Person, 
+  InClub p → PerformsInShows p → AttendsSchoolEvents p ∧ EngagedInEvents p
+
+axiom Premise2 : ∀ p : Person, 
+  InClub p → (PerformsInShows p ∨ (Inactive p ∧ Disinterested p))
+
+axiom Premise3 : ∀ p : Person, 
+  InClub p → ChaperonesDances p → ¬ StudentAttendsSchool p
+
+axiom Premise4 : ∀ p : Person, 
+  InClub p → (Inactive p ∧ Disinterested p) → ChaperonesDances p
+
+axiom Premise5 : ∀ p : Person, 
+  InClub p → YoungChildOrTeenager p → WishesToFurther p → StudentAttendsSchool p
+
+axiom BonniePremise1 : InClub Bonnie
+
+axiom BonniePremise2 :
+  ( (AttendsSchoolEvents Bonnie ∧ EngagedInEvents Bonnie) ∧ StudentAttendsSchool Bonnie ) ∨
+  ( ¬ (AttendsSchoolEvents Bonnie ∧ EngagedInEvents Bonnie) ∧ ¬ StudentAttendsSchool Bonnie )
+
+-- Conclusion cannot be proven
+theorem conclusion : PerformsInShows Bonnie := sorry
+</lean>
+
+ANSWER: Uncertain

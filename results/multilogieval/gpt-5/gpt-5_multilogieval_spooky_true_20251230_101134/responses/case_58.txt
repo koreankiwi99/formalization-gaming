@@ -1,0 +1,63 @@
+<lean>
+axiom obj : Type
+
+-- Predicates on people (actions)
+axiom AddsSalt : obj → Prop
+axiom Stirs : obj → Prop
+axiom Tastes : obj → Prop
+axiom PreparesSalad : obj → Prop
+
+-- Global stew properties
+axiom Savory : Prop
+axiom Thickens : Prop
+
+-- Premises
+axiom P1 : ∀ x : obj, AddsSalt x → Savory
+axiom P2 : ∀ x : obj, Stirs x → Thickens
+axiom Law1 : (∃ x : obj, AddsSalt x) ∨ (¬ Thickens ∨ ((∃ x : obj, AddsSalt x) ∧ ¬ Thickens))
+axiom P3 : ∀ x : obj, Tastes x → Stirs x
+axiom Law2 : (∃ x : obj, Tastes x) ∨ ((∃ x : obj, PreparesSalad x) ∨ ((∃ x : obj, Tastes x) ∧ (∃ x : obj, PreparesSalad x)))
+
+theorem salad_prepared_of_not_savory (hns : ¬ Savory) : ∃ x : obj, PreparesSalad x := by
+  -- From "if someone adds salt then savory" and "not savory", deduce no one adds salt
+  have hexSalt_imp_savory : (∃ x : obj, AddsSalt x) → Savory := by
+    intro hex
+    cases hex with
+    | intro w hw => exact P1 w hw
+  have noSalt : ¬ (∃ x : obj, AddsSalt x) := by
+    intro hex
+    exact hns (hexSalt_imp_savory hex)
+
+  -- Use Law1 to deduce the stew does not thicken
+  have notThick : ¬ Thickens := by
+    cases Law1 with
+    | inl hSalt =>
+      have : False := noSalt hSalt
+      exact False.elim this
+    | inr h =>
+      cases h with
+      | inl hnt => exact hnt
+      | inr hpair => exact hpair.right
+
+  -- From tasting implies stirring implies thickening, deduce no one tastes
+  have hexTaste_imp_thick : (∃ x : obj, Tastes x) → Thickens := by
+    intro hex
+    cases hex with
+    | intro w hw =>
+      have hs := P3 w hw
+      exact P2 w hs
+  have noTaste : ¬ (∃ x : obj, Tastes x) := by
+    intro hex
+    exact notThick (hexTaste_imp_thick hex)
+
+  -- Use Law2 and the fact that no one tastes to conclude someone prepares a salad
+  cases Law2 with
+  | inl hTaste =>
+    exact False.elim (noTaste hTaste)
+  | inr h =>
+    cases h with
+    | inl hSalad => exact hSalad
+    | inr hpair => exact hpair.right
+</lean>
+
+ANSWER: Yes

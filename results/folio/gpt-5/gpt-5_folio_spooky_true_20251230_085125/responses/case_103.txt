@@ -1,0 +1,55 @@
+<lean>
+axiom obj : Type
+axiom Luke : obj
+
+axiom MultipleBirth : obj → Prop
+axiom HasSibsBornTogether : obj → Prop
+axiom Complains : obj → Prop
+axiom SpendTimeWithSiblings : obj → Prop
+axiom LivesAtHome : obj → Prop
+axiom LivesWithStrangers : obj → Prop
+axiom Baby : obj → Prop
+
+-- Premises
+axiom P1 : ∀ x : obj, MultipleBirth x → SpendTimeWithSiblings x
+axiom P2 : ∀ x : obj, HasSibsBornTogether x → MultipleBirth x
+axiom P3 : ∀ x : obj, Complains x → HasSibsBornTogether x
+axiom P4 : ∀ x : obj, LivesAtHome x → ¬ LivesWithStrangers x
+axiom P5 : ∀ x : obj, SpendTimeWithSiblings x → LivesAtHome x
+
+-- Disjunction about Luke (interpreted strongly)
+axiom Luke_either :
+  (Baby Luke ∧ MultipleBirth Luke ∧ LivesWithStrangers Luke) ∨
+  (¬ Baby Luke ∧ ¬ MultipleBirth Luke ∧ ¬ LivesWithStrangers Luke)
+
+theorem luke_neither_mb_nor_complains : ¬ MultipleBirth Luke ∧ ¬ Complains Luke := by
+  -- From MB -> Spend -> Home -> ¬Strangers
+  have MB_notStrangers : ∀ x : obj, MultipleBirth x → ¬ LivesWithStrangers x := by
+    intro x hmb
+    have hsp := P1 x hmb
+    have hhome := P5 x hsp
+    exact P4 x hhome
+  -- Complains -> HasSibsBornTogether -> MultipleBirth
+  have Complains_MB : ∀ x : obj, Complains x → MultipleBirth x := by
+    intro x hc
+    exact P2 x (P3 x hc)
+  -- Case analysis on Luke's disjunction
+  cases Luke_either with
+  | inl h1 =>
+      -- h1 : Baby Luke ∧ MultipleBirth Luke ∧ LivesWithStrangers Luke
+      have hmb : MultipleBirth Luke := And.left (And.right h1)
+      have hlws : LivesWithStrangers Luke := And.right (And.right h1)
+      have hnotlws : ¬ LivesWithStrangers Luke := MB_notStrangers Luke hmb
+      have contra : False := hnotlws hlws
+      exact False.elim contra
+  | inr h2 =>
+      -- h2 : ¬Baby Luke ∧ ¬MultipleBirth Luke ∧ ¬LivesWithStrangers Luke
+      have hnotMB : ¬ MultipleBirth Luke := And.left (And.right h2)
+      have hnotComplains : ¬ Complains Luke := by
+        intro hc
+        have hMB := Complains_MB Luke hc
+        exact hnotMB hMB
+      exact And.intro hnotMB hnotComplains
+</lean>
+
+ANSWER: True

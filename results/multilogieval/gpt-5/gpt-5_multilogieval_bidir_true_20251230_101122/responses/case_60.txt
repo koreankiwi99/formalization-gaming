@@ -1,0 +1,61 @@
+<lean>
+axiom Person : Type
+axiom John : Person
+
+axiom Alarm : Prop
+axiom TimeReady : Prop
+
+axiom Know : Person → Prop → Prop
+
+axiom MissBus : Person → Prop
+axiom Late : Person → Prop
+axiom UpLate : Person → Prop
+axiom BedLate : Person → Prop
+
+-- Premises from the context
+axiom R_alarm_ready : Alarm → TimeReady
+axiom R_miss_late : ∀ x : Person, MissBus x → Late x
+axiom E_alarm_or_not_late : ∀ x : Person, Alarm ∨ ¬ Late x
+axiom R_up_miss : ∀ x : Person, UpLate x → MissBus x
+axiom R_bed_up : ∀ x : Person, BedLate x → UpLate x
+
+-- Factivity of knowledge (to use the "John knows ..." clause)
+axiom factive : ∀ x : Person, ∀ p : Prop, Know x p → p
+
+-- Statement-specific given: John knows it is not time to get ready
+axiom JK : Know John (¬ TimeReady)
+
+-- From the premises, we can derive that John did NOT go to bed late.
+theorem not_bedlate_john : ¬ BedLate John :=
+by
+  -- From knowledge factivity, get ¬TimeReady
+  have h_not_ready : ¬ TimeReady := factive John (¬ TimeReady) JK
+  -- From Alarm → TimeReady and ¬TimeReady, derive ¬Alarm (modus tollens)
+  have h_not_alarm : ¬ Alarm :=
+    by
+      intro hAl
+      exact h_not_ready (R_alarm_ready hAl)
+  -- From Alarm ∨ ¬Late John and ¬Alarm, conclude ¬Late John
+  have h_not_late : ¬ Late John :=
+    by
+      have disj := E_alarm_or_not_late John
+      cases disj with
+      | inl hAl => exact False.elim (h_not_alarm hAl)
+      | inr hnl => exact hnl
+  -- BedLate John → UpLate John → MissBus John → Late John
+  have h_bed_implies_late : BedLate John → Late John :=
+    by
+      intro hbl
+      have hul : UpLate John := R_bed_up John hbl
+      have hmb : MissBus John := R_up_miss John hul
+      exact R_miss_late John hmb
+  -- Conclude ¬BedLate John by contradiction with ¬Late John
+  intro hbl
+  have hl : Late John := h_bed_implies_late hbl
+  exact h_not_late hl
+
+-- Note: We cannot derive BedLate John; rather, we derived its negation.
+-- Hence, the claim "he went to bed late" does not follow.
+</lean>
+
+ANSWER: Failure

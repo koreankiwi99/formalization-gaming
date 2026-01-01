@@ -1,0 +1,51 @@
+<lean>
+axiom Person : Type
+axiom Vladimir : Person
+axiom Ekaterina : Person
+
+axiom CanRegisterUS : Person → Prop
+axiom Participate2024 : Person → Prop
+axiom USCitizen : Person → Prop
+axiom TaiwanCitizen : Person → Prop
+axiom RussianOfficial : Person → Prop
+axiom ManagerGazprom : Person → Prop
+
+-- Premises
+axiom P1 : ∀ x : Person, CanRegisterUS x → Participate2024 x
+axiom P2 : ∀ x : Person, USCitizen x → CanRegisterUS x
+axiom P3 : ∀ x : Person, USCitizen x ∨ TaiwanCitizen x
+axiom P4 : ∀ x : Person, RussianOfficial x → ¬ TaiwanCitizen x
+axiom P5a : ¬ TaiwanCitizen Vladimir
+axiom P5b : ¬ ManagerGazprom Vladimir
+axiom P6 : CanRegisterUS Ekaterina ∨ RussianOfficial Ekaterina
+
+-- Ekaterina can register (either directly, or via being a Russian official which forces US citizenship)
+theorem Ekaterina_can_register : CanRegisterUS Ekaterina := by
+  cases P6 with
+  | inl hreg => exact hreg
+  | inr hro =>
+    have hus : USCitizen Ekaterina := by
+      have disj := P3 Ekaterina
+      cases disj with
+      | inl hus => exact hus
+      | inr htw =>
+        have notTw : ¬ TaiwanCitizen Ekaterina := P4 Ekaterina hro
+        exact False.elim (notTw htw)
+    exact P2 Ekaterina hus
+
+-- Vladimir participates (from not Taiwanese and the US-or-Taiwan disjunction)
+theorem Vladimir_participates : Participate2024 Vladimir := by
+  have hus : USCitizen Vladimir := by
+    have disj := P3 Vladimir
+    cases disj with
+    | inl hus => exact hus
+    | inr htw => exact False.elim (P5a htw)
+  have hreg : CanRegisterUS Vladimir := P2 Vladimir hus
+  exact P1 Vladimir hreg
+
+-- The conjunction "Ekaterina can register and Vladimir participates" holds
+theorem conjunction_true : CanRegisterUS Ekaterina ∧ Participate2024 Vladimir := by
+  exact And.intro Ekaterina_can_register Vladimir_participates
+</lean>
+
+ANSWER: Failure

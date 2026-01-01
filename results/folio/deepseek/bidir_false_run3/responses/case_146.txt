@@ -1,0 +1,59 @@
+<lean>
+axiom Person : Type
+axiom Ekaterina : Person
+axiom Vladimir : Person
+axiom CanRegister : Person → Prop
+axiom CanParticipate : Person → Prop
+axiom USCitizen : Person → Prop
+axiom TaiwaneseCitizen : Person → Prop
+axiom RussianOfficial : Person → Prop
+axiom ManagerGazprom : Person → Prop
+
+axiom Premise1 : ∀ x : Person, CanRegister x → CanParticipate x
+axiom Premise2 : ∀ x : Person, USCitizen x → CanRegister x
+axiom Premise3 : ∀ x : Person, USCitizen x ∨ TaiwaneseCitizen x
+axiom Premise4 : ∀ x : Person, RussianOfficial x → ¬ TaiwaneseCitizen x
+axiom Premise5 : ¬ TaiwaneseCitizen Vladimir ∧ ¬ ManagerGazprom Vladimir
+axiom Premise6 : CanRegister Ekaterina ∨ RussianOfficial Ekaterina
+
+-- Attempt to prove the negation of the conclusion: ¬(CanParticipate Ekaterina ∨ ManagerGazprom Ekaterina)
+theorem prove_negation : ¬(CanParticipate Ekaterina ∨ ManagerGazprom Ekaterina) → False := by
+  intro h_neg
+  have h_neg_conj : ¬CanParticipate Ekaterina ∧ ¬ManagerGazprom Ekaterina := by
+    exact not_or.mp h_neg
+  cases Premise6 with
+  | inl reg =>
+      have part : CanParticipate Ekaterina := Premise1 Ekaterina reg
+      exact h_neg_conj.left part
+  | inr off =>
+      have no_taiwan : ¬ TaiwaneseCitizen Ekaterina := Premise4 Ekaterina off
+      have cases_cit : USCitizen Ekaterina ∨ TaiwaneseCitizen Ekaterina := Premise3 Ekaterina
+      cases cases_cit with
+      | inl us =>
+          have reg : CanRegister Ekaterina := Premise2 Ekaterina us
+          have part : CanParticipate Ekaterina := Premise1 Ekaterina reg
+          exact h_neg_conj.left part
+      | inr tai => exact no_taiwan tai
+
+-- Since we derived a contradiction when assuming the negation, we cannot prove the negation.
+-- However, note: We were trying to prove the conclusion is False (i.e., prove its negation).
+-- The above theorem shows that assuming the negation leads to contradiction? Actually, no:
+-- In both branches we showed that Ekaterina must participate, contradicting the left part of the negation.
+-- But wait: the theorem `prove_negation` shows that ¬(conclusion) is impossible? Meaning the conclusion must be true?
+-- Therefore, we cannot prove the conclusion is False.
+
+-- Alternatively, we can directly prove the conclusion is true:
+theorem conclusion_true : CanParticipate Ekaterina ∨ ManagerGazprom Ekaterina := by
+  cases Premise6 with
+  | inl reg => exact Or.inl (Premise1 Ekaterina reg)
+  | inr off =>
+      have no_taiwan := Premise4 Ekaterina off
+      have cases_cit := Premise3 Ekaterina
+      cases cases_cit with
+      | inl us => exact Or.inl (Premise1 Ekaterina (Premise2 Ekaterina us))
+      | inr tai => exact absurd tai no_taiwan
+
+-- Since we can prove the conclusion true, we cannot prove it false.
+</lean>
+
+ANSWER: Failure

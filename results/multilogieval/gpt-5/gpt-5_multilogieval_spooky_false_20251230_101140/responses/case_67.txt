@@ -1,0 +1,106 @@
+<lean>
+open Classical
+
+axiom obj : Type
+axiom Sam : obj
+
+axiom KitchenHot : Prop
+axiom StoveOn : Prop
+
+axiom UseStove : obj → Prop
+axiom MakePancakes : obj → Prop
+axiom Hungry : obj → Prop
+axiom AteDinner : obj → Prop
+
+-- If the stove is on, the kitchen gets hot.
+axiom A1 : StoveOn → KitchenHot
+-- If someone makes pancakes, they use the stove.
+axiom A2 : ∀ x : obj, MakePancakes x → UseStove x
+-- Either the stove was on, or they did not use the stove (for any person).
+axiom A3 : ∀ x : obj, StoveOn ∨ ¬UseStove x
+-- If someone is hungry, they make pancakes.
+axiom A4 : ∀ x : obj, Hungry x → MakePancakes x
+-- If Sam did not eat dinner last night, he was hungry this morning.
+axiom A5 : ¬AteDinner Sam → Hungry Sam
+
+theorem use_stove_implies_on (x : obj) (hx : UseStove x) : StoveOn := by
+  have h := A3 x
+  apply Or.elim h
+  · intro hOn
+    exact hOn
+  · intro hNotUse
+    exact False.elim (hNotUse hx)
+
+theorem not_dinner_implies_hot : ¬AteDinner Sam → KitchenHot := by
+  intro hNoDinner
+  have hHun : Hungry Sam := A5 hNoDinner
+  have hPanc : MakePancakes Sam := A4 Sam hHun
+  have hUse : UseStove Sam := A2 Sam hPanc
+  have hOn : StoveOn := use_stove_implies_on Sam hUse
+  exact A1 hOn
+
+-- From "the kitchen did not get hot", we can derive "Sam ate dinner last night".
+theorem not_hot_implies_dinner : ¬KitchenHot → AteDinner Sam := by
+  intro hNotHot
+  by_contra hNoDinner
+  exact hNotHot (not_dinner_implies_hot hNoDinner)
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+open Classical
+
+axiom obj : Type
+axiom Sam : obj
+
+axiom KitchenHot : Prop
+axiom StoveOn : Prop
+
+axiom UseStove : obj → Prop
+axiom MakePancakes : obj → Prop
+axiom Hungry : obj → Prop
+axiom AteDinner : obj → Prop
+
+-- If the stove is on, the kitchen gets hot.
+axiom A1 : StoveOn → KitchenHot
+-- If someone makes pancakes, they use the stove.
+axiom A2 : ∀ x : obj, MakePancakes x → UseStove x
+-- Either the stove was on, or they did not use the stove (for any person).
+axiom A3 : ∀ x : obj, StoveOn ∨ ¬UseStove x
+-- If someone is hungry, they make pancakes.
+axiom A4 : ∀ x : obj, Hungry x → MakePancakes x
+-- If Sam did not eat dinner last night, he was hungry this morning.
+axiom A5 : ¬AteDinner Sam → Hungry Sam
+
+theorem use_stove_implies_on (x : obj) (hx : UseStove x) : StoveOn := by
+  have h := A3 x
+  cases h with
+  | inl hOn => exact hOn
+  | inr hNotUse => exact False.elim (hNotUse hx)
+
+theorem not_dinner_implies_hot : ¬AteDinner Sam → KitchenHot := by
+  intro hNoDinner
+  have hHun : Hungry Sam := A5 hNoDinner
+  have hPanc : MakePancakes Sam := A4 Sam hHun
+  have hUse : UseStove Sam := A2 Sam hPanc
+  have hOn : StoveOn := use_stove_implies_on Sam hUse
+  exact A1 hOn
+
+-- From "the kitchen did not get hot", we can derive "Sam ate dinner last night".
+theorem not_hot_implies_dinner : ¬KitchenHot → AteDinner Sam := by
+  intro hNotHot
+  have h := Classical.em (AteDinner Sam)
+  cases h with
+  | inl hDinner =>
+      exact hDinner
+  | inr hNoDinner =>
+      have hHot : KitchenHot := not_dinner_implies_hot hNoDinner
+      exact False.elim (hNotHot hHot)
+</lean>
+
+ANSWER: Failure

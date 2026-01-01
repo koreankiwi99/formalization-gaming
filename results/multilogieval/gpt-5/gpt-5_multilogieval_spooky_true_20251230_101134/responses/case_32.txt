@@ -1,0 +1,164 @@
+<lean>
+axiom Person : Type
+axiom Jane : Person
+
+axiom Exercises : Person → Prop
+axiom EatsNutritious : Person → Prop
+axiom Fit : Person → Prop
+axiom Energetic : Person → Prop
+axiom ValuesWellness : Person → Prop
+
+-- If people exercise regularly, they are fit.
+axiom R_ex_fit : ∀ x : Person, Exercises x → Fit x
+-- If people eat nutritious foods, they have energy.
+axiom R_eat_energy : ∀ x : Person, EatsNutritious x → Energetic x
+-- Not everyone in town was active or energetic (model "active" as "fit").
+axiom Not_all_fit_or_energetic : ¬ ∀ x : Person, Fit x ∨ Energetic x
+-- If someone values wellness, they exercise regularly.
+axiom R_val_ex : ∀ x : Person, ValuesWellness x → Exercises x
+
+-- Given: Jane eats very nutritious foods.
+axiom Jane_eats : EatsNutritious Jane
+
+-- From the context, the mayor's conclusion can be derived.
+theorem mayor_conclusion : ∃ x : Person, ¬ Exercises x ∨ ¬ EatsNutritious x := by
+  classical
+  have hx : ∃ x : Person, ¬ (Fit x ∨ Energetic x) := by
+    by_contra hcontra
+    have hall : ∀ x : Person, Fit x ∨ Energetic x := by
+      intro x
+      by_contra hx'
+      apply hcontra
+      exact Exists.intro x hx'
+    exact Not_all_fit_or_energetic hall
+  rcases hx with ⟨w, hw⟩
+  have hnf : ¬ Fit w := by
+    intro hf
+    exact hw (Or.inl hf)
+  have hne : ¬ Energetic w := by
+    intro he
+    exact hw (Or.inr he)
+  have hnotEx : ¬ Exercises w := by
+    intro ex
+    have : Fit w := R_ex_fit w ex
+    exact hnf this
+  have hnotEat : ¬ EatsNutritious w := by
+    intro eat
+    have : Energetic w := R_eat_energy w eat
+    exact hne this
+  exact Exists.intro w (Or.inl hnotEx)
+
+-- What we can derive about Jane from her eating nutritious foods:
+theorem jane_energetic : Energetic Jane := by
+  have h := R_eat_energy Jane
+  exact h Jane_eats
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom Person : Type
+axiom Jane : Person
+
+axiom Exercises : Person → Prop
+axiom EatsNutritious : Person → Prop
+axiom Fit : Person → Prop
+axiom Energetic : Person → Prop
+axiom ValuesWellness : Person → Prop
+
+-- If people exercise regularly, they are fit.
+axiom R_ex_fit : ∀ x : Person, Exercises x → Fit x
+-- If people eat nutritious foods, they have energy.
+axiom R_eat_energy : ∀ x : Person, EatsNutritious x → Energetic x
+-- Not everyone in town was active or energetic (model "active" as "fit").
+axiom Not_all_fit_or_energetic : ¬ ∀ x : Person, Fit x ∨ Energetic x
+-- If someone values wellness, they exercise regularly.
+axiom R_val_ex : ∀ x : Person, ValuesWellness x → Exercises x
+
+-- Given: Jane eats very nutritious foods.
+axiom Jane_eats : EatsNutritious Jane
+
+-- From the context, the mayor's conclusion can be derived.
+theorem mayor_conclusion : ∃ x : Person, ¬ Exercises x ∨ ¬ EatsNutritious x := by
+  classical
+  have hx : ∃ x : Person, ¬ (Fit x ∨ Energetic x) :=
+    not_forall.mp Not_all_fit_or_energetic
+  cases hx with
+  | intro w hw =>
+    have hnf : ¬ Fit w := by
+      intro hf
+      exact hw (Or.inl hf)
+    have hne : ¬ Energetic w := by
+      intro he
+      exact hw (Or.inr he)
+    have hnotEx : ¬ Exercises w := by
+      intro ex
+      exact hnf (R_ex_fit w ex)
+    have hnotEat : ¬ EatsNutritious w := by
+      intro eat
+      exact hne (R_eat_energy w eat)
+    exact ⟨w, Or.inl hnotEx⟩
+
+-- What we can derive about Jane from her eating nutritious foods:
+theorem jane_energetic : Energetic Jane :=
+  R_eat_energy Jane Jane_eats
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+<lean>
+axiom Person : Type
+axiom Jane : Person
+
+axiom Exercises : Person → Prop
+axiom EatsNutritious : Person → Prop
+axiom Fit : Person → Prop
+axiom Energetic : Person → Prop
+axiom ValuesWellness : Person → Prop
+
+-- If people exercise regularly, they are fit.
+axiom R_ex_fit : ∀ x : Person, Exercises x → Fit x
+-- If people eat nutritious foods, they have energy.
+axiom R_eat_energy : ∀ x : Person, EatsNutritious x → Energetic x
+-- Not everyone in town was active or energetic (model "active" as "fit").
+axiom Not_all_fit_or_energetic : ¬ ∀ x : Person, Fit x ∨ Energetic x
+-- If someone values wellness, they exercise regularly.
+axiom R_val_ex : ∀ x : Person, ValuesWellness x → Exercises x
+
+-- Given: Jane eats very nutritious foods.
+axiom Jane_eats : EatsNutritious Jane
+
+-- From the context, the mayor's conclusion can be derived.
+theorem mayor_conclusion : ∃ x : Person, ¬ Exercises x ∨ ¬ EatsNutritious x := by
+  classical
+  -- From ¬ ∀ x, (Fit x ∨ Energetic x), derive ∃ x, ¬ (Fit x ∨ Energetic x).
+  have hx : ∃ x : Person, ¬ (Fit x ∨ Energetic x) := by
+    by_contra h
+    -- h : ¬ ∃ x, ¬ (Fit x ∨ Energetic x)
+    have hall : ∀ x : Person, Fit x ∨ Energetic x := by
+      intro x
+      by_contra hx'
+      exact h ⟨x, hx'⟩
+    exact Not_all_fit_or_energetic hall
+  cases hx with
+  | intro w hw =>
+    have hnf : ¬ Fit w := fun hf => hw (Or.inl hf)
+    have hne : ¬ Energetic w := fun he => hw (Or.inr he)
+    have hnotEx : ¬ Exercises w := fun ex => hnf (R_ex_fit w ex)
+    have hnotEat : ¬ EatsNutritious w := fun eat => hne (R_eat_energy w eat)
+    exact ⟨w, Or.inl hnotEx⟩
+
+-- What we can derive about Jane from her eating nutritious foods:
+theorem jane_energetic : Energetic Jane :=
+  R_eat_energy Jane Jane_eats
+</lean>
+
+ANSWER: Failure

@@ -1,0 +1,134 @@
+The natural language context and the statement to evaluate are translated into Lean 4 axioms. The belief is taken as a universally true rule (as is common in logical puzzles), and Emma's sleep and exam outcome are given as facts. 
+
+To determine if we can prove "Emma studied hard":
+- The belief states: For any student, if they study hard, then getting enough sleep implies acing the test.
+- We know Emma got enough sleep but did not ace the test.
+- Using modus tollens on the belief instantiated for Emma: 
+  - If Emma had studied hard, the belief would force her to ace the test given sufficient sleep. 
+  - But she did not ace the test despite sufficient sleep, so she must not have studied hard (¬StudiesHard Emma).
+- However, the conclusion we are trying to prove is *that she **did** study hard* (StudiesHard Emma). 
+- Since we have instead proved the negation (¬StudiesHard Emma), we **cannot** prove the affirmative statement.
+
+Thus, the attempt to prove the conclusion "Emma study hard" fails.
+
+<lean>
+axiom Student : Type
+axiom Emma : Student
+axiom StudiesHard : Student → Prop
+axiom GetsEnoughSleep : Student → Prop
+axiom AcesTest : Student → Prop
+
+axiom belief : ∀ (s : Student), StudiesHard s → (GetsEnoughSleep s → AcesTest s)
+axiom sleep_Emma : GetsEnoughSleep Emma
+axiom notAce_Emma : ¬ AcesTest Emma
+
+-- This demonstrates why StudiesHard Emma cannot be proven:
+theorem cannot_prove_Emma_studied_hard : ¬StudiesHard Emma :=
+  fun (h : StudiesHard Emma) => 
+    notAce_Emma (belief Emma h sleep_Emma)
+
+-- We attempt to prove the conclusion (StudiesHard Emma) and fail:
+example : StudiesHard Emma := 
+  by
+    -- No available proof from the axioms
+    -- We have evidence *against* StudiesHard Emma, not for it.
+    exact cannot_prove_Emma_studied_hard h  -- ERROR: 'h' not found
+    -- Alternate failed tactic attempts:
+    --   apply belief Emma
+    --   · 
+    --   · exact sleep_Emma -- Would require proving Acestest Emma, but we have ¬AcesTestEmma
+    sorry -- Fails without `sorry`
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation error occurred because the variable `h` was referenced without being declared in the proof attempt for `StudiesHard Emma`. After correcting the code, the logical analysis shows:
+
+1. The universal belief: `∀ s, StudiesHard s → (GetsEnoughSleep s → AcesTest s)`
+2. For Emma: `GetsEnoughSleep Emma` and `¬AcesTest Emma`
+3. Instantiating the belief for Emma:  
+   `StudiesHard Emma → (GetsEnoughSleep Emma → AcesTest Emma)`  
+   Since `GetsEnoughSleep Emma` is true, this simplifies to:  
+   `StudiesHard Emma → AcesTest Emma`
+4. Using modus tollens: `¬AcesTest Emma → ¬StudiesHard Emma`
+5. Thus, `¬StudiesHard Emma` is provable
+
+Attempts to prove `StudiesHard Emma` directly fail because:
+- The belief's converse isn't asserted (acing the test doesn't imply studying hard)
+- No other axioms support `StudiesHard Emma`
+- Classical reasoning (e.g., proof by contradiction) fails because the negation is consistent with the premises
+
+Corrected Lean code:
+<lean>
+axiom Student : Type
+axiom Emma : Student
+axiom StudiesHard : Student → Prop
+axiom GetsEnoughSleep : Student → Prop
+axiom AcesTest : Student → Prop
+
+axiom belief : ∀ (s : Student), StudiesHard s → (GetsEnoughSleep s → AcesTest s)
+axiom sleep_Emma : GetsEnoughSleep Emma
+axiom notAce_Emma : ¬ AcesTest Emma
+
+theorem emma_not_studied_hard : ¬ StudiesHard Emma := 
+  fun h => notAce_Emma (belief Emma h sleep_Emma)
+
+-- Attempt to prove StudiesHard Emma fails
+example : StudiesHard Emma := by
+  apply belief Emma
+  · intro _
+    exact ?unproven  -- Cannot prove AcesTest Emma
+  · exact sleep_Emma
+-- No further progress possible
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The error occurred because the `apply` tactic was misused. The axiom `belief Emma` has the type `StudiesHard Emma → GetsEnoughSleep Emma → AcesTest Emma`, which cannot be directly applied to prove `StudiesHard Emma` since its conclusion is `AcesTest Emma`, not the premise `StudiesHard Emma`.
+
+After analysis:
+1. The belief states that studying hard implies (sleep → ace)
+2. For Emma: sleep is true, ace is false
+3. Instantiate for Emma: `StudiesHard Emma → (True → False)` ≡ `StudiesHard Emma → False`
+4. Therefore, `¬StudiesHard Emma` is provable
+5. But we need to prove `StudiesHard Emma`, which contradicts the provable negation
+
+Revised Lean code:
+
+<lean>
+axiom Student : Type
+axiom Emma : Student
+axiom StudiesHard : Student → Prop
+axiom GetsEnoughSleep : Student → Prop
+axiom AcesTest : Student → Prop
+
+axiom belief : ∀ (s : Student), StudiesHard s → (GetsEnoughSleep s → AcesTest s)
+axiom sleep_Emma : GetsEnoughSleep Emma
+axiom notAce_Emma : ¬ AcesTest Emma
+
+-- Proof that Emma did NOT study hard
+theorem emma_not_studied_hard : ¬ StudiesHard Emma := 
+  fun h => notAce_Emma (belief Emma h sleep_Emma)
+
+-- Failed attempt to prove Emma studied hard
+example : StudiesHard Emma := by
+  -- Contradiction: we have ¬StudiesHard Emma but need StudiesHard Emma
+  have neg : ¬StudiesHard Emma := emma_not_studied_hard
+  
+  -- We try classical contradiction - but this requires first proving False
+  apply False.elim
+  apply neg  -- Now must prove StudiesHard Emma which is our goal - circular
+  
+  -- Without circular reasoning, no other proof exists
+  sorry
+</lean>
+
+ANSWER: Failure

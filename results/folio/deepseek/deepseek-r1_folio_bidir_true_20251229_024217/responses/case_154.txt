@@ -1,0 +1,54 @@
+The Lean code formalizes the given context and evaluates the statement. The axioms represent the premises:
+
+1. All hydrocarbons are organic compounds.
+2. All alkanes are hydrocarbons.
+3. All organic compounds are chemical compounds.
+4. All organic compounds contain carbon.
+5. No chemical compounds contain only one element.
+6. The mixture is either both a chemical compound and contains only one element, or neither.
+
+The key derivation:
+- Premise 5 and 6 imply the mixture cannot be both a chemical compound and have only one element.
+- Thus, the mixture is neither a chemical compound nor has only one element (`Mixture_fixed`).
+- The statement's conclusion (`¬CC Mixture ∧ ¬Alk Mixture`) always holds:
+  - `¬CC Mixture` comes directly from `Mixture_fixed`.
+  - `¬Alk Mixture` is proven by contradiction: if it were an alkane, it would be a chemical compound (via hydrocarbons and organic compounds), contradicting `¬CC Mixture`.
+- Since the conclusion holds regardless of the antecedent, the implication is true.
+
+<lean>
+axiom obj : Type
+axiom Mixture : obj
+
+axiom HC : obj → Prop
+axiom OC : obj → Prop
+axiom Alk : obj → Prop
+axiom CC : obj → Prop
+axiom ContainCarbon : obj → Prop
+axiom ContainOnlyOneElement : obj → Prop
+
+axiom A1 : ∀ x : obj, HC x → OC x
+axiom A2 : ∀ x : obj, Alk x → HC x
+axiom A3 : ∀ x : obj, OC x → CC x
+axiom A4 : ∀ x : obj, OC x → ContainCarbon x
+axiom A5 : ∀ x : obj, CC x → ¬ ContainOnlyOneElement x
+axiom T6 : (CC Mixture ∧ ContainOnlyOneElement Mixture) ∨ (¬ CC Mixture ∧ ¬ ContainOnlyOneElement Mixture)
+
+theorem target : 
+    (ContainOnlyOneElement Mixture ∨ ContainCarbon Mixture) → (¬ CC Mixture ∧ ¬ Alk Mixture) := 
+  by
+    have not_possible : ¬ (CC Mixture ∧ ContainOnlyOneElement Mixture) := 
+      fun ⟨hCC, hOne⟩ => A5 Mixture hCC hOne
+    have Mixture_fixed : ¬ CC Mixture ∧ ¬ ContainOnlyOneElement Mixture := 
+      match T6 with
+      | .inl pos => False.elim (not_possible pos)
+      | .inr neg => neg
+    intro _
+    constructor
+    · exact Mixture_fixed.1
+    · intro hAlk
+      have chain : Alk Mixture → CC Mixture := 
+        fun hAlk => A3 Mixture (A1 Mixture (A2 Mixture hAlk))
+      exact Mixture_fixed.1 (chain hAlk)
+</lean>
+
+ANSWER: True

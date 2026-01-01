@@ -1,0 +1,89 @@
+<lean>
+/- Domain and predicates -/
+axiom obj : Type
+axiom Michael : obj
+axiom Peter : obj
+axiom Windy : obj
+
+axiom Man : obj → Prop
+axiom Shooter : obj → Prop
+axiom GreatShooter : obj → Prop
+axiom JumpWhenShooting : obj → Prop
+axiom InClass : obj → Prop            -- "in Michael's class"
+axiom Taller : obj → obj → Prop       -- Taller x y means x is taller than y
+axiom Block : obj → obj → Prop        -- Block x y means x can block y's shooting
+
+/- Background axioms from the text -/
+-- If a man is taller than another man, the taller one can block the other's shooting.
+axiom blocks_if_taller : ∀ x y : obj, Man x → Man y → Taller x y → Block x y
+
+-- Michael is a man who is taller than everyone else in his class (everyone else ≠ Michael).
+axiom Michael_is_man : Man Michael
+axiom Michael_taller_than_all_others_in_his_class :
+  ∀ y : obj, InClass y → y ≠ Michael → Taller Michael y
+
+-- Transitivity of "taller than".
+axiom taller_trans : ∀ x y z : obj, Taller x y → Taller y z → Taller x z
+
+-- Peter is a man who is taller than Michael.
+axiom Peter_is_man : Man Peter
+axiom Peter_taller_than_Michael : Taller Peter Michael
+
+-- Michael can block any shooting from a person as long as the person does not jump when shooting.
+axiom Michael_blocks_nonjumpers : ∀ p : obj, ¬ JumpWhenShooting p → Block Michael p
+
+-- Michael cannot block Windy's shooting.
+axiom Michael_cannot_block_Windy : ¬ Block Michael Windy
+
+-- Every shooter who can jump when shooting is a great shooter.
+axiom great_if_jump_shooter : ∀ s : obj, Shooter s → JumpWhenShooting s → GreatShooter s
+
+/- Natural properties of "taller than" (implicit in the concept): irreflexivity. -/
+axiom taller_irrefl : ∀ x : obj, ¬ Taller x x
+
+/- Derived lemmas -/
+theorem taller_asymm : ∀ x y : obj, Taller x y → ¬ Taller y x := by
+  intro x y hxy
+  intro hyx
+  have hxx : Taller x x := taller_trans x y x hxy hyx
+  exact (taller_irrefl x) hxx
+
+open Classical
+
+-- If y is in Michael's class and y ≠ Michael, then Peter is taller than y.
+theorem peter_taller_than_classmate_ne_Michael :
+  ∀ y : obj, InClass y → y ≠ Michael → Taller Peter y := by
+  intro y hy hne
+  have hMy : Taller Michael y := Michael_taller_than_all_others_in_his_class y hy hne
+  exact taller_trans Peter Michael y Peter_taller_than_Michael hMy
+
+-- Any member of Michael's class is not taller than Peter.
+theorem no_class_member_taller_than_Peter : ∀ y : obj, InClass y → ¬ Taller y Peter := by
+  intro y hy
+  have hcases : y = Michael ∨ y ≠ Michael := Classical.em (y = Michael)
+  cases hcases with
+  | inl h =>
+      -- y = Michael
+      have h_asymm : ¬ Taller Michael Peter :=
+        taller_asymm Peter Michael Peter_taller_than_Michael
+      simpa [h] using h_asymm
+  | inr hne =>
+      -- y ≠ Michael
+      have hPy : Taller Peter y := peter_taller_than_classmate_ne_Michael y hy hne
+      exact taller_asymm Peter y hPy
+
+-- Therefore, there is no man in Michael's class who is taller than Peter.
+theorem no_man_in_Michaels_class_taller_than_Peter :
+  ¬ ∃ m : obj, Man m ∧ InClass m ∧ Taller m Peter := by
+  intro h
+  cases h with
+  | intro m hm =>
+    cases hm with
+    | intro hm_man hm' =>
+      cases hm' with
+      | intro hm_in hm_taller =>
+        have hnot : ¬ Taller m Peter := no_class_member_taller_than_Peter m hm_in
+        exact hnot hm_taller
+</lean>
+
+ANSWER: Failure

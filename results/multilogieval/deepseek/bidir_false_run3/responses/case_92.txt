@@ -1,0 +1,163 @@
+<lean>
+axiom obj : Type
+axiom Field : obj
+axiom Farmer : obj
+
+axiom EnoughWater : Prop
+axiom GrowWell : Prop
+axiom PestsInvade : Prop
+axiom DamagedCrops : Prop
+axiom WateredAdequately : Prop
+axiom Bountiful : Prop
+axiom GoodProfit : Prop
+
+axiom R1 : EnoughWater → GrowWell
+axiom R2 : PestsInvade → DamagedCrops
+axiom R3 : WateredAdequately → EnoughWater
+axiom R4 : GrowWell → Bountiful
+axiom R5 : Bountiful → GoodProfit
+axiom Disjunction : WateredAdequately ∨ ¬ DamagedCrops ∨ (EnoughWater ∧ DamagedCrops)
+
+-- Attempt to prove: If pests invaded, then farmer did NOT make good profit (PestsInvade → ¬GoodProfit)
+theorem try_proof : PestsInvade → ¬GoodProfit :=
+  fun hPests : PestsInvade =>
+  have hDamage : DamagedCrops := R2 hPests
+  -- Disjunction cases given hDamage
+  have hDisj : WateredAdequately ∨ EnoughWater := by
+    cases Disjunction with
+    | inl w => exact Or.inl w
+    | inr d =>
+        cases d with
+        | inl noDamage => contradiction
+        | inr (hWater, _) => exact Or.inr hWater
+  -- Both cases lead to EnoughWater
+  have hWater : EnoughWater := by
+    cases hDisj with
+    | inl w => exact R3 w
+    | inr e => exact e
+  have hGrow : GrowWell := R1 hWater
+  have hBountiful : Bountiful := R4 hGrow
+  have hProfit : GoodProfit := R5 hBountiful
+  -- We have GoodProfit, cannot prove ¬GoodProfit
+  show ¬GoodProfit from ?a
+  -- Contradiction found: we derived GoodProfit but need ¬GoodProfit
+  -- Therefore, proof fails at this point
+  sorry
+
+-- Since we cannot complete the proof (derived GoodProfit instead of ¬GoodProfit),
+-- we cannot prove the negation.
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation error occurred due to improper handling of the disjunction case analysis in the Lean code. Specifically, the `contradiction` tactic did not have the necessary context to resolve the case where `¬DamagedCrops` contradicts `DamagedCrops`. This has been fixed by ensuring all required hypotheses are in scope during case analysis.
+
+The corrected Lean code properly handles the disjunction:
+1. When pests invade, crops are damaged (`hDamage`).
+2. The disjunction (`WateredAdequately ∨ ¬DamagedCrops ∨ (EnoughWater ∧ DamagedCrops)`) is analyzed:
+   - `WateredAdequately` leads to `EnoughWater` via `R3`
+   - `¬DamagedCrops` contradicts `hDamage` (resolved by `contradiction`)
+   - `EnoughWater ∧ DamagedCrops` directly provides `EnoughWater`
+3. `EnoughWater` leads to `GoodProfit` through the chain of implications (`R1`, `R4`, `R5`)
+
+Since `GoodProfit` is derived under the assumption of `PestsInvade`, we cannot prove `¬GoodProfit`. The attempted proof of the negation fails.
+
+<lean>
+axiom obj : Type
+axiom Field : obj
+axiom Farmer : obj
+
+axiom EnoughWater : Prop
+axiom GrowWell : Prop
+axiom PestsInvade : Prop
+axiom DamagedCrops : Prop
+axiom WateredAdequately : Prop
+axiom Bountiful : Prop
+axiom GoodProfit : Prop
+
+axiom R1 : EnoughWater → GrowWell
+axiom R2 : PestsInvade → DamagedCrops
+axiom R3 : WateredAdequately → EnoughWater
+axiom R4 : GrowWell → Bountiful
+axiom R5 : Bountiful → GoodProfit
+axiom Disjunction : WateredAdequately ∨ ¬DamagedCrops ∨ (EnoughWater ∧ DamagedCrops)
+
+theorem try_proof : PestsInvade → ¬GoodProfit :=
+fun hPests : PestsInvade =>
+  have hDamage : DamagedCrops := R2 hPests
+  have hWater : EnoughWater := by
+    cases Disjunction with
+    | inl wa => exact R3 wa
+    | inr rest =>
+        cases rest with
+        | inl noDamage => contradiction  -- hDamage and noDamage contradict
+        | inr hw => exact hw.1
+  have hGrow : GrowWell := R1 hWater
+  have hBountiful : Bountiful := R4 hGrow
+  have hProfit : GoodProfit := R5 hBountiful
+  -- Cannot prove ¬GoodProfit after deriving GoodProfit
+  show ¬GoodProfit from fun h => ?absurd
+  sorry  -- Proof fails here
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The compilation error occurred due to an incorrect proof construction for the negation. Specifically, the `show ¬GoodProfit from ...` line attempted to use an undefined term `?absurd`. The correct approach is to recognize that after deriving `GoodProfit` under the assumption of `PestsInvade`, we cannot construct a proof of `¬GoodProfit` (which requires showing `GoodProfit → False`). 
+
+Here's the corrected Lean code:
+<lean>
+axiom obj : Type
+axiom Field : obj
+axiom Farmer : obj
+
+axiom EnoughWater : Prop
+axiom GrowWell : Prop
+axiom PestsInvade : Prop
+axiom DamagedCrops : Prop
+axiom WateredAdequately : Prop
+axiom Bountiful : Prop
+axiom GoodProfit : Prop
+
+axiom R1 : EnoughWater → GrowWell
+axiom R2 : PestsInvade → DamagedCrops
+axiom R3 : WateredAdequately → EnoughWater
+axiom R4 : GrowWell → Bountiful
+axiom R5 : Bountiful → GoodProfit
+axiom Disjunction : WateredAdequately ∨ ¬DamagedCrops ∨ (EnoughWater ∧ DamagedCrops)
+
+theorem try_proof : PestsInvade → ¬GoodProfit :=
+fun hPests : PestsInvade =>
+  have hDamage : DamagedCrops := R2 hPests
+  have hWater : EnoughWater := by
+    cases Disjunction with
+    | inl wa => exact R3 wa
+    | inr rest =>
+        cases rest with
+        | inl noDamage => contradiction  -- Contradiction with hDamage
+        | inr hw => exact hw.1
+  have hGrow : GrowWell := R1 hWater
+  have hBountiful : Bountiful := R4 hGrow
+  have hProfit : GoodProfit := R5 hBountiful
+  -- Cannot prove ¬GoodProfit after deriving GoodProfit
+  fun _ => ?absurd  -- Attempt to construct ¬GoodProfit fails
+  sorry              -- Proof incomplete
+</lean>
+
+**Explanation**:  
+- When pests invade (`hPests`), crops are damaged (`hDamage` via `R2`).  
+- The disjunction forces either:  
+  (a) Adequate watering → enough water (`R3`), or  
+  (b) Enough water directly (from the third disjunct).  
+- Both cases yield `EnoughWater` (`hWater`), leading to `GoodProfit` via the chain `R1`→`R4`→`R5`.  
+- Since `GoodProfit` is derived, we cannot construct `¬GoodProfit` (which would require showing `GoodProfit → False`).  
+- The proof fails at `sorry` as no contradiction exists.  
+
+ANSWER: Failure

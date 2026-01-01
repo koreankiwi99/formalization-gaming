@@ -1,0 +1,159 @@
+The statement "Peter is shorter than a man in Michael's class" can be interpreted as: there exists a man in Michael's class who is taller than Peter. To reason about this, we formalize the problem using Lean. The key axioms are:
+
+1. Transitivity of "taller": If Peter is taller than Michael, and Michael is taller than any class member (except himself), then Peter is taller than that class member.
+2. Michael's height dominance: In his class, Michael is taller than everyone else.
+3. However, without explicit asymmetry in the "taller" relation, we cannot automatically conclude that if Peter is taller than someone, that person cannot be taller than Peter. Although real-world height relations are asymmetric, the axioms provided do not include this property.
+
+Thus, we cannot rule out the possibility that a class member (possibly Michael) is taller than Peter, despite Peter being taller than Michael. The lack of a universally imposed asymmetry on "taller" means the negation of the statement cannot be proven.
+
+<lean>
+axiom obj : Type
+axiom Taller : obj → obj → Prop
+axiom Man : obj → Prop
+axiom ClassOfMichael : obj → Prop
+axiom Michael : obj
+axiom Peter : obj
+axiom Windy : obj
+axiom CanBlock : obj → obj → Prop
+axiom JumpWhenShooting : obj → Prop
+axiom GreatShooter : obj → Prop
+
+/-- Blocking relationship based on height --/
+axiom R1 : ∀ x y, Man x → Man y → Taller x y → CanBlock x y
+
+/-- Michael is a man and taller than everyone else in his class (excluding himself) --/
+axiom ManMichael : Man Michael
+axiom T2 : ∀ x, ClassOfMichael x → x ≠ Michael → Taller Michael x
+
+/-- Transitivity of height --/
+axiom T3 : ∀ x y z, Taller x y → Taller y z → Taller x z
+
+/-- Peter is a man taller than Michael --/
+axiom ManPeter : Man Peter
+axiom T4 : Taller Peter Michael
+
+/-- Michael's blocking is only prevented when the shooter jumps --/
+axiom T5 : ∀ x, ¬ JumpWhenShooting x → CanBlock Michael x
+axiom T6 : ¬ CanBlock Michael Windy
+axiom T7 : ∀ x, JumpWhenShooting x → GreatShooter x
+
+/-- Attempt to prove the negation that Peter is not shorter than any man in class --/
+theorem not_shorter : ¬ (∃ x, Man x ∧ ClassOfMichael x ∧ Taller x Peter) :=
+  fun ⟨x, hman, hclass, hxp⟩ => 
+  if hxM : x = Michael then
+    /- Case 1: x = Michael -/
+    have hpm := T4  -- Peter taller than Michael
+    -- Without asymmetry, cannot derive ¬ Taller Michael Peter from T4
+    False.elim (False.elim (Classical.em (Taller x Peter)))  -- Unable to contradict without asymmetry
+  else 
+    /- Case 2: x ≠ Michael -/
+    have hmx := T2 x hclass hxM  -- Michael taller than x
+    have hpm := T4              -- Peter taller than Michael
+    have hpx := T3 Peter Michael x hpm hmx -- Peter taller than x (by transitivity)
+    -- Without asymmetry, cannot derive ¬ Taller x Peter from hpx
+    False.elim (False.elim (Classical.em (Taller x Peter))) -- Logic stuck without asymmetry
+
+-- Since we cannot derive a contradiction without additional axioms (asymmetry),
+-- the theorem is not provable, implying we cannot show the statement false.
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The errors in the initial Lean code were due to improper handling of classical reasoning and the use of `False.elim` with a disjunction instead of a `False` argument. The corrected code uses classical tactics (`by_cases`) to handle case distinctions and `sorry` for unprovable cases. 
+
+The translation reveals that the statement "Peter is shorter than a man in Michael's class" cannot be proven false from the given axioms. Specifically:
+1. For the case where the man is Michael, we have Peter taller than Michael (T4) and the assumption that Michael is taller than Peter, but no asymmetry axiom exists to derive a contradiction.
+2. For another class member, transitivity shows Peter is taller than that member, but the coexistence of this with the assumption that the member is taller than Peter doesn't yield a contradiction without asymmetry.
+
+The Windy/jumping axioms are irrelevant to the height comparison.
+
+<lean>
+axiom obj : Type
+axiom Taller : obj → obj → Prop
+axiom Man : obj → Prop
+axiom ClassOfMichael : obj → Prop
+axiom Michael : obj
+axiom Peter : obj
+axiom Windy : obj
+axiom CanBlock : obj → obj → Prop
+axiom JumpWhenShooting : obj → Prop
+axiom GreatShooter : obj → Prop
+
+axiom R1 : ∀ x y, Man x → Man y → Taller x y → CanBlock x y
+axiom ManMichael : Man Michael
+axiom T2 : ∀ x, ClassOfMichael x → x ≠ Michael → Taller Michael x
+axiom T3 : ∀ x y z, Taller x y → Taller y z → Taller x z
+axiom ManPeter : Man Peter
+axiom T4 : Taller Peter Michael
+axiom T5 : ∀ x, ¬ JumpWhenShooting x → CanBlock Michael x
+axiom T6 : ¬ CanBlock Michael Windy
+axiom T7 : ∀ x, JumpWhenShooting x → GreatShooter x
+
+theorem not_shorter : ¬ (∃ x, Man x ∧ ClassOfMichael x ∧ Taller x Peter) := by
+  intro ⟨x, hman, hclass, hxp⟩
+  by_cases hxM : x = Michael  -- Use classical case distinction
+  case inl =>  -- x = Michael
+    rw [hxM] at hxp
+    have hpm := T4  -- Taller Peter Michael
+    -- Cannot derive asymmetry: need ¬Taller Michael Peter from T4? False without additional axiom
+    sorry
+  case inr =>  -- x ≠ Michael
+    have hmx := T2 x hclass hxM  -- Taller Michael x
+    have hpx := T3 Peter Michael x T4 hmx  -- Taller Peter x
+    -- Have both hxp (Taller x Peter) and hpx (Taller Peter x), but no asymmetry contradiction
+    sorry
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The error occurred because the `case` tags `inl` and `inr` are not compatible with Lean 4's `by_cases` tactic. The corrected code uses bullet points (`·`) to handle case distinctions properly. The proof attempt confirms that the statement "Peter is shorter than a man in Michael's class" cannot be refuted due to two issues:
+
+1. **Lack of asymmetry in "taller":** Even when Peter is taller than Michael (T4) and we assume Michael is taller than Peter (in the first case), we cannot derive a contradiction without an axiom specifying that "taller" is asymmetric.
+2. **No irreflexivity:** In the second case, having both "x taller than Peter" and "Peter taller than x" would require asymmetry to disprove, which is not provided.
+
+<lean>
+axiom obj : Type
+axiom Taller : obj → obj → Prop
+axiom Man : obj → Prop
+axiom ClassOfMichael : obj → Prop
+axiom Michael : obj
+axiom Peter : obj
+axiom Windy : obj
+axiom CanBlock : obj → obj → Prop
+axiom JumpWhenShooting : obj → Prop
+axiom GreatShooter : obj → Prop
+
+axiom R1 : ∀ x y, Man x → Man y → Taller x y → CanBlock x y
+axiom ManMichael : Man Michael
+axiom T2 : ∀ x, ClassOfMichael x → x ≠ Michael → Taller Michael x
+axiom T3 : ∀ x y z, Taller x y → Taller y z → Taller x z
+axiom ManPeter : Man Peter
+axiom T4 : Taller Peter Michael
+axiom T5 : ∀ x, ¬ JumpWhenShooting x → CanBlock Michael x
+axiom T6 : ¬ CanBlock Michael Windy
+axiom T7 : ∀ x, JumpWhenShooting x → GreatShooter x
+
+theorem not_shorter : ¬ (∃ x, Man x ∧ ClassOfMichael x ∧ Taller x Peter) := by
+  intro ⟨x, hman, hclass, hxp⟩
+  by_cases hxM : x = Michael
+  · -- Case 1: x is Michael
+    rw [hxM] at hxp
+    have hpm := T4  -- Peter is taller than Michael
+    -- Cannot contradict hxp (Michael taller than Peter) without asymmetry
+    sorry
+  · -- Case 2: x is not Michael
+    have hmx : Taller Michael x := T2 x hclass hxM
+    have hpx : Taller Peter x := T3 Peter Michael x T4 hmx
+    -- Cannot contradict hxp (x taller than Peter) without asymmetry
+    sorry
+</lean>
+
+ANSWER: Failure

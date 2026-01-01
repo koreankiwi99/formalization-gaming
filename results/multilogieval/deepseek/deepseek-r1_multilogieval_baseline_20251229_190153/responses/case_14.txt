@@ -1,0 +1,119 @@
+The context and question involve logical reasoning about Alex's business actions and outcomes. Key elements:
+
+- If Alex advertises cleverly, he attracts more customers.
+- If Alex offers discounts, he increases sales.
+- Alex must either advertise cleverly or offer discounts (exclusive or not specified, but disjunction holds).
+- If sales increase, business expands.
+- Given that Alex did not attract more customers.
+
+We need to determine if Alex expanded his business.
+
+Proof:
+- From the disjunction (either advertise cleverly or offer discounts) and the fact that Alex didn't attract more customers:
+  - If Alex advertised cleverly, he would attract more customers (by axiom), but he didn't - contradiction.
+  - Therefore, Alex must have offered discounts.
+- Offering discounts leads to increased sales (by axiom).
+- Increased sales lead to business expansion (by axiom).
+- Thus, Alex expanded his business.
+
+This reasoning holds universally and applies to Alex specifically.
+
+<lean>
+axiom Person : Type
+axiom Alex : Person
+axiom AdvertisesCleverly : Person → Prop
+axiom AttractMoreCustomers : Person → Prop
+axiom OffersDiscounts : Person → Prop
+axiom IncreaseSales : Person → Prop
+axiom ExpandBusiness : Person → Prop
+
+axiom advertise_rule : ∀ (p : Person), AdvertisesCleverly p → AttractMoreCustomers p
+axiom discount_rule : ∀ (p : Person), OffersDiscounts p → IncreaseSales p
+axiom action_disjunction : ∀ (p : Person), AdvertisesCleverly p ∨ OffersDiscounts p
+axiom sales_expand : ∀ (p : Person), IncreaseSales p → ExpandBusiness p
+
+axiom no_customers : ¬ AttractMoreCustomers Alex
+
+theorem alex_expanded : ExpandBusiness Alex := by
+  have no_advertise : ¬ AdvertisesCleverly Alex := by
+    intro h
+    have : AttractMoreCustomers Alex := advertise_rule Alex h
+    contradiction
+  have discount_offered : OffersDiscounts Alex := by
+    cases action_disjunction Alex with
+    | inl adv => contradiction
+    | inr disc => exact disc
+  have sales_increased : IncreaseSales Alex := discount_rule Alex discount_offered
+  exact sales_expand Alex sales_increased
+</lean>
+
+ANSWER: Yes
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The initial error occurred because the `contradiction` tactic in Lean requires all contradictory hypotheses to be present in the local context. In the original proof, when demonstrating that Alex did not advertise cleverly, the `contradiction` tactic failed to automatically use the global axiom `no_customers`. The corrected proof explicitly cases on the disjunction early and ensures all contradictions are directly visible in each branch's context.
+
+<lean>
+axiom Person : Type
+axiom Alex : Person
+axiom AdvertisesCleverly : Person → Prop
+axiom AttractMoreCustomers : Person → Prop
+axiom OffersDiscounts : Person → Prop
+axiom IncreaseSales : Person → Prop
+axiom ExpandBusiness : Person → Prop
+
+axiom advertise_rule : ∀ (p : Person), AdvertisesCleverly p → AttractMoreCustomers p
+axiom discount_rule : ∀ (p : Person), OffersDiscounts p → IncreaseSales p
+axiom action_disjunction : ∀ (p : Person), AdvertisesCleverly p ∨ OffersDiscounts p
+axiom sales_expand : ∀ (p : Person), IncreaseSales p → ExpandBusiness p
+
+axiom no_customers : ¬ AttractMoreCustomers Alex
+
+theorem alex_expanded : ExpandBusiness Alex := by
+  cases action_disjunction Alex with
+  | inl adv => 
+      have : AttractMoreCustomers Alex := advertise_rule Alex adv
+      contradiction  -- Uses local 'no_customers' and derived 'this'
+  | inr disc => 
+      exact sales_expand Alex (discount_rule Alex disc)
+</lean>
+
+ANSWER: Yes
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The error occurred because the `contradiction` tactic was failing to resolve the goal in the "advertises cleverly" branch. Although we had contradictory hypotheses (`¬ AttractMoreCustomers Alex` and `AttractMoreCustomers Alex`), the goal was `ExpandBusiness Alex`, not `False`. To fix this, we must explicitly derive a contradiction and use `False.elim` to prove any proposition from it.
+
+Here's the corrected implementation:
+
+<lean>
+axiom Person : Type
+axiom Alex : Person
+axiom AdvertisesCleverly : Person → Prop
+axiom AttractMoreCustomers : Person → Prop
+axiom OffersDiscounts : Person → Prop
+axiom IncreaseSales : Person → Prop
+axiom ExpandBusiness : Person → Prop
+
+axiom advertise_rule : ∀ (p : Person), AdvertisesCleverly p → AttractMoreCustomers p
+axiom discount_rule : ∀ (p : Person), OffersDiscounts p → IncreaseSales p
+axiom action_disjunction : ∀ (p : Person), AdvertisesCleverly p ∨ OffersDiscounts p
+axiom sales_expand : ∀ (p : Person), IncreaseSales p → ExpandBusiness p
+
+axiom no_customers : ¬ AttractMoreCustomers Alex
+
+theorem alex_expanded : ExpandBusiness Alex := by
+  cases action_disjunction Alex with
+  | inl advert => 
+      have : AttractMoreCustomers Alex := advertise_rule Alex advert
+      exact False.elim (no_customers this)  -- Explicit contradiction
+  | inr discount => 
+      have : IncreaseSales Alex := discount_rule Alex discount
+      exact sales_expand Alex this
+</lean>
+
+ANSWER: Yes

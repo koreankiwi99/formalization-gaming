@@ -1,0 +1,138 @@
+<lean>
+axiom Employee : Type
+axiom Sam : Employee
+
+axiom ImpressedManager : Employee → Prop
+axiom Promotion : Employee → Prop
+axiom ExtraResponsibilities : Employee → Prop
+axiom ValuableExperience : Employee → Prop
+axiom LeadNewTeam : Employee → Prop
+
+axiom P1 : ∀ e : Employee, ImpressedManager e → Promotion e
+axiom P2 : ∀ e : Employee, ExtraResponsibilities e → ValuableExperience e
+axiom P3 : ImpressedManager Sam ∨ ExtraResponsibilities Sam
+axiom P4 : ∀ e : Employee, ValuableExperience e → LeadNewTeam e
+
+axiom given : ¬Promotion Sam
+
+-- Attempt to prove ¬LeadNewTeam Sam (that Sam was not assigned to lead a new team)
+theorem not_assigned : ¬LeadNewTeam Sam :=
+  by
+  -- Assume Sam leads a new team (to derive contradiction)
+  intro h_lead
+  -- From given ¬Promotion Sam and P1, deduce ¬ImpressedManager Sam
+  have not_impressed : ¬ImpressedManager Sam := fun h_imp => given (P1 Sam h_imp)
+  -- From P3 (Sam either impressed manager or took extra responsibilities) and ¬ImpressedManager Sam
+  cases P3 with
+  | inl imp => 
+    -- This case contradicts not_impressed
+    contradiction
+  | inr extra =>
+    -- Sam took extra responsibilities
+    -- By P2, Sam gains valuable experience
+    have valuable_exp : ValuableExperience Sam := P2 Sam extra
+    -- By P4, Sam must lead a new team
+    have : LeadNewTeam Sam := P4 Sam valuable_exp
+    -- But we assumed ¬LeadNewTeam Sam (h_lead), contradiction
+    contradiction
+-- This proof succeeds? Wait, let's check: 
+-- We assumed ¬LeadNewTeam Sam (h_lead), then proved LeadNewTeam Sam (via P4), yielding contradiction.
+-- However, note: the proof structure is flawed because we are trying to prove ¬LeadNewTeam Sam by assuming it and deriving false.
+-- But in the process, we actually prove LeadNewTeam Sam independently (from the premises and given fact), then use our assumption to get a contradiction.
+-- This is valid: ¬P is proved by assuming P and deriving false.
+
+-- However, let's run through:
+-- Step 1: Assume LeadNewTeam Sam (call this assumption h_lead).
+-- Step 2: From given (¬Promotion Sam) and P1, we get ¬ImpressedManager Sam.
+-- Step 3: From P3 and ¬ImpressedManager Sam, we get ExtraResponsibilities Sam (in the "inr" branch).
+-- Step 4: From ExtraResponsibilities Sam and P2, we get ValuableExperience Sam.
+-- Step 5: From ValuableExperience Sam and P4, we get LeadNewTeam Sam (call this proof term `lead_proof`).
+-- Step 6: Now we have h_lead (assumption) and lead_proof (proof of LeadNewTeam Sam) in the same context -> contradiction.
+
+-- Therefore, the theorem is proved? But wait: this would mean we have proved ¬LeadNewTeam Sam.
+
+-- However, note: step 5 proves LeadNewTeam Sam unconditionally from the axioms. Therefore, the assumption h_lead (which is LeadNewTeam Sam) is actually true, so we cannot derive a contradiction? 
+
+-- Let me clarify the logic:
+-- We are trying to prove ¬LeadNewTeam Sam, which is equivalent to (LeadNewTeam Sam → False).
+-- In the proof:
+--   We assume h_lead : LeadNewTeam Sam.
+--   Then we derive lead_proof : LeadNewTeam Sam (from the premises).
+--   Now we have two proofs of LeadNewTeam Sam: h_lead and lead_proof. This does not create a contradiction by itself.
+
+-- A contradiction would only arise if we had a proof of ¬LeadNewTeam Sam and a proof of LeadNewTeam Sam. But here we have two proofs of the same positive statement.
+
+-- Therefore, the above proof is incorrect. We cannot derive a contradiction.
+
+-- Correction: The proof above uses `contradiction` in the "inr" branch because we have `h_lead` (assumption) and `this` (proof of LeadNewTeam Sam). But `h_lead` and `this` are both of type LeadNewTeam Sam, which is not contradictory. 
+
+-- In fact, we can prove LeadNewTeam Sam directly:
+
+theorem sam_leads : LeadNewTeam Sam := by
+  have not_impressed : ¬ImpressedManager Sam := fun h => given (P1 Sam h)
+  have extra : ExtraResponsibilities Sam := by
+    cases P3 with
+    | inl imp => exact absurd imp not_impressed
+    | inr ex => exact ex
+  exact P4 Sam (P2 Sam extra)
+
+-- Therefore, we have a proof of LeadNewTeam Sam. Hence, ¬LeadNewTeam Sam is false.
+
+-- Since we can prove LeadNewTeam Sam, we cannot prove ¬LeadNewTeam Sam. Thus, the attempt to prove the negation fails.
+
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation error occurred because the `contradiction` tactic was used incorrectly. The tactic failed because there was no actual contradiction in the context - both `h_lead` and `this` were proofs of `LeadNewTeam Sam`, which is consistent. 
+
+After re-examining the premises:
+1. If Sam impressed the manager, he would get a promotion (P1)
+2. Sam didn't get a promotion (given)
+3. Therefore, Sam didn't impress the manager
+4. Sam either impressed the manager or took extra responsibilities (P3)
+5. Therefore, Sam took extra responsibilities
+6. Extra responsibilities lead to valuable experience (P2)
+7. Valuable experience leads to leading a new team (P4)
+8. Therefore, Sam must lead a new team
+
+The corrected Lean code proves that Sam leads a new team (`sam_leads`). Since we can prove `LeadNewTeam Sam`, it's impossible to prove its negation (`¬LeadNewTeam Sam`).
+
+<lean>
+axiom Employee : Type
+axiom Sam : Employee
+
+axiom ImpressedManager : Employee → Prop
+axiom Promotion : Employee → Prop
+axiom ExtraResponsibilities : Employee → Prop
+axiom ValuableExperience : Employee → Prop
+axiom LeadNewTeam : Employee → Prop
+
+axiom P1 : ∀ e : Employee, ImpressedManager e → Promotion e
+axiom P2 : ∀ e : Employee, ExtraResponsibilities e → ValuableExperience e
+axiom P3 : ImpressedManager Sam ∨ ExtraResponsibilities Sam
+axiom P4 : ∀ e : Employee, ValuableExperience e → LeadNewTeam e
+
+axiom given : ¬Promotion Sam
+
+theorem sam_leads : LeadNewTeam Sam := by
+  -- Prove Sam didn't impress manager
+  have not_impressed : ¬ImpressedManager Sam := 
+    fun h_imp => given (P1 Sam h_imp)
+  -- Resolve the disjunction in P3
+  cases P3 with
+  | inl imp => contradiction  -- contradicts not_impressed
+  | inr extra =>
+    -- Sam has valuable experience from extra responsibilities
+    have exp : ValuableExperience Sam := P2 Sam extra
+    -- Therefore Sam leads new team
+    exact P4 Sam exp
+
+-- No valid proof exists for ¬LeadNewTeam Sam
+</lean>
+
+ANSWER: Failure

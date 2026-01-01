@@ -1,0 +1,52 @@
+<lean>
+axiom Person : Type
+axiom Mary : Person
+
+axiom Sale : Prop
+axiom PricesUp : Prop
+axiom Payday : Prop
+
+axiom StockUp : Person → Prop
+axiom MakesList : Person → Prop
+axiom Plan : Person → Prop
+
+-- If the supermarket has a sale, then people will stock up on groceries.
+axiom R1 : ∀ x : Person, Sale → StockUp x
+-- If someone makes a shopping list, then they plan what to buy.
+axiom R2 : ∀ x : Person, MakesList x → Plan x
+-- Either the store has a sale, or people don't plan what to buy, or there's a sale but they don't plan ahead.
+axiom D1 : Sale ∨ (∀ x : Person, ¬ Plan x) ∨ (Sale ∧ (∀ x : Person, ¬ Plan x))
+-- If payday was this week, then people make a shopping list.
+axiom R3 : Payday → ∀ x : Person, MakesList x
+-- Either it was payday this week, or prices went up recently, or both.
+axiom D2 : Payday ∨ PricesUp ∨ (Payday ∧ PricesUp)
+
+theorem mary_not_stock_implies_prices_up : (¬ StockUp Mary) → PricesUp := by
+  intro hNotStock
+  have hCases := D2
+  cases hCases with
+  | inl hPayday =>
+      -- From Payday, everyone makes a list, hence plans; use the disjunction to get Sale
+      have hMakesList : ∀ x : Person, MakesList x := R3 hPayday
+      have hPlan : ∀ x : Person, Plan x := fun x => R2 x (hMakesList x)
+      have hSale : Sale := by
+        cases D1 with
+        | inl s => exact s
+        | inr rest =>
+          cases rest with
+          | inl allNotPlan =>
+              have contra : False := by
+                have pMary : Plan Mary := hPlan Mary
+                have npMary : ¬ Plan Mary := allNotPlan Mary
+                exact npMary pMary
+              exact False.elim contra
+          | inr both => exact both.left
+      have hStock : StockUp Mary := R1 Mary hSale
+      exact False.elim (hNotStock hStock)
+  | inr rest =>
+      cases rest with
+      | inl hPrices => exact hPrices
+      | inr hBoth => exact hBoth.right
+</lean>
+
+ANSWER: Yes

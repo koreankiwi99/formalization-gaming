@@ -1,0 +1,75 @@
+<lean>
+axiom Person : Type
+axiom James : Person
+
+axiom ForecastRain : Prop
+axiom GoOut : Person → Prop
+axiom BringUmbrella : Person → Prop
+
+axiom BigGame : Prop
+axiom FriendsGetTogether : Prop
+
+axiom HighViewership : Prop
+axiom GoPlayOut : Prop
+
+-- Premises from the context
+-- 1) If forecast predicts rain, then people will bring an umbrella when they go out.
+axiom H1 : ForecastRain → ∀ p : Person, GoOut p → BringUmbrella p
+-- 2) If there is a big game on TV, then friends will get together to watch it.
+axiom H2 : BigGame → FriendsGetTogether
+-- 3) Either rain is forecasted, or friends did not get together to watch the game, or rain is forecasted and friends did not get together to watch.
+axiom H3 : ForecastRain ∨ ¬FriendsGetTogether ∨ (ForecastRain ∧ ¬FriendsGetTogether)
+-- 4) If the TV viewership is high, then there is a big game on TV.
+axiom H4 : HighViewership → BigGame
+-- 5) Either the TV viewership is high, or they all decide to go play out, or both.
+axiom H5 : HighViewership ∨ GoPlayOut ∨ (HighViewership ∧ GoPlayOut)
+
+-- If they all decide to go play out, James goes out (he is among "they all").
+axiom H6 : GoPlayOut → GoOut James
+
+-- Assumption to evaluate with: James did not bring an umbrella.
+axiom NotUmbJames : ¬BringUmbrella James
+
+-- Useful consequences
+
+-- From "James did not bring an umbrella" and the rain rule, James cannot both have rain forecast and go out.
+theorem no_rain_and_out : ¬(ForecastRain ∧ GoOut James) := by
+  intro h
+  have hr : ForecastRain := And.left h
+  have hj : GoOut James := And.right h
+  have bj : BringUmbrella James := (H1 hr James) hj
+  exact NotUmbJames bj
+
+-- If friends got together, then rain must have been forecasted (from H3).
+theorem rain_if_friends : FriendsGetTogether → ForecastRain := by
+  intro f
+  cases H3 with
+  | inl fr =>
+    exact fr
+  | inr h =>
+    cases h with
+    | inl nfg =>
+      have : False := nfg f
+      exact False.elim this
+    | inr fr_and_nfg =>
+      exact And.left fr_and_nfg
+
+-- If viewership is high, then rain was forecasted.
+theorem rain_if_highview : HighViewership → ForecastRain := by
+  intro hv
+  have bg : BigGame := H4 hv
+  have fg : FriendsGetTogether := H2 bg
+  exact rain_if_friends fg
+
+-- It is impossible that both high viewership and "they all go play out" hold together under NotUmbJames.
+theorem hv_and_goplayout_impossible : HighViewership ∧ GoPlayOut → False := by
+  intro h
+  have hv : HighViewership := And.left h
+  have gpo : GoPlayOut := And.right h
+  have fr : ForecastRain := rain_if_highview hv
+  have jo : GoOut James := H6 gpo
+  apply no_rain_and_out
+  exact And.intro fr jo
+</lean>
+
+ANSWER: Failure

@@ -1,0 +1,51 @@
+<lean>
+axiom Algo : Type
+axiom UsedForSOTA : Algo → Prop
+axiom Supervised : Algo → Prop
+axiom Unsupervised : Algo → Prop
+axiom Reinforcement : Algo → Prop
+axiom RequiresLabeled : Algo → Prop
+
+axiom Categ : ∀ a : Algo, Supervised a ∨ Unsupervised a ∨ Reinforcement a
+axiom Unsup_no_labels : ∀ a : Algo, Unsupervised a → ¬ RequiresLabeled a
+axiom Exists_used : ∃ a : Algo, UsedForSOTA a
+axiom NotRL_used : ∀ a : Algo, Reinforcement a → ¬ UsedForSOTA a
+axiom Used_requires_labels : ∀ a : Algo, UsedForSOTA a → RequiresLabeled a
+
+theorem no_unsupervised_used : ¬ (∃ a : Algo, UsedForSOTA a ∧ Unsupervised a) := by
+  intro h
+  cases h with
+  | intro a h' =>
+    cases h' with
+    | intro hUsed hUnsup =>
+      have hLab : RequiresLabeled a := Used_requires_labels a hUsed
+      have hNoLab : ¬ RequiresLabeled a := Unsup_no_labels a hUnsup
+      exact hNoLab hLab
+
+theorem exists_used_supervised : ∃ a : Algo, UsedForSOTA a ∧ Supervised a := by
+  cases Exists_used with
+  | intro a0 hUsed =>
+    have h_not_unsup : ¬ Unsupervised a0 := by
+      intro hUn
+      have hLab : RequiresLabeled a0 := Used_requires_labels a0 hUsed
+      have hNoLab : ¬ RequiresLabeled a0 := Unsup_no_labels a0 hUn
+      exact hNoLab hLab
+    have h_not_rl : ¬ Reinforcement a0 := by
+      intro hR
+      have hNotUsed : ¬ UsedForSOTA a0 := NotRL_used a0 hR
+      exact hNotUsed hUsed
+    have cat : Supervised a0 ∨ Unsupervised a0 ∨ Reinforcement a0 := Categ a0
+    cases cat with
+    | inl hSup =>
+      exact Exists.intro a0 (And.intro hUsed hSup)
+    | inr rest =>
+      cases rest with
+      | inl hUn =>
+        have : False := h_not_unsup hUn
+        exact False.elim this
+      | inr hR =>
+        have : False := h_not_rl hR
+        exact False.elim this
+</lean>
+
+ANSWER: Failure

@@ -1,0 +1,97 @@
+<lean>
+axiom practices_hard : Prop
+axiom very_hot : Prop
+axiom postponed : Prop
+axiom prepared : Prop
+axiom plays_well : Prop
+axiom win : Prop
+
+axiom A1 : practices_hard → prepared
+axiom A2 : very_hot → postponed
+axiom A3 : practices_hard ∨ ¬postponed
+axiom A4 : prepared → plays_well
+axiom A5 : plays_well → win
+
+-- Attempt to prove: if very_hot then ¬win (i.e., team did not win)
+theorem disprove : very_hot → ¬win :=
+  fun (h_hot : very_hot) =>
+    have h_post : postponed := A2 h_hot
+    have h_disj : practices_hard ∨ ¬postponed := A3
+    -- Case analysis on the disjunction
+    match h_disj with
+    | Or.inl h_ph =>  -- practices_hard case
+        have h_prep : prepared := A1 h_ph
+        have h_play : plays_well := A4 h_prep
+        have h_win : win := A5 h_play
+        fun h_nowin : ¬win => h_nowin h_win  -- Contradiction: win and ¬win
+    | Or.inr h_npost =>  -- ¬postponed case
+        have contra : ¬postponed := h_npost
+        False.elim (contra h_post)  -- Contradiction: postponed and ¬postponed
+
+-- However, the above proof shows that assuming very_hot leads to a contradiction with ¬win?
+-- But wait: in the first branch we get win, and we are trying to prove ¬win -> contradiction. 
+-- Actually, we are forced to get win when very_hot is true? So we cannot have ¬win.
+
+-- Let me reexamine: under very_hot, we have postponed (A2). Then A3 forces practices_hard (because ¬postponed is false). 
+-- Then we get win. So very_hot implies win. Therefore, we cannot prove very_hot → ¬win.
+
+-- Alternative direct proof that very_hot implies win:
+theorem positive : very_hot → win := by
+  intro h_hot
+  have h_post : postponed := A2 h_hot
+  have h_ph : practices_hard := by
+    cases A3 with
+    | inl h => exact h
+    | inr nh => contradiction  -- since h_post contradicts nh
+  exact A5 (A4 (A1 h_ph))
+
+-- Since we can prove very_hot → win, we cannot prove very_hot → ¬win (the negation we wanted).
+-- Therefore, the attempt to prove "No" (that the team did not win under very_hot) fails.
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation error occurred because the proof for the `disprove` theorem had a type mismatch. Specifically, in the first branch of the case analysis, the expression `fun h_nowin => h_nowin h_win` has type `¬win → False`, but the expected type for that branch was `¬win` (i.e., `win → False`). This mismatch arises because the proof attempted to construct a function that takes `¬win` and produces `False`, but the context required a proof of `¬win` itself.
+
+After re-examining the axioms, it becomes clear that:
+1. From `very_hot`, we can derive `postponed` (via `A2`).
+2. The disjunction `practices_hard ∨ ¬postponed` (from `A3`) must be resolved:
+   - The `¬postponed` branch leads to a contradiction (since we have `postponed`).
+   - The `practices_hard` branch leads to `win` (via `A1`, `A4`, `A5`).
+3. Thus, `very_hot` implies `win` (as proven in the `very_hot_implies_win` theorem).
+
+Since `very_hot → win` is provable, it is impossible to prove the negation `very_hot → ¬win`. Therefore, the attempt to answer "No" (that the team did not win when it was very hot) fails.
+
+Corrected Lean code:
+<lean>
+axiom practices_hard : Prop
+axiom very_hot : Prop
+axiom postponed : Prop
+axiom prepared : Prop
+axiom plays_well : Prop
+axiom win : Prop
+
+axiom A1 : practices_hard → prepared
+axiom A2 : very_hot → postponed
+axiom A3 : practices_hard ∨ ¬postponed
+axiom A4 : prepared → plays_well
+axiom A5 : plays_well → win
+
+-- Proof that very_hot implies win
+theorem very_hot_implies_win : very_hot → win := by
+  intro h_hot
+  have h_post : postponed := A2 h_hot
+  cases A3 with
+  | inl ph => 
+      exact A5 (A4 (A1 ph))
+  | inr npost => 
+      contradiction  -- h_post contradicts npost
+
+-- Thus, we cannot prove very_hot → ¬win
+</lean>
+
+ANSWER: Failure

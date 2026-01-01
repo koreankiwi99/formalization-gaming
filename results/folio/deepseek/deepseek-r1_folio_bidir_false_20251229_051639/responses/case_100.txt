@@ -1,0 +1,107 @@
+The reasoning text is translated into Lean code to evaluate the given statement. The context provides several premises about animals and Harry, a bee. The statement to evaluate is a conditional: If Harry is either both a vertebrate and an animal with a backbone or neither, then Harry is neither an invertebrate nor a queen bee.
+
+Key deductions from the context:
+- Harry is a bee, so he does not reproduce by male-and-female mating (P4).
+- If Harry had a backbone, he would reproduce that way (P2), so he has no backbone.
+- Vertebrates have backbones (P3), so Harry cannot be vertebrate.
+- Animals are either invertebrates or vertebrates (P1), so Harry must be an invertebrate.
+
+The premise of the conditional (Harry is either both vertebrate and backbone or neither) holds because Harry is neither vertebrate nor has a backbone (second disjunct is true). The conclusion (Harry is neither invertebrate nor queen bee) is false because Harry is invertebrate.
+
+The Lean proof shows that the conditional statement is false by constructing a term of type `¬S` (negation of the conditional). Assuming the conditional holds leads to a contradiction: the premise forces the conclusion (Harry is neither invertebrate nor queen bee), but Harry is an invertebrate, contradicting the conclusion.
+
+<lean>
+axiom Animal : Type
+axiom Harry : Animal
+axiom Invertebrate : Animal → Prop
+axiom Vertebrate : Animal → Prop
+axiom HasBackbone : Animal → Prop
+axiom ReproduceMF : Animal → Prop
+axiom Bee : Animal → Prop
+axiom QueenBee : Animal → Prop
+
+axiom P1 : ∀ x : Animal, Invertebrate x ∨ Vertebrate x
+axiom P2 : ∀ x : Animal, HasBackbone x → ReproduceMF x
+axiom P3 : ∀ x : Animal, Vertebrate x → HasBackbone x
+axiom P4 : ∀ x : Animal, Bee x → ¬ ReproduceMF x
+axiom P5 : ∀ x : Animal, QueenBee x → Bee x
+axiom P6 : Bee Harry
+
+theorem not_reproduce : ¬ ReproduceMF Harry := P4 Harry P6
+theorem not_backbone : ¬ HasBackbone Harry := 
+  fun hb => not_reproduce (P2 Harry hb)
+theorem not_vertebrate : ¬ Vertebrate Harry := 
+  fun vt => not_backbone (P3 Harry vt)
+theorem invertebrate_harry : Invertebrate Harry := 
+  Or.elim (P1 Harry) id (fun vt => absurd vt not_vertebrate)
+
+def S : Prop := 
+  ((Vertebrate Harry ∧ HasBackbone Harry) ∨ (¬Vertebrate Harry ∧ ¬HasBackbone Harry)) → 
+  ¬(Invertebrate Harry ∨ QueenBee Harry)
+
+theorem cond_false : ¬S := 
+  fun hS: S =>
+    let prem := Or.inr ⟨not_vertebrate, not_backbone⟩
+    let concl := hS prem
+    concl (Or.inl invertebrate_harry)
+</lean>
+
+ANSWER: False
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation error occurred because the theorem name `cond_false` was already declared in the environment. To resolve this, I restructured the code by:
+1. Removing intermediate named theorems
+2. Proving all necessary steps locally inside the main theorem using `have` expressions
+3. Renaming the final theorem to `main_theorem` to avoid name conflicts
+
+The corrected Lean code is:
+
+<lean>
+axiom Animal : Type
+axiom Harry : Animal
+axiom Invertebrate : Animal → Prop
+axiom Vertebrate : Animal → Prop
+axiom HasBackbone : Animal → Prop
+axiom ReproduceMF : Animal → Prop
+axiom Bee : Animal → Prop
+axiom QueenBee : Animal → Prop
+
+axiom P1 : ∀ x : Animal, Invertebrate x ∨ Vertebrate x
+axiom P2 : ∀ x : Animal, HasBackbone x → ReproduceMF x
+axiom P3 : ∀ x : Animal, Vertebrate x → HasBackbone x
+axiom P4 : ∀ x : Animal, Bee x → ¬ ReproduceMF x
+axiom P5 : ∀ x : Animal, QueenBee x → Bee x
+axiom P6 : Bee Harry
+
+def S : Prop := 
+  ((Vertebrate Harry ∧ HasBackbone Harry) ∨ (¬Vertebrate Harry ∧ ¬HasBackbone Harry)) → 
+  ¬(Invertebrate Harry ∨ QueenBee Harry)
+
+theorem main_theorem : ¬S := 
+  fun hS : S => 
+    have not_reproduce : ¬ ReproduceMF Harry := P4 Harry P6
+    have not_backbone : ¬ HasBackbone Harry := fun hb => not_reproduce (P2 Harry hb)
+    have not_vertebrate : ¬ Vertebrate Harry := fun vt => not_backbone (P3 Harry vt)
+    have invertebrate_harry : Invertebrate Harry := 
+      match P1 Harry with
+      | Or.inl h => h
+      | Or.inr h => False.elim (not_vertebrate h)
+    have premise : (¬Vertebrate Harry ∧ ¬HasBackbone Harry) := ⟨not_vertebrate, not_backbone⟩
+    have disj_premise : (Vertebrate Harry ∧ HasBackbone Harry) ∨ (¬Vertebrate Harry ∧ ¬HasBackbone Harry) := Or.inr premise
+    have false_conclusion : ¬(Invertebrate Harry ∨ QueenBee Harry) := hS disj_premise
+    have true_disjunction : Invertebrate Harry ∨ QueenBee Harry := Or.inl invertebrate_harry
+    false_conclusion true_disjunction
+</lean>
+
+ANSWER: False
+
+The code proves the original statement is false because:
+1. Harry is a bee so can't reproduce via mating (P4, P6)
+2. Having a backbone would require mating reproduction (P2, P3), so Harry has no backbone
+3. Harry must be invertebrate (P1) since can't be vertebrate
+4. The conditional's premise holds (Harry is neither vertebrate nor has backbone)
+5. But the conclusion (Harry is neither invertebrate nor queen bee) is false since Harry is invertebrate
+6. This contradiction proves the conditional statement must be false

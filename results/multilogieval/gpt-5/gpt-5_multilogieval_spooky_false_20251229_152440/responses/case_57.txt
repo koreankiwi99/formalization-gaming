@@ -1,0 +1,56 @@
+<lean>
+axiom Person : Type
+axiom John : Person
+
+axiom Sale : Prop
+axiom BeginMonth : Prop
+axiom GoShop : Person → Prop
+axiom GotAll : Person → Prop
+axiom BuyMore : Person → Prop
+axiom SoldOut : Person → Prop
+
+-- If the store has a sale, then people will buy more items.
+axiom S1 : Sale → ∀ p : Person, BuyMore p
+-- If someone goes grocery shopping, then they will get everything on their list.
+axiom S2 : ∀ p : Person, GoShop p → GotAll p
+-- Either the store has a sale, or they did not get everything on their list, or there was a sale and they still did not get all their groceries.
+axiom S3 : (Sale ∨ ¬GotAll John) ∨ (Sale ∧ ¬GotAll John)
+-- If it is the beginning of the month, then people go grocery shopping.
+axiom S4 : BeginMonth → ∀ p : Person, GoShop p
+-- Either it is the beginning of the month, or their favorite cereal is sold out, or maybe both are true.
+axiom S5 : (BeginMonth ∨ SoldOut John) ∨ (BeginMonth ∧ SoldOut John)
+
+-- John did not buy more items.
+axiom HJB : ¬BuyMore John
+
+theorem sold_out_john : SoldOut John := by
+  -- From ¬BuyMore John and S1, we get ¬Sale
+  have nSale : ¬Sale := mt (fun s => (S1 s) John) HJB
+  -- From S3 and ¬Sale, deduce ¬GotAll John
+  have nGotAll : ¬GotAll John := by
+    cases S3 with
+    | inl h =>
+      cases h with
+      | inl s => exact False.elim (nSale s)
+      | inr ng => exact ng
+    | inr h =>
+      have s : Sale := And.left h
+      exact False.elim (nSale s)
+  -- From S2 and ¬GotAll John, deduce ¬GoShop John
+  have nGo : ¬GoShop John := mt (S2 John) nGotAll
+  -- From S4 and ¬GoShop John, deduce ¬BeginMonth
+  have nBegin : ¬BeginMonth := mt (fun bm => (S4 bm) John) nGo
+  -- From S5 and ¬BeginMonth, deduce SoldOut John
+  have so : SoldOut John := by
+    cases S5 with
+    | inl h =>
+      cases h with
+      | inl bm => exact False.elim (nBegin bm)
+      | inr so => exact so
+    | inr h =>
+      have bm : BeginMonth := And.left h
+      exact False.elim (nBegin bm)
+  exact so
+</lean>
+
+ANSWER: Failure

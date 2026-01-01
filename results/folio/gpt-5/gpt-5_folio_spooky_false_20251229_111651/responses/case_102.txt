@@ -1,0 +1,58 @@
+<lean>
+axiom Person : Type
+axiom Luke : Person
+
+axiom Baby : Person → Prop
+axiom BornMultiWithSiblings : Person → Prop
+axiom HasSiblingsBornTogether : Person → Prop
+axiom ComplainsOftenAboutAnnoyingSiblings : Person → Prop
+axiom SpendTimeWithSiblings : Person → Prop
+axiom LiveAtHome : Person → Prop
+axiom LiveWithStrangers : Person → Prop
+
+-- Premises
+axiom P1 : ∀ x : Person, BornMultiWithSiblings x → SpendTimeWithSiblings x
+axiom P2 : ∀ x : Person, HasSiblingsBornTogether x → BornMultiWithSiblings x
+axiom P3 : ∀ x : Person, ComplainsOftenAboutAnnoyingSiblings x → HasSiblingsBornTogether x
+axiom P4 : ∀ x : Person, LiveAtHome x → ¬ LiveWithStrangers x
+axiom P5 : ∀ x : Person, SpendTimeWithSiblings x → LiveAtHome x
+
+-- Luke's exclusive-looking disjunction (but only stated as a disjunction)
+axiom P6 :
+  (Baby Luke ∧ BornMultiWithSiblings Luke ∧ LiveWithStrangers Luke) ∨
+  (¬(Baby Luke ∧ BornMultiWithSiblings Luke) ∧ ¬ LiveWithStrangers Luke)
+
+-- Derived: being born in a multiple birth with siblings implies not living with strangers
+theorem bmws_not_strangers : ∀ x : Person, BornMultiWithSiblings x → ¬ LiveWithStrangers x :=
+  fun x h => P4 x (P5 x (P1 x h))
+
+-- The left disjunct in P6 is impossible
+theorem luke_no_left : ¬(Baby Luke ∧ BornMultiWithSiblings Luke ∧ LiveWithStrangers Luke) := by
+  intro h
+  have hm : BornMultiWithSiblings Luke := And.left (And.right h)
+  have hs : LiveWithStrangers Luke := And.right (And.right h)
+  have hns : ¬ LiveWithStrangers Luke := bmws_not_strangers Luke hm
+  exact hns hs
+
+-- Hence Luke does not live with strangers
+theorem luke_not_strangers : ¬ LiveWithStrangers Luke := by
+  have h := P6
+  cases h with
+  | inl hleft =>
+      have hm : BornMultiWithSiblings Luke := And.left (And.right hleft)
+      have hs : LiveWithStrangers Luke := And.right (And.right hleft)
+      have hns : ¬ LiveWithStrangers Luke := bmws_not_strangers Luke hm
+      exact False.elim (hns hs)
+  | inr hright =>
+      exact And.right hright
+
+-- Complaining implies not living with strangers (by chaining premises)
+theorem luke_complains_implies_not_strangers :
+  ComplainsOftenAboutAnnoyingSiblings Luke → ¬ LiveWithStrangers Luke :=
+  fun hc =>
+    let hsbt := P3 Luke hc
+    let hbm := P2 Luke hsbt
+    bmws_not_strangers Luke hbm
+</lean>
+
+ANSWER: Failure

@@ -1,0 +1,182 @@
+<lean>
+axiom MountainRange : Type
+axiom Mine : Type
+axiom Person : Type
+axiom State : Type
+
+axiom NewMexico : State
+axiom Texas : State
+
+axiom Picuris : MountainRange
+axiom JuanDeOnate : Person
+axiom HardingPegmatite : Mine
+
+axiom LocatedIn : MountainRange → State → Prop
+axiom LocatedInMine : Mine → MountainRange → Prop
+axiom Visited : Person → MountainRange → Prop
+axiom Donated : Mine → Prop
+
+axiom T1 : LocatedIn Picuris NewMexico ∨ LocatedIn Picuris Texas
+axiom T2 : Visited JuanDeOnate Picuris
+axiom T3 : LocatedInMine HardingPegmatite Picuris
+axiom T4 : Donated HardingPegmatite
+axiom R1 : ∀ (s : State) (r : MountainRange) (m : Mine), LocatedIn r Texas → LocatedInMine m r → ¬Donated m
+
+-- Prove that Picuris must be in New Mexico (not Texas)
+lemma Picuris_in_NM : LocatedIn Picuris NewMexico := by
+  cases T1 with
+  | inl h => exact h
+  | inr h_texas =>
+      have no_donate : ∀ m, LocatedInMine m Picuris → ¬Donated m := fun m => R1 Texas Picuris m h_texas
+      have contra := no_donate HardingPegmatite T3
+      exact absurd T4 contra
+
+-- Show Juan didn't visit Picuris in Texas (known)
+lemma not_visited_Picuris_in_Texas : ¬(LocatedIn Picuris Texas ∧ Visited JuanDeOnate Picuris) := by
+  intro ⟨h, _⟩
+  have : LocatedIn Picuris NewMexico := Picuris_in_NM
+  have no_texas : ¬LocatedIn Picuris Texas := by
+    intro h_texas
+    have : LocatedIn Picuris NewMexico ∧ LocatedIn Picuris Texas := ⟨this, h_texas⟩
+    -- States are distinct: not stated in axioms
+    sorry  -- Cannot prove NewMexico ≠ Texas without additional axioms
+  exact no_texas h
+
+-- Cannot prove universal non-existence of visited Texas ranges for Juan
+theorem cannot_prove_negation : ¬(False) := by
+  intro h
+  exact h
+
+-- Main conclusion: We cannot fully disprove that Juan visited *some* Texas range
+</lean>
+
+ANSWER: Failure
+
+Explanation:
+1) We proved Picuris must be in New Mexico (due to contradiction when assuming Texas: axiom R1 forbids donated mines in Texas ranges, but HardingPegmatite was both in Picuris and donated).
+2) However, we cannot prove NewMexico ≠ Texas (this distinction isn't provided in the axioms). States are treated as distinct types in simpler models, but Lean requires explicit disjointness axioms.
+3) Crucially, the negation ("Juan visited no Texas mountain range") requires proving ∀ ranges, ¬(LocatedIn range Texas ∧ Visited JuanDeOnate range). This is impossible without knowing:
+   - Juan only visited Picuris (no axiom says this)
+   - All Texas ranges satisfy R1 (already encoded)
+   - But other Texas ranges might exist that Juan visited, and we have no information about them.
+
+Since the premises only constrain Picuris (which we know is in New Mexico) and leave other mountain ranges/journeys unconstrained, we cannot prove the universal negation. Thus we return Failure.
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors were due to an unused state variable in axiom R1 and an attempt to prove state distinctness without axioms. Here's the corrected Lean code:
+
+<lean>
+axiom MountainRange : Type
+axiom Mine : Type
+axiom Person : Type
+axiom State : Type
+
+axiom NewMexico : State
+axiom Texas : State
+
+axiom Picuris : MountainRange
+axiom JuanDeOnate : Person
+axiom HardingPegmatite : Mine
+
+axiom LocatedIn : MountainRange → State → Prop
+axiom LocatedInMine : Mine → MountainRange → Prop
+axiom Visited : Person → MountainRange → Prop
+axiom Donated : Mine → Prop
+
+axiom T1 : LocatedIn Picuris NewMexico ∨ LocatedIn Picuris Texas
+axiom T2 : Visited JuanDeOnate Picuris
+axiom T3 : LocatedInMine HardingPegmatite Picuris
+axiom T4 : Donated HardingPegmatite
+axiom R1 : ∀ (r : MountainRange) (m : Mine), LocatedIn r Texas → LocatedInMine m r → ¬Donated m
+
+lemma Picuris_in_NM : LocatedIn Picuris NewMexico := by
+  cases T1 with
+  | inl h => exact h
+  | inr h_texas =>
+      have no_donate := R1 Picuris HardingPegmatite h_texas T3
+      exact absurd T4 no_donate
+
+theorem cannot_prove_negation : ¬(∀ (r : MountainRange), LocatedIn r Texas → ¬Visited JuanDeOnate r) := by
+  intro h
+  have h' : LocatedIn Picuris NewMexico := Picuris_in_NM
+  -- We know Picuris isn't in Texas, but have no information about other ranges
+  -- Juan might have visited other Texas ranges not mentioned in the premises
+  sorry  -- Cannot prove universal negation
+</lean>
+
+ANSWER: Failure
+
+Explanation:
+1. Removed unused state variable from R1
+2. Proved Picuris must be in New Mexico (via contradiction using R1)
+3. The conclusion "Juan visited a Texas range" is existential
+4. We know Juan visited Picuris (not in Texas), but have no information about:
+   - Other mountain ranges in Texas
+   - Other visits by Juan
+5. Therefore, we cannot prove the universal negation required to disprove the existential claim
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The compilation errors were due to improper handling of the contradiction in the `Picuris_in_NM` lemma and an attempt to prove an unprovable universal negation. Here's the corrected code:
+
+<lean>
+axiom MountainRange : Type
+axiom Mine : Type
+axiom Person : Type
+axiom State : Type
+
+axiom NewMexico : State
+axiom Texas : State
+
+axiom Picuris : MountainRange
+axiom JuanDeOnate : Person
+axiom HardingPegmatite : Mine
+
+axiom LocatedIn : MountainRange → State → Prop
+axiom LocatedInMine : Mine → MountainRange → Prop
+axiom Visited : Person → MountainRange → Prop
+axiom Donated : Mine → Prop
+
+-- Premises
+axiom T1 : LocatedIn Picuris NewMexico ∨ LocatedIn Picuris Texas
+axiom T2 : Visited JuanDeOnate Picuris
+axiom T3 : LocatedInMine HardingPegmatite Picuris
+axiom T4 : Donated HardingPegmatite
+axiom R1 : ∀ (r : MountainRange) (m : Mine), LocatedIn r Texas → LocatedInMine m r → ¬Donated m
+
+-- Picuris cannot be in Texas (contradiction with donated mine)
+lemma Picuris_in_NM : LocatedIn Picuris NewMexico := by
+  cases T1
+  · assumption  -- If New Mexico case, immediate
+  · intro h_texas
+    have no_donate := R1 Picuris HardingPegmatite h_texas T3
+    contradiction  -- T4 (donated) contradicts no_donate rule
+
+-- We attempt to disprove: "Juan visited a Texas mountain range"
+theorem target : ¬(∃ r, LocatedIn r Texas ∧ Visited JuanDeOnate r) := by
+  intro ⟨r, h_texas, h_visit⟩
+  -- We know Picuris is in New Mexico (not Texas)
+  have h_picuris_location := Picuris_in_NM
+  
+  -- But we have no information:
+  -- 1. Whether r is Picuris (can't prove states are disjoint)
+  -- 2. Whether other Texas ranges have donated mines
+  -- 3. Whether Juan visited only Picuris
+  sorry  -- No contradiction found
+</lean>
+
+ANSWER: Failure
+
+Explanation:
+1. Fixed `Picuris_in_NM` proof using `cases` with proper cases and `contradiction` tactic
+2. The negation of "Juan visited a Texas range" requires proving absence of ANY Texas visit
+3. We only know about Picuris (which is in New Mexico), but have no axioms about:
+   - State distinctness (NewMexico ≠ Texas not assumed)
+   - Absence of other mountain ranges in Texas
+   - Juan visiting only Picuris
+4. Therefore, a universal negative cannot be proven → return Failure

@@ -1,0 +1,58 @@
+<lean>
+axiom obj : Type
+axiom John : obj
+
+axiom Alarm : obj → Prop
+axiom Ready : obj → Prop
+axiom MissBus : obj → Prop
+axiom Late : obj → Prop
+axiom GotUpLate : obj → Prop
+axiom WentToBedLate : obj → Prop
+
+-- If the alarm went off, then it is time to get ready.
+axiom A1 : ∀ x : obj, Alarm x → Ready x
+-- If they missed the bus, then they'd be late for school.
+axiom A2 : ∀ x : obj, MissBus x → Late x
+-- If they got up late, then they miss the bus.
+axiom A3 : ∀ x : obj, GotUpLate x → MissBus x
+-- If they went to bed late, then they get up late.
+axiom A4 : ∀ x : obj, WentToBedLate x → GotUpLate x
+-- Either the alarm went off, or they weren't late for school.
+axiom A5 : ∀ x : obj, Alarm x ∨ ¬ Late x
+-- John knows it is not the time to get ready (we model this as ¬Ready John).
+axiom A6 : ¬ Ready John
+
+-- From the premises, we can actually derive that John did not go to bed late.
+theorem not_bedlate_john : ¬ WentToBedLate John :=
+by
+  -- From ¬Ready John and (Alarm → Ready), get ¬Alarm John
+  have h_not_alarm : ¬ Alarm John :=
+    by
+      have h_imp : Alarm John → Ready John := A1 John
+      intro hA
+      apply A6
+      exact h_imp hA
+  -- From Alarm John ∨ ¬Late John and ¬Alarm John, derive ¬Late John
+  have h_not_late : ¬ Late John :=
+    by
+      have h_disj : Alarm John ∨ ¬ Late John := A5 John
+      cases h_disj with
+      | inl hA =>
+        exact False.elim (h_not_alarm hA)
+      | inr hnl =>
+        exact hnl
+  -- Chain: WentToBedLate → GotUpLate → MissBus → Late
+  have h_chain : WentToBedLate John → Late John :=
+    by
+      intro hbl
+      have hup : GotUpLate John := A4 John hbl
+      have hmb : MissBus John := A3 John hup
+      exact A2 John hmb
+  -- Modus tollens on the chain with ¬Late John gives ¬WentToBedLate John
+  intro hbl
+  exact h_not_late (h_chain hbl)
+
+-- Cannot prove WentToBedLate John from given axioms.
+</lean>
+
+ANSWER: Failure

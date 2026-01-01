@@ -1,0 +1,163 @@
+<lean>
+axiom MountainRange : Type
+axiom Mine : Type
+axiom Person : Type
+axiom Picuris : MountainRange
+axiom HardingMine : Mine
+axiom Juan : Person
+axiom InTexas : MountainRange → Prop
+axiom InNewMexico : MountainRange → Prop
+axiom LocatedIn : Mine → MountainRange → Prop
+axiom Donated : Mine → Prop
+axiom Visited : Person → MountainRange → Prop
+
+axiom location_or : InNewMexico Picuris ∨ InTexas Picuris
+axiom visited_picuris : Visited Juan Picuris
+axiom mine_location : LocatedIn HardingMine Picuris
+axiom mine_donated : Donated HardingMine
+axiom no_texas_donated : ∀ r : MountainRange, InTexas r → ¬∃ m : Mine, LocatedIn m r ∧ Donated m
+
+-- Prove Picuris cannot be in Texas
+lemma not_in_texas : ¬InTexas Picuris := by
+  intro h
+  have exists_donated : ∃ m, LocatedIn m Picuris ∧ Donated m := ⟨HardingMine, mine_location, mine_donated⟩
+  exact no_texas_donated Picuris h exists_donated
+
+-- Therefore, Picuris must be in New Mexico
+lemma in_new_mexico : InNewMexico Picuris := by
+  cases location_or with
+  | inl nm => exact nm
+  | inr tx => contradiction
+
+-- The statement claims Juan visited a mountain range in New Mexico
+theorem juan_visited_NM : ∃ r, InNewMexico r ∧ Visited Juan r :=
+  ⟨Picuris, in_new_mexico, visited_picuris⟩
+
+-- Attempt to prove the negation of the statement fails
+theorem disprove_conclusion : ¬(∃ r, InNewMexico r ∧ Visited Juan r) → False := by
+  intro h
+  exact h juan_visited_NM
+
+-- Since we proved the statement true, its negation cannot be proven
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors were due to two main issues:
+1. Incorrect existential quantifier construction - used triple angle brackets instead of nested pairs
+2. Lemma usage before definition - `in_new_mexico` was referenced before being defined
+
+The corrected code:
+<lean>
+axiom MountainRange : Type
+axiom Mine : Type
+axiom Person : Type
+axiom Picuris : MountainRange
+axiom HardingMine : Mine
+axiom Juan : Person
+axiom InTexas : MountainRange → Prop
+axiom InNewMexico : MountainRange → Prop
+axiom LocatedIn : Mine → MountainRange → Prop
+axiom Donated : Mine → Prop
+axiom Visited : Person → MountainRange → Prop
+
+axiom location_or : InNewMexico Picuris ∨ InTexas Picuris
+axiom visited_picuris : Visited Juan Picuris
+axiom mine_location : LocatedIn HardingMine Picuris
+axiom mine_donated : Donated HardingMine
+axiom no_texas_donated : ∀ r : MountainRange, InTexas r → ¬∃ m : Mine, LocatedIn m r ∧ Donated m
+
+lemma not_in_texas : ¬InTexas Picuris := by
+  intro h
+  have exists_donated : ∃ m : Mine, LocatedIn m Picuris ∧ Donated m := ⟨HardingMine, ⟨mine_location, mine_donated⟩⟩
+  exact no_texas_donated Picuris h exists_donated
+
+lemma in_new_mexico : InNewMexico Picuris := by
+  cases location_or with
+  | inl nm => exact nm
+  | inr tx => contradiction
+
+theorem juan_visited_NM : ∃ r : MountainRange, InNewMexico r ∧ Visited Juan r :=
+  ⟨Picuris, in_new_mexico, visited_picuris⟩
+
+-- Attempt to prove negation of conclusion: ¬(∃ r, InNewMexico r ∧ Visited Juan r)
+theorem prove_negation : ¬(∃ r : MountainRange, InNewMexico r ∧ Visited Juan r) := by
+  intro h
+  -- We have a proof of the positive statement (juan_visited_NM)
+  -- Thus we cannot prove the negation
+  exact h juan_visited_NM
+</lean>
+
+The conclusion "Juan de Onate visited a mountain range in New Mexico" is proven true in the code (`juan_visited_NM`). Therefore, its negation cannot be proven from the premises. 
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The errors occurred due to two main issues:
+1. The existential quantifier construction was incorrect - the `Exists` constructor requires both a witness and a proof of the statement about the witness
+2. The lemma `in_new_mexico` was referenced before its definition in the initial approach, causing ordering issues
+
+Here's the corrected Lean code:
+
+<lean>
+axiom MountainRange : Type
+axiom Mine : Type
+axiom Person : Type
+axiom Picuris : MountainRange
+axiom HardingMine : Mine
+axiom Juan : Person
+axiom InTexas : MountainRange → Prop
+axiom InNewMexico : MountainRange → Prop
+axiom LocatedIn : Mine → MountainRange → Prop
+axiom Donated : Mine → Prop
+axiom Visited : Person → MountainRange → Prop
+
+axiom location_or : InNewMexico Picuris ∨ InTexas Picuris
+axiom visited_picuris : Visited Juan Picuris
+axiom mine_location : LocatedIn HardingMine Picuris
+axiom mine_donated : Donated HardingMine
+axiom no_texas_donated : ∀ (r : MountainRange), InTexas r → ¬∃ (m : Mine), LocatedIn m r ∧ Donated m
+
+lemma not_in_texas : ¬InTexas Picuris := by
+  intro h
+  -- Construct existential with witness and proof
+  have exists_donated : ∃ m, LocatedIn m Picuris ∧ Donated m := 
+    ⟨HardingMine, ⟨mine_location, mine_donated⟩⟩
+  exact no_texas_donated Picuris h exists_donated
+
+lemma in_new_mexico : InNewMexico Picuris := by
+  cases location_or with
+  | inl nm => exact nm
+  | inr tx => 
+      have contra := not_in_texas tx
+      contradiction
+
+-- Now possible to reference in_new_mexico since it's defined above
+theorem juan_visited_NM : ∃ r, InNewMexico r ∧ Visited Juan r :=
+  ⟨Picuris, in_new_mexico, visited_picuris⟩
+
+-- Attempt to prove the negation of the conclusion: ¬(Juan visited NM range)
+theorem prove_negation : ¬(∃ r, InNewMexico r ∧ Visited Juan r) → False := by
+  intro h
+  apply h
+  exact juan_visited_NM
+</lean>
+
+**Explanation:**
+1. Fixed the existential construction in `not_in_texas` by explicitly pairing `mine_location` and `mine_donated`
+2. Used lemma `not_in_texas` before `in_new_mexico` to ensure proper ordering
+3. In `prove_negation`:
+   - Introduced assumption `h` (the negative statement)
+   - Applied `h` to our positive proof `juan_visited_NM` to get False
+4. Final answer is **Failure** because:
+   - We successfully proved the positive statement (Juan visited NM range)
+   - The negation is therefore unprovable from the premises
+
+ANSWER: Failure

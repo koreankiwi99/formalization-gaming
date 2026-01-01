@@ -1,0 +1,87 @@
+The goal is to prove that if the kids are not hyper, then the students did not have lots of homework (i.e., ¬LotsOfHomework). However, from the premises, assuming ¬Hyper leads to LotsOfHomework, not ¬LotsOfHomework. Specifically:
+
+1. ¬Hyper implies ¬Pizza (from P2: Pizza → Hyper; contrapositive).
+2. ¬Pizza and SubstituteTeacher ∨ Pizza imply SubstituteTeacher.
+3. SubstituteTeacher implies GoofOff (P1).
+4. GoofOff implies ¬LearnMuch (P4).
+5. ¬LearnMuch implies LotsOfHomework (P5).
+
+Thus, ¬Hyper → LotsOfHomework, not ¬LotsOfHomework. Therefore, we cannot prove ¬LotsOfHomework under ¬Hyper.
+
+<lean>
+axiom SubstituteTeacher : Prop
+axiom Pizza : Prop
+axiom GoofOff : Prop
+axiom Hyper : Prop
+axiom LearnMuch : Prop
+axiom LotsOfHomework : Prop
+
+axiom P1 : SubstituteTeacher → GoofOff
+axiom P2 : Pizza → Hyper
+axiom P3 : SubstituteTeacher ∨ Pizza
+axiom P4 : GoofOff → ¬LearnMuch
+axiom P5 : ¬LearnMuch → LotsOfHomework
+
+-- Attempt to prove: ¬Hyper → ¬LotsOfHomework fails because we can derive ¬Hyper → LotsOfHomework
+theorem cannot_prove_neg (h : ¬Hyper) : ¬LotsOfHomework := by
+  have no_pizza : ¬Pizza := fun p => h (P2 p)
+  cases P3 with
+  | inl st =>
+    have go : GoofOff := P1 st
+    have nm : ¬LearnMuch := P4 go
+    have hw : LotsOfHomework := P5 nm
+    -- We have LotsOfHomework, but need ¬LotsOfHomework → contradiction
+    intro nhw
+    exact nhw hw
+  | inr p => exact no_pizza p -- Contradiction from p and no_pizza
+-- This proof actually shows ¬Hyper → LotsOfHomework, not ¬LotsOfHomework.
+-- The attempt to prove ¬LotsOfHomework fails because we derive LotsOfHomework.
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors occurred because the proof attempted to show `¬LotsOfHomework` under the assumption `¬Hyper`, but actually derived `LotsOfHomework` in one branch and used incorrect types in the contradiction handling. The corrected analysis shows:
+
+1. `¬Hyper` implies `¬Pizza` (contrapositive of P2)
+2. `¬Pizza` and `SubstituteTeacher ∨ Pizza` imply `SubstituteTeacher`
+3. `SubstituteTeacher` implies `GoofOff` (P1)
+4. `GoofOff` implies `¬LearnMuch` (P4)
+5. `¬LearnMuch` implies `LotsOfHomework` (P5)
+
+Thus, `¬Hyper → LotsOfHomework` is provable. This means we **cannot prove** that `¬Hyper` implies `¬LotsOfHomework` (the desired conclusion), since the premises force `LotsOfHomework` when `¬Hyper` is true.
+
+Corrected Lean code:
+
+<lean>
+axiom SubstituteTeacher : Prop
+axiom Pizza : Prop
+axiom GoofOff : Prop
+axiom Hyper : Prop
+axiom LearnMuch : Prop
+axiom LotsOfHomework : Prop
+
+axiom P1 : SubstituteTeacher → GoofOff
+axiom P2 : Pizza → Hyper
+axiom P3 : SubstituteTeacher ∨ Pizza
+axiom P4 : GoofOff → ¬LearnMuch
+axiom P5 : ¬LearnMuch → LotsOfHomework
+
+-- Prove ¬Hyper → LotsOfHomework
+theorem not_hyper_implies_hw : ¬Hyper → LotsOfHomework := by
+  intro h_nh
+  have no_pizza : ¬Pizza := fun p => h_nh (P2 p)
+  cases P3 with
+  | inl st => 
+    exact P5 (P4 (P1 st))
+  | inr p => 
+    exact False.elim (no_pizza p)
+
+-- Attempt to prove ¬Hyper → ¬LotsOfHomework fails
+-- (No valid proof exists since not_hyper_implies_hw shows the opposite)
+</lean>
+
+ANSWER: Failure

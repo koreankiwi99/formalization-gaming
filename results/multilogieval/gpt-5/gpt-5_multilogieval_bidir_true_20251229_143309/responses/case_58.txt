@@ -1,0 +1,59 @@
+<lean>
+axiom obj : Type
+axiom AddsSalt : obj → Prop
+axiom Tastes : obj → Prop
+axiom Stirs : obj → Prop
+axiom Salad : obj → Prop
+axiom Savory : Prop
+axiom Thickens : Prop
+
+axiom R_addsSalt_savory : ∀ x : obj, AddsSalt x → Savory
+axiom R_stirs_thickens : ∀ x : obj, Stirs x → Thickens
+axiom Law_salt_or_notthick :
+  (∃ x : obj, AddsSalt x) ∨ (¬ Thickens ∨ ((∃ x : obj, AddsSalt x) ∧ ¬ Thickens))
+axiom R_tastes_stirs : ∀ x : obj, Tastes x → Stirs x
+axiom Secret_taste_or_salad : ∃ x : obj, Tastes x ∨ Salad x
+
+theorem prepared_salad_from_not_savory : ¬ Savory → ∃ x : obj, Salad x := by
+  intro hns
+  -- No one added salt
+  have hNoSaltAll : ∀ x : obj, ¬ AddsSalt x := by
+    intro x
+    intro hx
+    exact hns (R_addsSalt_savory x hx)
+  have hNoSaltExists : ¬ (∃ x : obj, AddsSalt x) := by
+    intro h
+    cases h with
+    | intro w hw =>
+      exact hNoSaltAll w hw
+  -- Hence the stew does not thicken
+  have hNotThick : ¬ Thickens := by
+    cases Law_salt_or_notthick with
+    | inl hSomeSalt =>
+      exact False.elim (hNoSaltExists hSomeSalt)
+    | inr rest =>
+      cases rest with
+      | inl hnot => exact hnot
+      | inr hboth =>
+        have hSomeSalt : ∃ x : obj, AddsSalt x := And.left hboth
+        exact False.elim (hNoSaltExists hSomeSalt)
+  -- Therefore no one stirs, and so no one tastes
+  have hNoStirs : ∀ x : obj, ¬ Stirs x := by
+    intro x
+    intro hs
+    exact hNotThick (R_stirs_thickens x hs)
+  have hNoTastes : ∀ x : obj, ¬ Tastes x := by
+    intro x
+    intro ht
+    exact hNoStirs x (R_tastes_stirs x ht)
+  -- From the secret, deduce someone prepared a salad
+  cases Secret_taste_or_salad with
+  | intro w hdisj =>
+    cases hdisj with
+    | inl ht =>
+      exact False.elim (hNoTastes w ht)
+    | inr hs =>
+      exact Exists.intro w hs
+</lean>
+
+ANSWER: Yes

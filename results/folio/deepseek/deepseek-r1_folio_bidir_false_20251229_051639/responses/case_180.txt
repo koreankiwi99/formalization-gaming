@@ -1,0 +1,152 @@
+To determine if the statement "John flies to LGA airport" is false, we model the scenario in Lean with explicit flights, since the context mentions specific departures and arrivals for Susan and John. The key details are:
+- Susan has a flight arriving at LGA.
+- John has a flight departing from LGA.
+- For any flight, departure and arrival airports must differ.
+
+The statement "John flies to LGA" means there exists a flight operated by John that arrives at LGA. However, the axioms do not prohibit John from having a *different* flight that arrives at LGA (e.g., a separate flight from JFK to LGA). The known flight of John is only constrained to *depart* from LGA (and thus must arrive elsewhere by the given rule). Therefore, we cannot prove that John has no flight arriving at LGA.
+
+Lean proof attempt:
+<lean>
+axiom Flight : Type
+axiom Person : Type
+axiom Airport : Type
+axiom lga : Airport
+axioms susan john : Person
+
+axiom departure : Flight → Airport
+axiom arrival : Flight → Airport
+axiom flown_by : Flight → Person
+
+-- Susan flies to LGA: she has a flight arriving at LGA
+axiom susan_flight : ∃ f, flown_by f = susan ∧ arrival f = lga
+-- John flies from LGA: he has a flight departing from LGA
+axiom john_flight : ∃ f, flown_by f = john ∧ departure f = lga
+-- Rule: no flight has the same departure and arrival airport
+axiom airport_rule : ∀ f : Flight, departure f ≠ arrival f
+
+-- Statement: John has a flight arriving at LGA
+def conclusion : Prop := ∃ f, flown_by f = john ∧ arrival f = lga
+
+-- Attempt to prove ¬conclusion (i.e., the statement is false)
+-- Proof fails. We know one flight of John (f_j) has departure = lga and thus arrival ≠ lga.
+-- But John might have another flight (f_k) with arrival = lga.
+example : ¬conclusion := 
+  -- Assumes `h_con` is proof of conclusion (∃ flight by John arriving at lga)
+  fun h_con : ∃ f, flown_by f = john ∧ arrival f = lga => 
+  -- Extract such a flight `f_new` for John
+  match h_con with
+  | ⟨f_new, h_john, h_arrival⟩ =>
+      -- We also have john_flight: a flight (f_old) with departure from lga
+      match john_flight with
+      | ⟨f_old, h_john_old, h_dep_old⟩ =>
+          -- If f_new and f_old are the same flight, then:
+          have h_same_flight : f_new = f_old → 
+                departure f_old ≠ lga → False   -- Contradiction via airport_rule?
+          -- But note: if f_old = f_new, then arrival f_old = lga (by h_arrival),
+          -- while departure f_old = lga (by h_dep_old), violating airport_rule:
+          have h_contra : f_new = f_old → airport_rule f_old h_dep_old := by
+            intro h_eq
+            rw [h_eq] at h_arrival
+            exact airport_rule f_old (h_arrival ▸ h_dep_old)
+          -- However, we have no evidence that f_new = f_old.
+          -- Thus, if John has two different flights (f_old ≠ f_new), 
+          -- f_old arrives at some airport ≠ lga (by airport_rule),
+          -- and f_new arrives at lga, which is consistent.
+          False.elim (h_contra (by admit)) -- Stuck: can't prove f_new = f_old
+termination_by _ => no_wf -- Avoids termination check
+</lean>
+
+Since we cannot prove all cases (as `f_new` and `f_old` may be distinct flights), the negation of the statement is unprovable.
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The errors in the previous Lean code were due to syntax issues. The corrected version properly declares axioms and types, but the proof that John does not fly to LGA (i.e., the negation of the statement) cannot be completed. We know John has a flight departing from LGA, which must arrive somewhere else due to the airport rule. However, this does not prevent John from having another distinct flight that arrives at LGA, since there are no axioms restricting multiple flights per person.
+
+<lean>
+axiom Flight : Type
+axiom Person : Type
+axiom Airport : Type
+
+axiom lga : Airport
+axiom susan : Person
+axiom john : Person
+
+axiom departure : Flight → Airport
+axiom arrival : Flight → Airport
+axiom flown_by : Flight → Person
+
+axiom susan_flight : ∃ f : Flight, flown_by f = susan ∧ arrival f = lga
+axiom john_flight : ∃ f : Flight, flown_by f = john ∧ departure f = lga
+axiom airport_rule : ∀ f : Flight, departure f ≠ arrival f
+
+-- The statement "John flies to LGA" is: ∃ f, flown_by f = john ∧ arrival f = lga
+-- Attempting to prove NEGATION of this statement (i.e., it's false):
+theorem disprove : ¬ (∃ f : Flight, flown_by f = john ∧ arrival f = lga) := 
+  fun ⟨f_new, h_john_new, h_arr_new⟩ =>  -- Assumes such a flight exists
+  let ⟨f_old, h_john_old, h_dep_old⟩ := john_flight  -- John's flight from LGA
+  have h_rule := airport_rule f_old  -- f_old: departure ≠ arrival
+  -- If the new flight (f_new) is the same as the old flight (f_old)
+  have h_if_same : f_new = f_old → False := fun h_eq => 
+    have : departure f_old = lga := h_dep_old
+    have : arrival f_old = lga := h_eq ▸ h_arr_new -- Substitute f_new = f_old
+    h_rule (this ▸ this)  -- Contradiction: lga ≠ lga
+  -- But f_old ≠ f_new is possible -> no contradiction
+  sorry -- Cannot prove termination without flight equality
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+After analyzing the reasoning, I've corrected the Lean code to avoid compilation errors while maintaining the logical structure. The key issues were type mismatches and incorrect term usage in the proof attempt. However, the core problem remains: we cannot prove the statement false because John could potentially have multiple flights.
+
+Corrected Lean code:
+<lean>
+axiom Flight : Type
+axiom Person : Type
+axiom Airport : Type
+
+axiom lga : Airport
+axiom susan : Person
+axiom john : Person
+
+axiom departure : Flight → Airport
+axiom arrival : Flight → Airport
+axiom flown_by : Flight → Person
+
+axiom susan_flight : ∃ f : Flight, flown_by f = susan ∧ arrival f = lga
+axiom john_flight : ∃ f : Flight, flown_by f = john ∧ departure f = lga
+axiom airport_rule : ∀ f : Flight, departure f ≠ arrival f
+
+-- Statement: John has a flight arriving at LGA
+def conclusion : Prop := ∃ f, flown_by f = john ∧ arrival f = lga
+
+-- Proof attempt fails due to possibility of multiple flights
+example : ¬conclusion := 
+  fun ⟨f_new, hf_new, ha_new⟩ => 
+  match john_flight with
+  | ⟨f_old, hf_old, hd_old⟩ =>
+    have contra_old : departure f_old ≠ arrival f_old := airport_rule f_old
+    -- Contradiction only if flights are identical
+    have h_contra : f_new = f_old → False := fun h_eq => 
+      have : departure f_old = lga := hd_old
+      have : arrival f_old = lga := h_eq ▸ ha_new
+      contra_old (this ▸ hd_old) -- Now types correctly: lga = lga leads to contra
+    -- But flight equality cannot be established
+    False.elim (h_contra (by admit))
+termination_by _ => 0
+</lean>
+
+**Logical Analysis:**
+- We know John has a flight (f_old) departing from LGA that must arrive elsewhere (by axiom)
+- If the hypothetical flight to LGA (f_new) were the same as f_old, we'd get contradiction: same flight can't depart and arrive at LGA
+- But we can't prove f_new and f_old are the same flight
+- Without additional constraints (e.g., unique flights per person), John could have another distinct flight arriving at LGA
+
+ANSWER: Failure

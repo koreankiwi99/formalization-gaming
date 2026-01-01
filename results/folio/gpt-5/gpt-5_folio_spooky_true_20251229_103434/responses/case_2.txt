@@ -1,0 +1,91 @@
+<lean>
+axiom obj : Type
+
+-- Predicates
+axiom Club : obj → Prop
+axiom PerformOften : obj → Prop
+axiom AttendEngaged : obj → Prop
+axiom InactiveDisinterested : obj → Prop
+axiom Chaperone : obj → Prop
+axiom Student : obj → Prop
+axiom YoungOrTeen : obj → Prop
+axiom WishFurtherAcademic : obj → Prop
+
+-- Individual
+axiom Bonnie : obj
+
+-- Premises from the context
+-- 1. People in this club who perform often attend and are very engaged with school events.
+axiom P1 : ∀ x : obj, Club x ∧ PerformOften x → AttendEngaged x
+-- 2. People in this club either perform often or are inactive and disinterested community members.
+axiom P2 : ∀ x : obj, Club x → PerformOften x ∨ InactiveDisinterested x
+-- 3. People in this club who chaperone high school dances are not students who attend the school.
+axiom P3 : ∀ x : obj, Club x ∧ Chaperone x → ¬ Student x
+-- 4. All people in this club who are inactive and disinterested members of their community chaperone high school dances.
+axiom P4 : ∀ x : obj, Club x ∧ InactiveDisinterested x → Chaperone x
+-- 5. All young children and teenagers in this club who wish to further their academic careers are students who attend the school.
+axiom P5 : ∀ x : obj, Club x ∧ YoungOrTeen x ∧ WishFurtherAcademic x → Student x
+-- 6. Bonnie is in this club and she either (attends & is very engaged with events and is a student) or (does not attend & is not a student).
+axiom BonClub : Club Bonnie
+axiom BonAE_iff_S : (AttendEngaged Bonnie ∧ Student Bonnie) ∨ (¬ AttendEngaged Bonnie ∧ ¬ Student Bonnie)
+
+-- Some derived facts (showing attempts)
+theorem bonnie_chaperone_or_perform : Chaperone Bonnie ∨ PerformOften Bonnie := by
+  have h := P2 Bonnie BonClub
+  cases h with
+  | inl hPerf =>
+      exact Or.inr hPerf
+  | inr hInact =>
+      have hChap : Chaperone Bonnie := P4 Bonnie (And.intro BonClub hInact)
+      exact Or.inl hChap
+
+theorem antecedent_holds : Chaperone Bonnie ∨ (¬ Chaperone Bonnie → PerformOften Bonnie) := by
+  have h := bonnie_chaperone_or_perform
+  cases h with
+  | inl hChap =>
+      exact Or.inl hChap
+  | inr hPerf =>
+      apply Or.inr
+      intro _
+      exact hPerf
+
+theorem chaperone_implies_not_student : Chaperone Bonnie → ¬ Student Bonnie := by
+  intro hChap
+  exact P3 Bonnie (And.intro BonClub hChap)
+
+theorem not_student_implies_not_attend : ¬ Student Bonnie → ¬ AttendEngaged Bonnie := by
+  intro hNotS
+  intro hA
+  have h := BonAE_iff_S
+  cases h with
+  | inl hAS =>
+      exact hNotS (And.right hAS)
+  | inr hNotANotS =>
+      exact (And.left hNotANotS) hA
+
+theorem chaperone_implies_not_attend : Chaperone Bonnie → ¬ AttendEngaged Bonnie := by
+  intro hChap
+  apply not_student_implies_not_attend
+  exact chaperone_implies_not_student hChap
+
+theorem not_chaperone_implies_attend : ¬ Chaperone Bonnie → AttendEngaged Bonnie := by
+  intro hNotChap
+  -- From antecedent_holds, if not chaperone then perform often; hence attend (since Bonnie is in the club).
+  have hAnte := antecedent_holds
+  have hPerf : PerformOften Bonnie := by
+    cases hAnte with
+    | inl hChap => exact False.elim (hNotChap hChap)
+    | inr hImp => exact hImp hNotChap
+  exact P1 Bonnie (And.intro BonClub hPerf)
+
+theorem attend_implies_student : AttendEngaged Bonnie → Student Bonnie := by
+  intro hA
+  cases BonAE_iff_S with
+  | inl hAS =>
+      exact And.right hAS
+  | inr hNotANotS =>
+      have : False := (And.left hNotANotS) hA
+      exact False.elim this
+</lean>
+
+ANSWER: Failure

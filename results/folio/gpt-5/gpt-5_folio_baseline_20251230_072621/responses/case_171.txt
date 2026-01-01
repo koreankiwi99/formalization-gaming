@@ -1,0 +1,176 @@
+<lean>
+axiom obj : Type
+axiom ColorectalCancer : obj
+
+axiom DeadlyDisease : obj → Prop
+axiom LowSurvivalRate : obj → Prop
+axiom SevereCancer : obj → Prop
+axiom BileDuctCancer : obj → Prop
+axiom Cholangiocarcinoma : obj → Prop
+axiom MildFlu : obj → Prop
+
+-- If something is a deadly disease, then it comes with a low survival rate.
+axiom R1 : ∀ x : obj, DeadlyDisease x → LowSurvivalRate x
+-- Severe cancers are deadly diseases.
+axiom R2 : ∀ x : obj, SevereCancer x → DeadlyDisease x
+-- Bile duct cancer is a severe form cancer.
+axiom R3 : ∀ x : obj, BileDuctCancer x → SevereCancer x
+-- All Cholangiocarcinoma is bile duct cancer.
+axiom R4 : ∀ x : obj, Cholangiocarcinoma x → BileDuctCancer x
+-- Mild flu comes with a low survival rate.
+axiom R5 : ∀ x : obj, MildFlu x → LowSurvivalRate x
+-- Colorectal cancer is not both a bile duct cancer and with a low survival rate.
+axiom C1 : ¬ (BileDuctCancer ColorectalCancer ∧ LowSurvivalRate ColorectalCancer)
+
+lemma not_bdc_CC : ¬ BileDuctCancer ColorectalCancer := by
+  intro hBDC
+  have hSev : SevereCancer ColorectalCancer := R3 ColorectalCancer hBDC
+  have hDead : DeadlyDisease ColorectalCancer := R2 ColorectalCancer hSev
+  have hLow : LowSurvivalRate ColorectalCancer := R1 ColorectalCancer hDead
+  exact C1 ⟨hBDC, hLow⟩
+
+lemma not_cholang_CC : ¬ Cholangiocarcinoma ColorectalCancer := by
+  intro hChol
+  have hBDC : BileDuctCancer ColorectalCancer := R4 ColorectalCancer hChol
+  have hSev : SevereCancer ColorectalCancer := R3 ColorectalCancer hBDC
+  have hDead : DeadlyDisease ColorectalCancer := R2 ColorectalCancer hSev
+  have hLow : LowSurvivalRate ColorectalCancer := R1 ColorectalCancer hDead
+  exact C1 ⟨hBDC, hLow⟩
+
+-- Claim interpreted as:
+-- Colorectal cancer is Cholangiocarcinoma AND (a mild flu OR a bile duct cancer).
+theorem claim_false :
+  ¬ (Cholangiocarcinoma ColorectalCancer ∧ (MildFlu ColorectalCancer ∨ BileDuctCancer ColorectalCancer)) := by
+  intro h
+  have hChol : Cholangiocarcinoma ColorectalCancer := And.left h
+  exact not_cholang_CC hChol
+</lean>
+
+ANSWER: False
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom obj : Type
+axiom ColorectalCancer : obj
+
+axiom DeadlyDisease : obj → Prop
+axiom LowSurvivalRate : obj → Prop
+axiom SevereCancer : obj → Prop
+axiom BileDuctCancer : obj → Prop
+axiom Cholangiocarcinoma : obj → Prop
+axiom MildFlu : obj → Prop
+
+-- If something is a deadly disease, then it comes with a low survival rate.
+axiom R1 : ∀ x : obj, DeadlyDisease x → LowSurvivalRate x
+-- Severe cancers are deadly diseases.
+axiom R2 : ∀ x : obj, SevereCancer x → DeadlyDisease x
+-- Bile duct cancer is a severe form cancer.
+axiom R3 : ∀ x : obj, BileDuctCancer x → SevereCancer x
+-- All Cholangiocarcinoma is bile duct cancer.
+axiom R4 : ∀ x : obj, Cholangiocarcinoma x → BileDuctCancer x
+-- Mild flu comes with a low survival rate.
+axiom R5 : ∀ x : obj, MildFlu x → LowSurvivalRate x
+-- Colorectal cancer is not both a bile duct cancer and with a low survival rate.
+axiom C1 : ¬ (BileDuctCancer ColorectalCancer ∧ LowSurvivalRate ColorectalCancer)
+
+lemma bdc_implies_low (x : obj) : BileDuctCancer x → LowSurvivalRate x := by
+  intro hBDC
+  have hSev : SevereCancer x := R3 x hBDC
+  have hDead : DeadlyDisease x := R2 x hSev
+  have hLow : LowSurvivalRate x := R1 x hDead
+  exact hLow
+
+lemma not_bdc_CC : ¬ BileDuctCancer ColorectalCancer := by
+  intro hBDC
+  have hLow : LowSurvivalRate ColorectalCancer := bdc_implies_low ColorectalCancer hBDC
+  exact C1 ⟨hBDC, hLow⟩
+
+lemma not_cholang_CC : ¬ Cholangiocarcinoma ColorectalCancer := by
+  intro hChol
+  have hBDC : BileDuctCancer ColorectalCancer := R4 ColorectalCancer hChol
+  exact not_bdc_CC hBDC
+
+-- Interpret the claim as:
+-- (Cholangiocarcinoma CC ∧ (MildFlu CC ∨ BileDuctCancer CC)) ∨
+-- (Cholangiocarcinoma CC ∧ MildFlu CC ∧ BileDuctCancer CC)  -- "or all of the above"
+def Statement : Prop :=
+  (Cholangiocarcinoma ColorectalCancer ∧ (MildFlu ColorectalCancer ∨ BileDuctCancer ColorectalCancer)) ∨
+  (Cholangiocarcinoma ColorectalCancer ∧ MildFlu ColorectalCancer ∧ BileDuctCancer ColorectalCancer)
+
+theorem statement_false : ¬ Statement := by
+  intro h
+  have hNotChol : ¬ Cholangiocarcinoma ColorectalCancer := not_cholang_CC
+  cases h with
+  | inl h1 =>
+    exact hNotChol h1.left
+  | inr h2 =>
+    exact hNotChol h2.left
+</lean>
+
+ANSWER: False
+
+======================================================================
+ITERATION 3
+======================================================================
+
+<lean>
+axiom obj : Type
+axiom ColorectalCancer : obj
+
+axiom DeadlyDisease : obj → Prop
+axiom LowSurvivalRate : obj → Prop
+axiom SevereCancer : obj → Prop
+axiom BileDuctCancer : obj → Prop
+axiom Cholangiocarcinoma : obj → Prop
+axiom MildFlu : obj → Prop
+
+-- If something is a deadly disease, then it comes with a low survival rate.
+axiom R1 : ∀ x : obj, DeadlyDisease x → LowSurvivalRate x
+-- Severe cancers are deadly diseases.
+axiom R2 : ∀ x : obj, SevereCancer x → DeadlyDisease x
+-- Bile duct cancer is a severe form cancer.
+axiom R3 : ∀ x : obj, BileDuctCancer x → SevereCancer x
+-- All Cholangiocarcinoma is bile duct cancer.
+axiom R4 : ∀ x : obj, Cholangiocarcinoma x → BileDuctCancer x
+-- Mild flu comes with a low survival rate.
+axiom R5 : ∀ x : obj, MildFlu x → LowSurvivalRate x
+-- Colorectal cancer is not both a bile duct cancer and with a low survival rate.
+axiom C1 : ¬ (BileDuctCancer ColorectalCancer ∧ LowSurvivalRate ColorectalCancer)
+
+theorem bdc_implies_low (x : obj) : BileDuctCancer x → LowSurvivalRate x := by
+  intro hBDC
+  have hSev : SevereCancer x := R3 x hBDC
+  have hDead : DeadlyDisease x := R2 x hSev
+  have hLow : LowSurvivalRate x := R1 x hDead
+  exact hLow
+
+theorem not_bdc_CC : ¬ BileDuctCancer ColorectalCancer := by
+  intro hBDC
+  have hLow : LowSurvivalRate ColorectalCancer := bdc_implies_low ColorectalCancer hBDC
+  exact C1 ⟨hBDC, hLow⟩
+
+theorem not_cholang_CC : ¬ Cholangiocarcinoma ColorectalCancer := by
+  intro hChol
+  have hBDC : BileDuctCancer ColorectalCancer := R4 ColorectalCancer hChol
+  exact not_bdc_CC hBDC
+
+-- Interpret the claim as:
+-- (Cholangiocarcinoma CC ∧ (MildFlu CC ∨ BileDuctCancer CC)) ∨
+-- (Cholangiocarcinoma CC ∧ MildFlu CC ∧ BileDuctCancer CC)  -- "or all of the above"
+def Statement : Prop :=
+  (Cholangiocarcinoma ColorectalCancer ∧ (MildFlu ColorectalCancer ∨ BileDuctCancer ColorectalCancer)) ∨
+  (Cholangiocarcinoma ColorectalCancer ∧ MildFlu ColorectalCancer ∧ BileDuctCancer ColorectalCancer)
+
+theorem statement_false : ¬ Statement := by
+  intro h
+  cases h
+  case inl h1 =>
+    exact not_cholang_CC h1.left
+  case inr h2 =>
+    exact not_cholang_CC h2.left
+</lean>
+
+ANSWER: False

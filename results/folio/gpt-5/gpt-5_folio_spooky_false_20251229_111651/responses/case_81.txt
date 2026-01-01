@@ -1,0 +1,102 @@
+<lean>
+axiom obj : Type
+
+-- Entities and predicates
+axiom DTC : obj  -- Dried Thai chilies
+axiom BakedSweet : obj → Prop
+axiom Spicy : obj → Prop
+axiom Cupcake : obj → Prop
+axiom MalaHotpot : obj → Prop
+axiom BBM : obj → Prop  -- Products from Baked by Melissa
+
+-- Premises
+axiom no_baked_sweets_spicy : ∀ x : obj, BakedSweet x → ¬Spicy x
+axiom cupcakes_baked_sweets : ∀ x : obj, Cupcake x → BakedSweet x
+axiom mala_hotpots_spicy : ∀ x : obj, MalaHotpot x → Spicy x
+axiom bbm_cupcakes : ∀ x : obj, BBM x → Cupcake x
+axiom dtc_disj : Spicy DTC ∨ MalaHotpot DTC ∨ ¬BakedSweet DTC
+
+-- Derived facts
+theorem mala_not_baked : ∀ x : obj, MalaHotpot x → ¬BakedSweet x :=
+  fun x hM =>
+  fun hB =>
+    have hS : Spicy x := mala_hotpots_spicy x hM
+    have hNS : ¬Spicy x := no_baked_sweets_spicy x hB
+    show False from hNS hS
+
+theorem bbm_baked : ∀ x : obj, BBM x → BakedSweet x :=
+  fun x h => cupcakes_baked_sweets x (bbm_cupcakes x h)
+
+theorem dtc_spicy_or_not_baked : Spicy DTC ∨ ¬BakedSweet DTC :=
+by
+  cases dtc_disj with
+  | inl h1 =>
+    cases h1 with
+    | inl hS => exact Or.inl hS
+    | inr hM =>
+      have hNB : ¬BakedSweet DTC := mala_not_baked DTC hM
+      exact Or.inr hNB
+  | inr hNB => exact Or.inr hNB
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom obj : Type
+
+-- Entities and predicates
+axiom DTC : obj  -- Dried Thai chilies
+axiom BakedSweet : obj → Prop
+axiom Spicy : obj → Prop
+axiom Cupcake : obj → Prop
+axiom MalaHotpot : obj → Prop
+axiom BBM : obj → Prop  -- Products from Baked by Melissa
+
+-- Premises
+axiom no_baked_sweets_spicy : ∀ x : obj, BakedSweet x → ¬Spicy x
+axiom cupcakes_baked_sweets : ∀ x : obj, Cupcake x → BakedSweet x
+axiom mala_hotpots_spicy : ∀ x : obj, MalaHotpot x → Spicy x
+axiom bbm_cupcakes : ∀ x : obj, BBM x → Cupcake x
+axiom dtc_disj : Spicy DTC ∨ MalaHotpot DTC ∨ ¬BakedSweet DTC
+
+-- Useful derived facts
+theorem spicy_implies_not_baked : ∀ x : obj, Spicy x → ¬BakedSweet x :=
+  fun x hS =>
+  fun hB =>
+    (no_baked_sweets_spicy x hB) hS
+
+theorem mala_not_baked : ∀ x : obj, MalaHotpot x → ¬BakedSweet x :=
+  fun x hM =>
+    spicy_implies_not_baked x (mala_hotpots_spicy x hM)
+
+theorem bbm_baked : ∀ x : obj, BBM x → BakedSweet x :=
+  fun x h => cupcakes_baked_sweets x (bbm_cupcakes x h)
+
+theorem bbm_not_spicy : ∀ x : obj, BBM x → ¬Spicy x :=
+  fun x h => no_baked_sweets_spicy x (bbm_baked x h)
+
+-- From the disjunction for DTC, we can conclude DTC is not a baked sweet
+theorem dtc_not_baked : ¬BakedSweet DTC :=
+by
+  cases dtc_disj with
+  | inl hS =>
+    exact spicy_implies_not_baked DTC hS
+  | inr h2 =>
+    cases h2 with
+    | inl hM =>
+      exact mala_not_baked DTC hM
+    | inr hNB =>
+      exact hNB
+
+-- The statement to evaluate: (¬BBM DTC) ∧ (¬BakedSweet DTC)
+def Statement : Prop := (¬BBM DTC) ∧ (¬BakedSweet DTC)
+
+-- We can prove ¬BakedSweet DTC, but have no information to derive or refute ¬BBM DTC.
+-- Hence we cannot derive the negation of the Statement from the given premises.
+</lean>
+
+ANSWER: Failure

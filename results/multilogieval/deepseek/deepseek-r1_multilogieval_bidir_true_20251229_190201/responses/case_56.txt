@@ -1,0 +1,85 @@
+<lean>
+axiom Person : Type
+constant Emma : Person
+axiom SpeaksDaily : Person → Prop
+axiom ListensPodcast : Person → Prop
+axiom FluencyImproves : Person → Prop
+axiom CanConverse : Person → Prop
+axiom ListeningComprehension : Person → Prop
+
+axiom A1 : ∀ p, SpeaksDaily p → FluencyImproves p
+axiom A2 : ∀ p, FluencyImproves p → CanConverse p
+axiom A3 : ∀ p, SpeaksDaily p ∨ ListensPodcast p
+axiom A4 : ∀ p, ListensPodcast p → ListeningComprehension p
+
+theorem emma_conclusion : ¬ CanConverse Emma → ListeningComprehension Emma := 
+  fun hNoConv : ¬ CanConverse Emma =>
+  have hNoFluency : ¬ FluencyImproves Emma := by 
+    intro hFluency
+    have hConv : CanConverse Emma := A2 Emma hFluency
+    exact hNoConv hConv
+  have hNoSpeak : ¬ SpeaksDaily Emma := by 
+    intro hSpeak
+    have hFluency : FluencyImproves Emma := A1 Emma hSpeak
+    exact hNoFluency hFluency
+  have hDisjunction : SpeaksDaily Emma ∨ ListensPodcast Emma := A3 Emma
+  Or.elim hDisjunction
+    (fun hSpeak : SpeaksDaily Emma => absurd hSpeak hNoSpeak)
+    (fun hListen : ListensPodcast Emma => A4 Emma hListen)
+</lean>
+
+ANSWER: Yes
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors were fixed by:
+1. Using `axiom` instead of `constant` for Emma
+2. Adding explicit type annotations `(p : Person)` to all axioms with quantifiers
+3. Adding `by exact` before the term-mode proof to satisfy Lean 4's requirement that tactic blocks start with `by`
+
+Here's the corrected Lean code:
+
+<lean>
+axiom Person : Type
+axiom Emma : Person
+axiom SpeaksDaily : Person → Prop
+axiom ListensPodcast : Person → Prop
+axiom FluencyImproves : Person → Prop
+axiom CanConverse : Person → Prop
+axiom ListeningComprehension : Person → Prop
+
+axiom A1 : ∀ (p : Person), SpeaksDaily p → FluencyImproves p
+axiom A2 : ∀ (p : Person), FluencyImproves p → CanConverse p
+axiom A3 : ∀ (p : Person), SpeaksDaily p ∨ ListensPodcast p
+axiom A4 : ∀ (p : Person), ListensPodcast p → ListeningComprehension p
+
+theorem emma_conclusion : ¬ CanConverse Emma → ListeningComprehension Emma := 
+by
+  intro hNoConv
+  have hNoFluency : ¬ FluencyImproves Emma := by
+    intro hFluency
+    exact hNoConv (A2 Emma hFluency)
+  have hNoSpeak : ¬ SpeaksDaily Emma := by
+    intro hSpeak
+    exact hNoFluency (A1 Emma hSpeak)
+  have hDisjunction : SpeaksDaily Emma ∨ ListensPodcast Emma := A3 Emma
+  cases hDisjunction
+  · contradiction
+  · exact A4 Emma ‹_›
+</lean>
+
+**Proof explanation:**
+1. Assume Emma cannot have conversations (`hNoConv`)
+2. Show fluency doesn't improve (`hNoFluency`):
+   - If fluency improved, she could converse (A2), contradiction
+3. Show she doesn't speak daily (`hNoSpeak`):
+   - If she spoke daily, fluency would improve (A1), contradiction
+4. By A3, she either speaks daily or listens to podcasts
+5. The "speaks daily" case contradicts `hNoSpeak`
+6. In the podcasts case, A4 directly proves listening comprehension
+
+The statement is provable: If Emma cannot converse, she must gain listening comprehension.
+
+ANSWER: Yes

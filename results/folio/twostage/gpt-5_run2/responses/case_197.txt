@@ -1,0 +1,117 @@
+======================================================================
+STAGE 1: TRANSLATION
+======================================================================
+
+--- Iteration 1 ---
+
+<lean>
+axiom obj : Type
+
+axiom Jane : obj
+axiom KiKi : obj
+
+axiom Animal : obj → Prop
+axiom Dog : obj → Prop
+axiom Barks : obj → Prop
+axiom Jumps : obj → Prop
+axiom HasLegs : obj → Prop
+axiom Terricolous : obj → Prop
+axiom Likes : obj → obj → Prop
+
+-- Jane does not like any animals that bark.
+axiom P1 : ∀ x : obj, Animal x → Barks x → ¬Likes Jane x
+
+-- All dogs are animals that bark.
+axiom P2 : ∀ x : obj, Dog x → Animal x ∧ Barks x
+
+-- Jane likes all animals that jump.
+axiom P3 : ∀ x : obj, Animal x → Jumps x → Likes Jane x
+
+-- If an animal has legs, then it jumps.
+axiom P4 : ∀ x : obj, Animal x → HasLegs x → Jumps x
+
+-- If an animal is terricolous, then it has legs.
+axiom P5 : ∀ x : obj, Animal x → Terricolous x → HasLegs x
+
+-- KiKi is an animal.
+axiom P6 : Animal KiKi
+
+-- If KiKi neither jumps nor has legs, then KiKi is terricolous or has legs.
+axiom P7 : (¬Jumps KiKi ∧ ¬HasLegs KiKi) → (Terricolous KiKi ∨ HasLegs KiKi)
+
+-- Conclusion: KiKi does not bark and he is not a dog.
+theorem goal : ¬Barks KiKi ∧ ¬Dog KiKi := sorry
+</lean>
+
+
+======================================================================
+STAGE 2: PROVING
+======================================================================
+
+--- Iteration 1 ---
+
+<lean>
+axiom obj : Type
+
+axiom Jane : obj
+axiom KiKi : obj
+
+axiom Animal : obj → Prop
+axiom Dog : obj → Prop
+axiom Barks : obj → Prop
+axiom Jumps : obj → Prop
+axiom HasLegs : obj → Prop
+axiom Terricolous : obj → Prop
+axiom Likes : obj → obj → Prop
+
+-- Jane does not like any animals that bark.
+axiom P1 : ∀ x : obj, Animal x → Barks x → ¬Likes Jane x
+
+-- All dogs are animals that bark.
+axiom P2 : ∀ x : obj, Dog x → Animal x ∧ Barks x
+
+-- Jane likes all animals that jump.
+axiom P3 : ∀ x : obj, Animal x → Jumps x → Likes Jane x
+
+-- If an animal has legs, then it jumps.
+axiom P4 : ∀ x : obj, Animal x → HasLegs x → Jumps x
+
+-- If an animal is terricolous, then it has legs.
+axiom P5 : ∀ x : obj, Animal x → Terricolous x → HasLegs x
+
+-- KiKi is an animal.
+axiom P6 : Animal KiKi
+
+-- If KiKi neither jumps nor has legs, then KiKi is terricolous or has legs.
+axiom P7 : (¬Jumps KiKi ∧ ¬HasLegs KiKi) → (Terricolous KiKi ∨ HasLegs KiKi)
+
+-- Conclusion: KiKi does not bark and he is not a dog.
+theorem goal : ¬Barks KiKi ∧ ¬Dog KiKi := by
+  classical
+  -- First, show KiKi does not bark
+  have notB : ¬Barks KiKi := by
+    intro hB
+    -- Derive that KiKi jumps
+    have hJ : Jumps KiKi := by
+      by_cases hJ : Jumps KiKi
+      · exact hJ
+      · by_cases hL : HasLegs KiKi
+        · have : Jumps KiKi := P4 KiKi P6 hL
+          exact False.elim (hJ this)
+        ·
+          have hdisj : Terricolous KiKi ∨ HasLegs KiKi := P7 ⟨hJ, hL⟩
+          have hLegs : HasLegs KiKi :=
+            Or.elim hdisj (fun hT => P5 KiKi P6 hT) (fun hLeg => hLeg)
+          exact False.elim (hL hLegs)
+    -- Likes and not-likes contradiction
+    have hLike : Likes Jane KiKi := P3 KiKi P6 hJ
+    have hNotLike : ¬Likes Jane KiKi := P1 KiKi P6 hB
+    exact hNotLike hLike
+  -- Second, show KiKi is not a dog
+  have notD : ¬Dog KiKi := by
+    intro hD
+    have hb : Barks KiKi := (P2 KiKi hD).right
+    exact notB hb
+  exact And.intro notB notD
+</lean>
+ANSWER: True

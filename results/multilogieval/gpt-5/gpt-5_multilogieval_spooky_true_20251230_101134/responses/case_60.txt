@@ -1,0 +1,47 @@
+<lean>
+axiom obj : Type
+axiom John : obj
+
+axiom Alarm : Prop
+axiom TimeToGetReady : Prop
+
+axiom Late : obj → Prop
+axiom MissBus : obj → Prop
+axiom GotUpLate : obj → Prop
+axiom WentToBedLate : obj → Prop
+
+-- If the alarm went off, then it was time to get ready.
+axiom R_alarm_time : Alarm → TimeToGetReady
+-- If they missed the bus, then they'd be late for school.
+axiom R_missbus_late : ∀ x : obj, MissBus x → Late x
+-- Either the alarm went off, or they weren't late for school.
+axiom R_alarm_or_notlate : ∀ x : obj, Alarm ∨ ¬ Late x
+-- If they got up late, then they miss the bus.
+axiom R_uplate_missbus : ∀ x : obj, GotUpLate x → MissBus x
+-- If they went to bed late, then they get up late.
+axiom R_bedlate_uplate : ∀ x : obj, WentToBedLate x → GotUpLate x
+
+-- From "John knows it is not the time to get ready" (we use the content: ¬TimeToGetReady),
+-- we can derive that John did NOT go to bed late.
+theorem john_not_bedlate_of_not_time : (¬ TimeToGetReady) → ¬ WentToBedLate John := by
+  intro hNotTime
+  -- From ¬Time and (Alarm → Time), deduce ¬Alarm
+  have hNotAlarm : ¬ Alarm := by
+    intro hA
+    exact hNotTime (R_alarm_time hA)
+  -- From Alarm ∨ ¬Late John and ¬Alarm, deduce ¬Late John
+  have hNotLateJohn : ¬ Late John := by
+    have h := R_alarm_or_notlate John
+    cases h with
+    | inl hA =>
+        exact False.elim (hNotAlarm hA)
+    | inr hNL => exact hNL
+  -- Now show ¬WentToBedLate John by contradiction chain BedLate → UpLate → MissBus → Late
+  intro hBedLate
+  have hUp : GotUpLate John := R_bedlate_uplate John hBedLate
+  have hMiss : MissBus John := R_uplate_missbus John hUp
+  have hLate : Late John := R_missbus_late John hMiss
+  exact hNotLateJohn hLate
+</lean>
+
+ANSWER: Failure

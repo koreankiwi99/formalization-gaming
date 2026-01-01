@@ -1,0 +1,58 @@
+We are given a context and a statement to evaluate: "If John's muscles are not sore today, did it rain?" We interpret this as: "Can we conclude that it rained if John's muscles are not sore today?" We must assume that John is the person referred to in the context.
+
+### Translation to Predicates:
+- `Sore x`: x is sore (the next day/today).
+- `WorkedHard x`: x worked out hard.
+- `TookHotShower x`: x took a hot shower.
+- `MusclesRelax x`: x's muscles relaxed.
+- `ColdWeather`: The weather is cold.
+- `Rain`: It rained.
+- `John`: The person who went to the gym.
+
+### Premises:
+1. If someone worked out hard, they are sore: `∀ x, WorkedHard x → Sore x`.
+2. If someone took a hot shower, their muscles relax: `∀ x, TookHotShower x → MusclesRelax x`.
+3. Either they worked out hard or their muscles did not relax (exclusive or; but we take as inclusive since it's natural language): `∀ x, WorkedHard x ∨ ¬MusclesRelax x`.
+4. If the weather is cold, they take a hot shower: `ColdWeather → TookHotShower John`.
+5. If it rains, the weather is cold: `Rain → ColdWeather`.
+
+We are to evaluate: "If John's muscles are not sore today, did it rain?" – i.e., assume `¬Sore John` and determine if we can prove `Rain` or its negation.
+
+### Analysis:
+- Assume `¬Sore John`.
+- From premise 1, by contrapositive: `¬Sore John → ¬WorkedHard John`. Thus, `¬WorkedHard John`.
+- From premise 3 for John: `WorkedHard John ∨ ¬MusclesRelax John`. Since `¬WorkedHard John`, we have `¬MusclesRelax John`.
+- From premise 2, by contrapositive: `¬MusclesRelax John → ¬TookHotShower John`. Thus, `¬TookHotShower John`.
+- From premise 4, by contrapositive: `¬TookHotShower John → ¬ColdWeather`. Thus, `¬ColdWeather`.
+- From premise 5, by contrapositive: `¬ColdWeather → ¬Rain`. Thus, `¬Rain`.
+
+Therefore, under `¬Sore John`, we can prove `¬Rain`. This means that the conclusion "it rained" is false under the condition "John's muscles are not sore." Thus, we prove the negation of the conclusion (¬Rain is the negation of Rain).
+
+<lean>
+axiom Obj : Type
+axiom John : Obj
+axiom WorkedHard : Obj → Prop
+axiom Sore : Obj → Prop
+axiom TookHotShower : Obj → Prop
+axiom MusclesRelax : Obj → Prop
+axiom ColdWeather : Prop
+axiom Rain : Prop
+
+axiom P1 : ∀ x : Obj, WorkedHard x → Sore x
+axiom P2 : ∀ x : Obj, TookHotShower x → MusclesRelax x
+axiom P3 : ∀ x : Obj, WorkedHard x ∨ ¬MusclesRelax x
+axiom P4 : ColdWeather → TookHotShower John
+axiom P5 : Rain → ColdWeather
+
+theorem not_sore_implies_no_rain (h : ¬ Sore John) : ¬ Rain :=
+  fun rain : Rain =>
+    have cold : ColdWeather := P5 rain
+    have shower : TookHotShower John := P4 cold
+    have relaxed : MusclesRelax John := P2 John shower
+    have disj : WorkedHard John ∨ ¬MusclesRelax John := P3 John
+    Or.elim disj
+      (fun worked => h (P1 John worked))
+      (fun not_relaxed => not_relaxed relaxed)
+</lean>
+
+ANSWER: No

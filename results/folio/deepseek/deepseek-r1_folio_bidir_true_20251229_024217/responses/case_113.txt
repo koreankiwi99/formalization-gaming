@@ -1,0 +1,126 @@
+The premises establish that the Harding Pegmatite Mine is located in the Picuris Mountains, which are in either New Mexico or Texas. The mine has been donated, but there are no mountain ranges in Texas that have donated mines. Thus, the Picuris Mountains cannot be in Texas; they must be in New Mexico. Therefore, the mine *is* located in a mountain range (Picuris) that is in New Mexico, making the statement "The Harding Pegmatite Mine is not located in a mountain range in New Mexico" false. Since we can prove the negation of this statement using the premises, we cannot prove the original statement.
+
+<lean>
+axiom obj : Type
+constant Picuris : obj
+constant HPM : obj
+constant NewMexico : obj
+constant Texas : obj
+
+axiom InState : obj → obj → Prop
+axiom LocatedIn : obj → obj → Prop
+axiom Donated : obj → Prop
+
+axiom A1 : InState Picuris NewMexico ∨ InState Picuris Texas
+axiom A3 : LocatedIn HPM Picuris ∧ Donated HPM
+axiom A4 : ∀ (r : obj), InState r Texas → (∀ (m : obj), LocatedIn m r → ¬ Donated m)
+
+-- Show Picuris must be in New Mexico by contradiction
+lemma Picuris_in_NM : InState Picuris NewMexico := by
+  cases A1 with
+  | inl h => exact h
+  | inr h => 
+      apply False.elim (A4 Picuris h HPM A3.left A3.right)
+
+-- The conclusion "The Harding Pegmatite Mine is not in a mountain range in NM" is false
+-- because it is in Picuris, which is in New Mexico. Thus, we cannot prove the conclusion.
+theorem conclusion_false : ∃ r : obj, InState r NewMexico ∧ LocatedIn HPM r := 
+  ⟨ Picuris, Picuris_in_NM, A3.left ⟩
+
+-- Since the statement to evaluate is the opposite (unprovable), we end with Failure
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The initial Lean code had several issues:
+1. Used single-word "Picuris" instead of the full "PicurisMountains" causing identifier conflicts
+2. Proof in `Picuris_in_NM` didn't properly apply axioms
+3. Unnecessary proof attempt for the conclusion
+
+The corrected implementation:
+- Uses full names for entities (PicurisMountains, HardingPegmatiteMine)
+- Properly applies axioms with correct arguments
+- Avoids attempting to prove the unprovable conclusion
+
+<lean>
+axiom obj : Type
+
+constant PicurisMountains : obj
+constant HardingPegmatiteMine : obj
+constant NewMexico : obj
+constant Texas : obj
+
+axiom InState : obj → obj → Prop
+axiom LocatedIn : obj → obj → Prop
+axiom Donated : obj → Prop
+
+axiom range_location : InState PicurisMountains NewMexico ∨ InState PicurisMountains Texas
+axiom mine_facts : LocatedIn HardingPegmatiteMine PicurisMountains ∧ Donated HardingPegmatiteMine
+axiom no_donated_mines_in_texas : 
+  ∀ (r : obj), InState r Texas → ∀ (m : obj), LocatedIn m r → ¬ Donated m
+
+lemma Picuris_in_NM : InState PicurisMountains NewMexico := by
+  cases range_location with
+  | inl in_nm => exact in_nm
+  | inr in_tx => 
+      have no_donate := no_donated_mines_in_texas PicurisMountains in_tx HardingPegmatiteMine mine_facts.left
+      exact False.elim (no_donate mine_facts.right)
+
+-- Expression of the conclusion to evaluate: 
+-- ¬∃ r, InState r NewMexico ∧ LocatedIn HardingPegmatiteMine r
+-- But we have PicurisMountains in New Mexico with the mine, so we have:
+example : ∃ r, InState r NewMexico ∧ LocatedIn HardingPegmatiteMine r := 
+  ⟨PicurisMountains, Picuris_in_NM, mine_facts.left⟩
+
+-- Therefore we cannot prove the negative statement
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The compilation errors were due to incorrect usage of `constant` for declaring objects in Lean 4. The key fixes are:
+1. Changed all `constant` declarations to `axiom` for consistency
+2. Removed unnecessary intermediate lemma proof
+3. Directly proved existence of a New Mexico location contradicting the statement
+
+Here's the corrected Lean code:
+
+<lean>
+axiom obj : Type
+axiom PicurisMountains : obj
+axiom HardingPegmatiteMine : obj
+axiom NewMexico : obj
+axiom Texas : obj
+
+axiom InState : obj → obj → Prop
+axiom LocatedIn : obj → obj → Prop
+axiom Donated : obj → Prop
+
+axiom range_location : InState PicurisMountains NewMexico ∨ InState PicurisMountains Texas
+axiom mine_facts : LocatedIn HardingPegmatiteMine PicurisMountains ∧ Donated HardingPegmatiteMine
+axiom no_donated_mines_in_texas : 
+  ∀ (r : obj), InState r Texas → ∀ (m : obj), LocatedIn m r → ¬ Donated m
+
+theorem Picuris_in_NM : InState PicurisMountains NewMexico := by
+  cases range_location
+  case inl h => exact h
+  case inr h => 
+    have no_donate := no_donated_mines_in_texas PicurisMountains h HardingPegmatiteMine mine_facts.left
+    exact False.elim (no_donate mine_facts.right)
+
+-- The statement claims: ¬∃ r, InState r NewMexico ∧ LocatedIn HardingPegmatiteMine r
+-- But we can explicitly construct the witness:
+theorem contradiction : ∃ r : obj, InState r NewMexico ∧ LocatedIn HardingPegmatiteMine r := 
+  ⟨PicurisMountains, Picuris_in_NM, mine_facts.left⟩
+
+-- Therefore the original statement is unprovable
+</lean>
+
+ANSWER: Failure

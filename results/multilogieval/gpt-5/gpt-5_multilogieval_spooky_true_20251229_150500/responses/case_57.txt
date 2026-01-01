@@ -1,0 +1,52 @@
+<lean>
+axiom obj : Type
+axiom John : obj
+
+axiom Sale : Prop
+axiom BeginMonth : Prop
+axiom BuyMore : obj → Prop
+axiom GoShop : obj → Prop
+axiom GetAll : obj → Prop
+axiom SoldOut : obj → Prop
+
+-- If the store has a sale, then people will buy more items.
+axiom A1 : ∀ x : obj, Sale → BuyMore x
+-- If someone goes grocery shopping, then they will get everything on their list.
+axiom A2 : ∀ x : obj, GoShop x → GetAll x
+-- Either the store has a sale, or they did not get everything on their list,
+-- or there was a sale and they still did not get all their groceries (for John).
+axiom A3 : Sale ∨ (¬ GetAll John ∨ (Sale ∧ ¬ GetAll John))
+-- If it is the beginning of the month, then people go grocery shopping.
+axiom A4 : ∀ x : obj, BeginMonth → GoShop x
+-- Either it is the beginning of the month, or John's favorite cereal is sold out,
+-- or both are true.
+axiom A5 : BeginMonth ∨ (SoldOut John ∨ (BeginMonth ∧ SoldOut John))
+
+theorem soldout_of_not_buymore : ¬ BuyMore John → SoldOut John := by
+  intro Hnb
+  -- From ¬(BuyMore John) and (Sale → BuyMore John), deduce ¬Sale
+  have h_not_sale : ¬ Sale := fun hs => Hnb ((A1 John) hs)
+  -- From the disjunction A3 and ¬Sale, deduce ¬GetAll John
+  have h_not_getall : ¬ GetAll John := by
+    cases A3 with
+    | inl hs =>
+        exact False.elim (h_not_sale hs)
+    | inr rest =>
+        cases rest with
+        | inl hneg => exact hneg
+        | inr hboth => exact hboth.right
+  -- From ¬GetAll John and (GoShop → GetAll), deduce ¬GoShop John
+  have h_not_goshop : ¬ GoShop John := fun hg => h_not_getall ((A2 John) hg)
+  -- From ¬GoShop John and (BeginMonth → GoShop), deduce ¬BeginMonth
+  have h_not_begin : ¬ BeginMonth := fun hb => h_not_goshop ((A4 John) hb)
+  -- From A5 and ¬BeginMonth, deduce SoldOut John
+  cases A5 with
+  | inl hb =>
+      exact False.elim (h_not_begin hb)
+  | inr rest =>
+      cases rest with
+      | inl hsold => exact hsold
+      | inr hboth => exact hboth.right
+</lean>
+
+ANSWER: Yes

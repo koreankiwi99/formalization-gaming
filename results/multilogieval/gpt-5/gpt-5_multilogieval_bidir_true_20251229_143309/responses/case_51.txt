@@ -1,0 +1,68 @@
+<lean>
+axiom Person : Type
+axiom Mary : Person
+
+axiom Sale : Prop
+axiom Payday : Prop
+axiom PricesUp : Prop
+
+axiom StockUp : Person → Prop
+axiom MakeList : Person → Prop
+axiom Plan : Person → Prop
+axiom PlanAhead : Person → Prop
+
+axiom R1 : Sale → ∀ p : Person, StockUp p
+axiom R2 : ∀ p : Person, MakeList p → Plan p
+axiom D1 : Sale ∨ (∀ p : Person, ¬ Plan p) ∨ (Sale ∧ (∀ p : Person, ¬ PlanAhead p))
+axiom R3 : Payday → ∀ p : Person, MakeList p
+axiom D2 : Payday ∨ PricesUp ∨ (Payday ∧ PricesUp)
+
+theorem mary_prices_up : (¬ StockUp Mary) → PricesUp := by
+  intro hNotStockMary
+  -- From not stocking up, deduce not Sale
+  have hNotSale : ¬ Sale := by
+    intro hSale
+    have hAllStock : ∀ p : Person, StockUp p := R1 hSale
+    have hMaryStock : StockUp Mary := hAllStock Mary
+    exact hNotStockMary hMaryStock
+  -- From D1 and not Sale, deduce that people don't plan what to buy
+  have hNoPlan : ∀ p : Person, ¬ Plan p := by
+    -- D1 is: Sale ∨ (∀ p, ¬ Plan p) ∨ (Sale ∧ (∀ p, ¬ PlanAhead p))
+    apply Or.elim D1
+    · intro hSale
+      exact False.elim (hNotSale hSale)
+    · intro hRight
+      apply Or.elim hRight
+      · intro hNoPlan
+        exact hNoPlan
+      · intro hSaleAnd
+        exact False.elim (hNotSale hSaleAnd.left)
+  -- Payday implies everyone plans (via making a list)
+  have hPay_implies_plan : Payday → ∀ p : Person, Plan p := by
+    intro hPay
+    intro p
+    have hMake : MakeList p := (R3 hPay) p
+    exact R2 p hMake
+  -- Therefore, not Payday
+  have hNotPayday : ¬ Payday := by
+    intro hPay
+    have hAllPlan : ∀ p : Person, Plan p := hPay_implies_plan hPay
+    have hPlanMary : Plan Mary := hAllPlan Mary
+    have hNoPlanMary : ¬ Plan Mary := hNoPlan Mary
+    exact hNoPlanMary hPlanMary
+  -- Use D2 to conclude PricesUp
+  have hPrices : PricesUp := by
+    -- D2 is: Payday ∨ PricesUp ∨ (Payday ∧ PricesUp)
+    apply Or.elim D2
+    · intro hPay
+      exact False.elim (hNotPayday hPay)
+    · intro hRight
+      apply Or.elim hRight
+      · intro hUp
+        exact hUp
+      · intro hPayAndUp
+        exact hPayAndUp.right
+  exact hPrices
+</lean>
+
+ANSWER: Yes

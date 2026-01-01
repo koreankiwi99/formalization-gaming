@@ -1,0 +1,45 @@
+<lean>
+axiom Person : Type
+axiom Ekaterina : Person
+axiom Vladimir : Person
+
+axiom CanRegisterUS : Person → Prop
+axiom CanParticipateElection2024 : Person → Prop
+axiom USCitizen : Person → Prop
+axiom TaiwaneseCitizen : Person → Prop
+axiom RFOfficial : Person → Prop
+axiom ManagerGazprom : Person → Prop
+
+-- Rules
+axiom R1 : ∀ x : Person, CanRegisterUS x → CanParticipateElection2024 x
+axiom R2 : ∀ x : Person, USCitizen x → CanRegisterUS x
+axiom R3 : ∀ x : Person, USCitizen x ∨ TaiwaneseCitizen x
+axiom R4 : ∀ x : Person, RFOfficial x → ¬TaiwaneseCitizen x
+
+-- Facts
+axiom V1 : ¬TaiwaneseCitizen Vladimir
+axiom V2 : ¬ManagerGazprom Vladimir
+axiom E1 : CanRegisterUS Ekaterina ∨ RFOfficial Ekaterina
+
+theorem ek_register_and_vlad_participate :
+  CanRegisterUS Ekaterina ∧ CanParticipateElection2024 Vladimir := by
+  -- Ekaterina can register
+  have heReg : CanRegisterUS Ekaterina := by
+    cases E1 with
+    | inl hreg => exact hreg
+    | inr hOff =>
+        have notTW : ¬TaiwaneseCitizen Ekaterina := R4 Ekaterina hOff
+        cases R3 Ekaterina with
+        | inl hUS => exact R2 Ekaterina hUS
+        | inr hTW => exact False.elim (notTW hTW)
+  -- Vladimir can participate
+  have hvUS : USCitizen Vladimir := by
+    cases R3 Vladimir with
+    | inl hUS => exact hUS
+    | inr hTW => exact False.elim (V1 hTW)
+  have hvReg : CanRegisterUS Vladimir := R2 Vladimir hvUS
+  have hvPart : CanParticipateElection2024 Vladimir := R1 Vladimir hvReg
+  exact And.intro heReg hvPart
+</lean>
+
+ANSWER: False

@@ -1,0 +1,163 @@
+The reasoning translates the given context into Lean axioms and demonstrates that the specified statement about Bonnie is false. The key points are:
+
+1. **Axioms**: 
+   - Everyone either performs often or is inactive (A2).
+   - Inactive members chaperone (A4).
+   - Chaperones are not students (A3).
+   - Young children/teens wishing to further academics are students (A5).
+
+2. **Proof Structure**:
+   - **Antecedent of the implication is always true for Bonnie**: By A2, Bonnie either performs often or is inactive. If inactive, she chaperones (A4), so the antecedent holds. If not inactive (i.e., performs often), the antecedent holds directly.
+   - **Consequent is always false for Bonnie**: The consequent requires Bonnie to be inactive, young/teen, and wishing to further academics. However:
+     - If Bonnie is inactive, she chaperones (A4) and is not a student (A3). But being young/teen and wishing to further academics would require her to be a student (A5), causing a contradiction.
+     - If Bonnie is not inactive, the consequent requires her to be inactive (false).
+   Thus, the consequent is false.
+
+3. **Conclusion**: The implication (true antecedent → false consequent) is false. The Lean code formalizes this by proving the negation of the implication.
+
+Final Answer: False
+
+Lean Translation:
+<lean>
+axiom Person : Type
+axiom Bonnie : Person
+
+axiom PerformsOften : Person → Prop
+axiom AttendsEngaged : Person → Prop
+axiom InactiveDisinterested : Person → Prop
+axiom Chaperones : Person → Prop
+axiom IsStudent : Person → Prop
+axiom YoungChildTeen : Person → Prop
+axiom WishFurther : Person → Prop
+
+axiom A1 : ∀ p, PerformsOften p → AttendsEngaged p
+axiom A2 : ∀ p, PerformsOften p ∨ InactiveDisinterested p
+axiom A3 : ∀ p, Chaperones p → ¬ IsStudent p
+axiom A4 : ∀ p, InactiveDisinterested p → Chaperones p
+axiom A5 : ∀ p, YoungChildTeen p ∧ WishFurther p → IsStudent p
+
+lemma antecedent_true : Chaperones Bonnie ∨ PerformsOften Bonnie := by 
+  cases (A2 Bonnie) with
+  | inl perf => right; exact perf
+  | inr inactive => left; apply A4; exact inactive
+
+theorem consequent_false : ¬ (YoungChildTeen Bonnie ∧ WishFurther Bonnie ∧ InactiveDisinterested Bonnie) := by 
+  intro ⟨young, wish, inactive⟩ 
+  have : IsStudent Bonnie := A5 Bonnie ⟨young, wish⟩
+  have : Chaperones Bonnie := A4 Bonnie inactive
+  have := A3 Bonnie ‹Chaperones Bonnie› 
+  contradiction
+
+theorem main : ¬ ((Chaperones Bonnie ∨ PerformsOften Bonnie) → 
+    (YoungChildTeen Bonnie ∧ WishFurther Bonnie ∧ InactiveDisinterested Bonnie)) := by 
+  intro h 
+  apply consequent_false 
+  apply h 
+  apply antecedent_true
+</lean>
+
+ANSWER: False
+
+======================================================================
+ITERATION 2
+======================================================================
+
+After analyzing the compilation errors, the main issues were:
+1. Missing explicit typing for quantified variables in axioms
+2. Inconsistent use of curly braces in destructing patterns
+3. Use of angle bracket notation (‹›) which requires Mathlib
+
+The corrected Lean proof formalizes the context and shows that the statement about Bonnie is false. The key components are:
+1. **Antecedent always true**: By axiom A2, Bonnie either performs often or is inactive. If inactive, she chaperones (A4), satisfying the antecedent. If she performs often, the antecedent holds directly.
+2. **Consequent impossible**: If Bonnie were inactive, young/teen wishing to further academics, she would simultaneously be a student (A5) and not a student (since inactive implies chaperones (A4) and chaperones aren't students (A3)).
+
+<lean>
+axiom Person : Type
+axiom Bonnie : Person
+
+axiom PerformsOften : Person → Prop
+axiom AttendsEngaged : Person → Prop
+axiom InactiveDisinterested : Person → Prop
+axiom Chaperones : Person → Prop
+axiom IsStudent : Person → Prop
+axiom YoungChildTeen : Person → Prop
+axiom WishFurther : Person → Prop
+
+axiom A1 : ∀ (p : Person), PerformsOften p → AttendsEngaged p
+axiom A2 : ∀ (p : Person), PerformsOften p ∨ InactiveDisinterested p
+axiom A3 : ∀ (p : Person), Chaperones p → ¬ IsStudent p
+axiom A4 : ∀ (p : Person), InactiveDisinterested p → Chaperones p
+axiom A5 : ∀ (p : Person), YoungChildTeen p ∧ WishFurther p → IsStudent p
+
+lemma antecedent_true : Chaperones Bonnie ∨ PerformsOften Bonnie := by 
+  cases A2 Bonnie with
+  | inl perf => exact Or.inr perf
+  | inr inactive => exact Or.inl (A4 Bonnie inactive)
+
+theorem consequent_false : ¬ (YoungChildTeen Bonnie ∧ WishFurther Bonnie ∧ InactiveDisinterested Bonnie) := by
+  intro ⟨young, wish, inactive⟩ 
+  have student : IsStudent Bonnie := A5 Bonnie ⟨young, wish⟩
+  have chaperone : Chaperones Bonnie := A4 Bonnie inactive
+  have not_student : ¬ IsStudent Bonnie := A3 Bonnie chaperone
+  exact not_student student
+
+theorem main : ¬ ((Chaperones Bonnie ∨ PerformsOften Bonnie) → 
+    (YoungChildTeen Bonnie ∧ WishFurther Bonnie ∧ InactiveDisinterested Bonnie)) := by
+  intro h
+  apply consequent_false
+  apply h
+  exact antecedent_true
+</lean>
+
+ANSWER: False
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The compilation errors occurred due to a mix of issues:
+1. Missing explicit function application syntax
+2. Incorrect handling of negation and conjunction in proofs
+3. Potential parsing ambiguity with Lean syntax
+
+The corrected version uses explicit term mode proofs and proper function application:
+- `match` replaces `cases` for disjunction handling
+- Direct function application for axioms avoids tactic issues
+- Explicit contradiction derivation with `show False from ...`
+
+<lean>
+axiom Person : Type
+axiom Bonnie : Person
+
+axiom PerformsOften : Person → Prop
+axiom AttendsEngaged : Person → Prop
+axiom InactiveDisinterested : Person → Prop
+axiom Chaperones : Person → Prop
+axiom IsStudent : Person → Prop
+axiom YoungChildTeen : Person → Prop
+axiom WishFurther : Person → Prop
+
+axiom A1 : ∀ (p : Person), PerformsOften p → AttendsEngaged p
+axiom A2 : ∀ (p : Person), PerformsOften p ∨ InactiveDisinterested p
+axiom A3 : ∀ (p : Person), Chaperones p → ¬ IsStudent p
+axiom A4 : ∀ (p : Person), InactiveDisinterested p → Chaperones p
+axiom A5 : ∀ (p : Person), YoungChildTeen p ∧ WishFurther p → IsStudent p
+
+lemma antecedent_true : Chaperones Bonnie ∨ PerformsOften Bonnie := 
+  match A2 Bonnie with
+  | Or.inl perf => Or.inr perf
+  | Or.inr inactive => Or.inl (A4 Bonnie inactive)
+
+theorem consequent_false : ¬ (YoungChildTeen Bonnie ∧ WishFurther Bonnie ∧ InactiveDisinterested Bonnie) :=
+  fun ⟨young, wish, inactive⟩ => 
+    have student : IsStudent Bonnie := A5 Bonnie ⟨young, wish⟩
+    have not_student : ¬ IsStudent Bonnie := A3 Bonnie (A4 Bonnie inactive)
+    show False from not_student student
+
+theorem main : ¬ ((Chaperones Bonnie ∨ PerformsOften Bonnie) → 
+    (YoungChildTeen Bonnie ∧ WishFurther Bonnie ∧ InactiveDisinterested Bonnie)) :=
+  fun h => 
+    consequent_false (h antecedent_true)
+</lean>
+
+ANSWER: False

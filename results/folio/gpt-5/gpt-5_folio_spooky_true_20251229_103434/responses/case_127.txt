@@ -1,0 +1,58 @@
+<lean>
+axiom obj : Type
+
+axiom John : obj
+
+axiom MakePlans : obj → Prop
+axiom Engaged : obj → Prop
+axiom InviteOthers : obj → Prop
+axiom WellAttended : obj → Prop
+axiom LargerFamily : obj → Prop
+axiom InviteFriends : obj → Prop
+
+-- All people who make wedding plans are engaged.
+axiom A1 : ∀ x : obj, MakePlans x → Engaged x
+-- All people who invite others to come to their ceremony make wedding plans.
+axiom A2 : ∀ x : obj, InviteOthers x → MakePlans x
+-- Anyone who has a well-attended wedding invites others to come to their ceremony.
+axiom A3 : ∀ x : obj, WellAttended x → InviteOthers x
+-- Some people that have well-attended weddings have larger families.
+axiom A4 : ∃ x : obj, WellAttended x ∧ LargerFamily x
+-- If John is engaged, then John does not invite friends to their ceremony and make wedding plans.
+axiom A5 : Engaged John → (¬ InviteFriends John ∧ MakePlans John)
+-- If John has a larger family, then either John has a well-attended wedding or invites friends to their ceremony.
+axiom A6 : LargerFamily John → (WellAttended John ∨ InviteFriends John)
+
+-- Useful derived lemmas
+theorem wellAttended_implies_makePlans : ∀ x : obj, WellAttended x → MakePlans x :=
+  fun x h => A2 x (A3 x h)
+
+theorem wellAttended_implies_engaged : ∀ x : obj, WellAttended x → Engaged x :=
+  fun x h => A1 x (wellAttended_implies_makePlans x h)
+
+theorem engaged_implies_not_inviteFriends : Engaged John → ¬ InviteFriends John :=
+  fun h => (A5 h).left
+
+theorem engaged_implies_makePlans : Engaged John → MakePlans John :=
+  fun h => (A5 h).right
+
+theorem engaged_iff_makePlans : Engaged John ↔ MakePlans John :=
+by
+  apply Iff.intro
+  · intro h; exact engaged_implies_makePlans h
+  · intro hm; exact A1 John hm
+
+-- If John is engaged and has a larger family, then John must have a well-attended wedding.
+theorem largerFamily_and_engaged_implies_wellAttended :
+  Engaged John → LargerFamily John → WellAttended John :=
+by
+  intro heng hlf
+  have hdisj := A6 hlf
+  cases hdisj with
+  | inl hw => exact hw
+  | inr hf =>
+      have hnf := engaged_implies_not_inviteFriends heng
+      exact False.elim (hnf hf)
+</lean>
+
+ANSWER: Failure

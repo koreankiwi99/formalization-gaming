@@ -1,0 +1,59 @@
+<lean>
+axiom obj : Type
+
+axiom Mixture : obj
+
+axiom Hydrocarbon : obj → Prop
+axiom Organic : obj → Prop
+axiom Chemical : obj → Prop
+axiom ContainsCarbon : obj → Prop
+axiom OnlyOneElement : obj → Prop
+axiom Alkane : obj → Prop
+
+axiom H_to_O : ∀ x : obj, Hydrocarbon x → Organic x
+axiom A_to_H : ∀ x : obj, Alkane x → Hydrocarbon x
+axiom O_to_Chem : ∀ x : obj, Organic x → Chemical x
+axiom O_to_Carbon : ∀ x : obj, Organic x → ContainsCarbon x
+axiom No_Chem_OnlyOne : ∀ x : obj, Chemical x → ¬OnlyOneElement x
+axiom Mix_either_both_or_neither :
+  (Chemical Mixture ∧ OnlyOneElement Mixture) ∨ (¬Chemical Mixture ∧ ¬OnlyOneElement Mixture)
+
+-- Derived: Alkanes are chemical compounds
+theorem alkane_implies_chemical : ∀ x : obj, Alkane x → Chemical x := by
+  intro x
+  intro hx
+  have hh : Hydrocarbon x := A_to_H x hx
+  have ho : Organic x := H_to_O x hh
+  exact O_to_Chem x ho
+
+-- From the "either both or neither" plus "no chemical compounds are single-element",
+-- we get that the mixture is neither a chemical compound nor single-element.
+theorem mixture_not_chemical_and_not_one : ¬Chemical Mixture ∧ ¬OnlyOneElement Mixture := by
+  cases Mix_either_both_or_neither with
+  | inl hboth =>
+      have contra : False := by
+        have hchem : Chemical Mixture := And.left hboth
+        have hone : OnlyOneElement Mixture := And.right hboth
+        have hnotone : ¬OnlyOneElement Mixture := No_Chem_OnlyOne Mixture hchem
+        exact hnotone hone
+      exact False.elim contra
+  | inr hneither =>
+      exact hneither
+
+-- Hence the mixture is not an alkane (since alkanes are chemical compounds).
+theorem mixture_not_alkane : ¬Alkane Mixture := by
+  intro halk
+  have hchem : Chemical Mixture := alkane_implies_chemical Mixture halk
+  have hnotchem : ¬Chemical Mixture := And.left mixture_not_chemical_and_not_one
+  exact hnotchem hchem
+
+-- The given statement actually holds from the above facts.
+theorem statement_holds :
+  (OnlyOneElement Mixture ∨ ContainsCarbon Mixture) → (¬Chemical Mixture ∧ ¬Alkane Mixture) := by
+  intro _
+  have hnotchem : ¬Chemical Mixture := And.left mixture_not_chemical_and_not_one
+  have hnotalk : ¬Alkane Mixture := mixture_not_alkane
+  exact And.intro hnotchem hnotalk
+</lean>
+
+ANSWER: Failure

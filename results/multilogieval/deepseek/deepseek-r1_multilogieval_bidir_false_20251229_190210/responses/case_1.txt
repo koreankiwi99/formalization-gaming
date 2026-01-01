@@ -1,0 +1,115 @@
+<lean>
+axiom obj : Type
+axiom Lakers : obj
+axiom StrongPerimeterDefense : obj → Prop
+axiom ForceTurnovers : obj → Prop
+axiom ProtectPaint : obj → Prop
+axiom LimitInsideScoring : obj → Prop
+
+axiom A1 : ∀ x : obj, StrongPerimeterDefense x → ForceTurnovers x
+axiom A2 : ∀ x : obj, ProtectPaint x → LimitInsideScoring x
+axiom A3 : ∀ x : obj, StrongPerimeterDefense x ∨ ProtectPaint x
+
+-- Attempt to prove: ¬LimitInsideScoring Lakers → ¬ForceTurnovers Lakers
+theorem disprove : ¬LimitInsideScoring Lakers → ¬ForceTurnovers Lakers :=
+  fun hNoLimit : ¬LimitInsideScoring Lakers =>
+  -- Contrapositive of A2 gives: ¬LimitInsideScoring → ¬ProtectPaint
+  have hNoPaint : ¬ProtectPaint Lakers := fun hProtect : ProtectPaint Lakers => 
+    hNoLimit (A2 Lakers hProtect)
+  -- From A3: StrongPerimeterDefense ∨ ProtectPaint. Since ¬ProtectPaint, must have StrongPerimeterDefense
+  have hStrong : StrongPerimeterDefense Lakers := by
+    cases (A3 Lakers) with
+    | inl h => exact h
+    | inr h => contradiction
+  -- From A1: StrongPerimeterDefense → ForceTurnovers
+  have hTurnovers : ForceTurnovers Lakers := A1 Lakers hStrong
+  -- Now we need to show ¬ForceTurnovers, but we have proof of ForceTurnovers → contradiction
+  fun hNoTurnovers : ¬ForceTurnovers Lakers => hNoTurnovers hTurnovers
+
+-- However, the above proof actually shows that ¬LimitInsideScoring implies ForceTurnovers, not ¬ForceTurnovers.
+-- Therefore, we cannot prove the negation (that they did NOT force turnovers under ¬LimitInsideScoring).
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The error occurred because the proof term had an incorrect type. Specifically, the term `fun hNoTurnovers => hNoTurnovers hTurnovers` has type `¬ForceTurnovers Lakers → False` (equivalent to `ForceTurnovers Lakers`), but it was expected to return a term of type `¬ForceTurnovers Lakers` (which is `ForceTurnovers Lakers → False`). This indicates a fundamental mismatch: we can prove that not limiting inside scoring *implies* they forced turnovers, not that they did *not* force turnovers.
+
+<lean>
+axiom obj : Type
+axiom Lakers : obj
+axiom StrongPerimeterDefense : obj → Prop
+axiom ForceTurnovers : obj → Prop
+axiom ProtectPaint : obj → Prop
+axiom LimitInsideScoring : obj → Prop
+
+axiom A1 : ∀ x : obj, StrongPerimeterDefense x → ForceTurnovers x
+axiom A2 : ∀ x : obj, ProtectPaint x → LimitInsideScoring x
+axiom A3 : ∀ x : obj, StrongPerimeterDefense x ∨ ProtectPaint x
+
+-- We can prove: ¬LimitInsideScoring Lakers → ForceTurnovers Lakers
+lemma positive : ¬LimitInsideScoring Lakers → ForceTurnovers Lakers := 
+  fun hNoLimit : ¬LimitInsideScoring Lakers =>
+  have hNoPaint : ¬ProtectPaint Lakers := 
+    fun hProtect : ProtectPaint Lakers => hNoLimit (A2 Lakers hProtect)
+  have hStrong : StrongPerimeterDefense Lakers := by
+    cases (A3 Lakers) with
+    | inl h => exact h
+    | inr h => contradiction  -- contradicts hNoPaint
+  A1 Lakers hStrong
+
+-- But the target is ¬LimitInsideScoring → ¬ForceTurnovers (which is FALSE)
+-- Attempting to prove it would require:
+--   Given ¬LimitInsideScoring, show ¬ForceTurnovers (i.e., ForceTurnovers → False)
+-- However, we HAVE ForceTurnovers in this context → Contradiction initiates, but we can't build the required type.
+
+-- Thus, the proof cannot be completed.
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The compilation errors have been fixed by removing the extra parenthesis and ensuring the proof structure is correctly formatted. The key issue was a syntactic error in the `have hNoPaint` line. 
+
+However, the main challenge is proving the theorem: ¬LimitInsideScoring Lakers → ¬ForceTurnovers Lakers. From the axioms:
+1. ¬LimitInsideScoring implies ¬ProtectPaint (contrapositive of A2)
+2. By A3 (StrongPerimeterDefense or ProtectPaint), ¬ProtectPaint forces StrongPerimeterDefense
+3. StrongPerimeterDefense implies ForceTurnovers (by A1)
+
+Thus, ¬LimitInsideScoring implies ForceTurnovers. The theorem claims it implies ¬ForceTurnovers, creating a contradiction. We must show ¬ForceTurnovers (ForceTurnovers → False), but we've already derived ForceTurnovers. The proof achieves:
+¬ForceTurnovers Lakers → False (double negation), not the required ¬ForceTurnovers Lakers. 
+
+This type mismatch remains insoluble, so the theorem is unprovable.
+
+<lean>
+axiom obj : Type
+axiom Lakers : obj
+axiom StrongPerimeterDefense : obj → Prop
+axiom ForceTurnovers : obj → Prop
+axiom ProtectPaint : obj → Prop
+axiom LimitInsideScoring : obj → Prop
+
+axiom A1 : ∀ x : obj, StrongPerimeterDefense x → ForceTurnovers x
+axiom A2 : ∀ x : obj, ProtectPaint x → LimitInsideScoring x
+axiom A3 : ∀ x : obj, StrongPerimeterDefense x ∨ ProtectPaint x
+
+-- Attempt to prove: ¬LimitInsideScoring Lakers → ¬ForceTurnovers Lakers
+theorem no : ¬LimitInsideScoring Lakers → ¬ForceTurnovers Lakers := 
+  fun hNoLimit =>
+  have hNoPaint : ¬ProtectPaint Lakers := 
+    fun hProtect => hNoLimit (A2 Lakers hProtect)
+  have hStrong : StrongPerimeterDefense Lakers := by
+    cases (A3 Lakers) with
+    | inl h => exact h
+    | inr h => contradiction  -- h contradicts hNoPaint
+  have hTurnovers : ForceTurnovers Lakers := A1 Lakers hStrong
+  fun hNotTurnovers => hNotTurnovers hTurnovers  -- Type mismatch: proves ¬¬ForceTurnovers
+</lean>
+
+ANSWER: Failure

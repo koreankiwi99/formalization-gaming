@@ -1,0 +1,60 @@
+The context provides several axioms about people, wedding planning, engagement, and attendance. The goal is to prove that "John is engaged" is false. After formalizing the context in Lean, an attempt to prove the negation of "John is engaged" leads to multiple cases, none of which result in a contradiction. Specifically:
+
+1. Using the existential from axiom 4 introduces a witness unrelated to John.
+2. Case analysis on whether John has a larger family (via axiom 6) either:
+   - Shows John has a well-attended wedding, leading to him making wedding plans (axioms 3 and 2). However, axiom 5 only forbids John from *both* inviting friends and making wedding plans—having just one is consistent.
+   - Shows John invites friends, but no axiom forces him to make wedding plans in this case, so no conflict arises.
+3. When John lacks a larger family, no axioms constrain his engagement status.
+
+No contradiction is derivable, so the negation cannot be proven.
+
+<lean>
+axiom obj : Type
+axiom John : obj
+
+-- Predicates
+axiom Engaged : obj → Prop
+axiom MakesWeddingPlans : obj → Prop
+axiom InvitesOthers : obj → Prop
+axiom HasWellAttendedWedding : obj → Prop
+axiom HasLargerFamily : obj → Prop
+axiom InvitesFriends : obj → Prop
+
+-- Axioms from context
+axiom A1 : ∀ p : obj, MakesWeddingPlans p → Engaged p
+axiom A2 : ∀ p : obj, InvitesOthers p → MakesWeddingPlans p
+axiom A3 : ∀ p : obj, HasWellAttendedWedding p → InvitesOthers p
+axiom A4 : ∃ p : obj, HasWellAttendedWedding p ∧ HasLargerFamily p
+axiom A5 : Engaged John → ¬ (InvitesFriends John ∧ MakesWeddingPlans John)
+axiom A6 : HasLargerFamily John → HasWellAttendedWedding John ∨ InvitesFriends John
+
+-- Attempt to prove ¬Engaged John
+theorem negate : ¬ Engaged John := by
+  intro hE  -- Assume Engaged John
+  have hA5 := A5 hE  -- Use axiom 5: John cannot both invite friends and make plans
+  -- Use existential from axiom 4 (does not apply to John specifically)
+  let ⟨w, hW, hL⟩ := A4  -- w is witness for well-attended, larger family
+  have hChain : HasWellAttendedWedding w → Engaged w := fun h => A1 w (A2 w (A3 w h))
+  -- Case split on John's larger family (axiom 6)
+  by_cases hLJohn : HasLargerFamily John
+  · have hA6 := A6 hLJohn
+    cases hA6 with
+    | inl hWJohn =>  -- John has well-attended wedding
+        have hIO := A3 John hWJohn
+        have hMWP := A2 John hIO
+        -- hA5 prevents "InvitesFriends" and "MakesWeddingPlans" simultaneously
+        -- Can only derive ¬InvitesFriends John if hMWP is used with hA5
+        -- But no evidence John invites friends, so no contradiction
+        apply False.elim ?a  -- Stuck: no contradiction found
+        sorry
+    | inr hFJohn =>  -- John invites friends
+        -- No way to derive "MakesWeddingPlans" from friends invitation alone
+        -- hFJohn and ¬MakesWeddingPlans John satisfies hA5
+        apply False.elim ?b  -- Stuck: no contradiction
+        sorry
+  · -- John has no larger family: no constraints from axioms
+    apply False.elim ?c  -- Stuck: complete model exists without contradiction
+    sorry
+</lean>
+
+ANSWER: Failure

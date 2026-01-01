@@ -1,0 +1,64 @@
+The reasoning shows that Rock must have wings based on the given axioms. Here's the step-by-step logic:
+
+1. **Rock is Peter's pet** (axiom A7).
+2. **Peter's pets are monkeys or birds** (axiom A3), so Rock is either a monkey or a bird.
+3. **Case 1: Rock is a monkey**
+   - Monkeys are mammals (axiom A2), so Rock is a mammal.
+   - Peter's pets that are mammals are animals (axiom A1), so Rock is an animal.
+   - Animals that are Peter's pets can breathe (axiom A5), so Rock breathes.
+   - Given the disjunction (axiom A8): Fly(Rock) ∨ Bird(Rock) ∨ ¬Breathe(Rock). Since Rock breathes and is a monkey (not necessarily excluding bird status), we have Fly(Rock) ∨ Bird(Rock).
+     - If Fly(Rock): Then by axiom A6 (Peter's pets that fly have wings), Rock has wings.
+     - If Bird(Rock): Then by axiom A4 (Peter's birds fly), Rock flies, and again by axiom A6, Rock has wings.
+4. **Case 2: Rock is a bird**
+   - Peter's birds fly (axiom A4), so Rock flies.
+   - By axiom A6, Rock has wings.
+
+In both cases, Rock has wings. The Lean proof formalizes this case analysis.
+
+<lean>
+axiom obj : Type
+axiom Rock : obj
+axiom PeterPet : obj → Prop
+axiom Mammal : obj → Prop
+axiom Animal : obj → Prop
+axiom Monkey : obj → Prop
+axiom Bird : obj → Prop
+axiom Fly : obj → Prop
+axiom Breathe : obj → Prop
+axiom Wings : obj → Prop
+
+axiom A1 : ∀ x : obj, PeterPet x ∧ Mammal x → Animal x
+axiom A2 : ∀ x : obj, Monkey x → Mammal x
+axiom A3 : ∀ x : obj, PeterPet x → Monkey x ∨ Bird x
+axiom A4 : ∀ x : obj, PeterPet x ∧ Bird x → Fly x
+axiom A5 : ∀ x : obj, Animal x ∧ PeterPet x → Breathe x
+axiom A6 : ∀ x : obj, PeterPet x ∧ Fly x → Wings x
+axiom A7 : PeterPet Rock
+axiom A8 : Fly Rock ∨ Bird Rock ∨ ¬ Breathe Rock
+
+theorem rock_has_wings : Wings Rock := by
+  have rock_pet := A7
+  have rock_class := A3 Rock rock_pet
+  cases rock_class with
+  | inl monkey_rock =>
+      have mammal_rock : Mammal Rock := A2 Rock monkey_rock
+      have animal_rock : Animal Rock := A1 Rock ⟨rock_pet, mammal_rock⟩
+      have breathe_rock : Breathe Rock := A5 Rock ⟨animal_rock, rock_pet⟩
+      have fly_or_bird : Fly Rock ∨ Bird Rock := by
+        cases A8 with
+        | inl fly => exact Or.inl fly
+        | inr rest =>
+            cases rest with
+            | inl bird => exact Or.inr bird
+            | inr not_breathe => contradiction
+      cases fly_or_bird with
+      | inl fly_rock => exact A6 Rock ⟨rock_pet, fly_rock⟩
+      | inr bird_rock => 
+          have fly_rock := A4 Rock ⟨rock_pet, bird_rock⟩
+          exact A6 Rock ⟨rock_pet, fly_rock⟩
+  | inr bird_rock =>
+      have fly_rock := A4 Rock ⟨rock_pet, bird_rock⟩
+      exact A6 Rock ⟨rock_pet, fly_rock⟩
+</lean>
+
+ANSWER: True

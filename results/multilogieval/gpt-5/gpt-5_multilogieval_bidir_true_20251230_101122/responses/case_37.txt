@@ -1,0 +1,196 @@
+<lean>
+axiom obj : Type
+axiom Jake : obj
+
+axiom WeatherNice : Prop
+axiom RelaxOutside : obj → Prop
+axiom ReadBooks : obj → Prop
+axiom PackedEnough : obj → Prop
+axiom Prepared : obj → Prop
+
+-- If the weather is nice, then one can relax outside
+axiom R1 : ∀ x : obj, WeatherNice → RelaxOutside x
+-- If one reads books, then they packed enough
+axiom R2 : ∀ x : obj, ReadBooks x → PackedEnough x
+-- Either the weather is nice, or they did not pack enough, or both
+axiom R3 : ∀ x : obj, WeatherNice ∨ ¬PackedEnough x ∨ (WeatherNice ∧ ¬PackedEnough x)
+-- If one is prepared, then they read books
+axiom R4 : ∀ x : obj, Prepared x → ReadBooks x
+
+-- From not relaxing, infer not nice weather (modus tollens on R1)
+lemma no_weather_of_no_relax (x : obj) : ¬RelaxOutside x → ¬WeatherNice := by
+  intro hnr
+  have hw2r : WeatherNice → RelaxOutside x := R1 x
+  exact mt hw2r hnr
+
+-- From not nice weather and the disjunction R3, infer not packed enough
+lemma not_enough_of_not_weather (x : obj) : ¬WeatherNice → ¬PackedEnough x := by
+  intro hNotW
+  have disj := R3 x
+  cases disj with
+  | inl hW =>
+      intro _hE
+      exact False.elim (hNotW hW)
+  | inr h2 =>
+      cases h2 with
+      | inl hNotE => exact hNotE
+      | inr hWandNotE =>
+          exact hWandNotE.right
+
+-- From "reads -> enough", infer "not enough -> not reads"
+lemma not_read_of_not_enough (x : obj) : ¬PackedEnough x → ¬ReadBooks x := by
+  intro hNotE
+  exact mt (R2 x) hNotE
+
+-- From "prepared -> reads", infer "not reads -> not prepared"
+lemma not_prepared_of_not_read (x : obj) : ¬ReadBooks x → ¬Prepared x := by
+  intro hNotB
+  exact mt (R4 x) hNotB
+
+-- We can show: if Jake cannot relax outside, then he is NOT prepared.
+theorem not_prepared_if_cannot_relax : (¬RelaxOutside Jake) → ¬Prepared Jake := by
+  intro hnr
+  have hnw : ¬WeatherNice := (no_weather_of_no_relax Jake) hnr
+  have hne : ¬PackedEnough Jake := (not_enough_of_not_weather Jake) hnw
+  have hnb : ¬ReadBooks Jake := (not_read_of_not_enough Jake) hne
+  exact (not_prepared_of_not_read Jake) hnb
+
+-- Therefore, we cannot prove: (¬RelaxOutside Jake) → Prepared Jake
+-- In fact, the opposite implication holds as shown above.
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom obj : Type
+axiom Jake : obj
+
+axiom WeatherNice : Prop
+axiom RelaxOutside : obj → Prop
+axiom ReadBooks : obj → Prop
+axiom PackedEnough : obj → Prop
+axiom Prepared : obj → Prop
+
+-- If the weather is nice, then one can relax outside
+axiom R1 : ∀ x : obj, WeatherNice → RelaxOutside x
+-- If one reads books, then they packed enough
+axiom R2 : ∀ x : obj, ReadBooks x → PackedEnough x
+-- Either the weather is nice, or they did not pack enough, or both
+axiom R3 : ∀ x : obj, WeatherNice ∨ ¬PackedEnough x ∨ (WeatherNice ∧ ¬PackedEnough x)
+-- If one is prepared, then they read books
+axiom R4 : ∀ x : obj, Prepared x → ReadBooks x
+
+-- From not relaxing, infer not nice weather (modus tollens on R1)
+lemma no_weather_of_no_relax (x : obj) : ¬RelaxOutside x → ¬WeatherNice := by
+  intro hnr
+  apply mt (R1 x)
+  exact hnr
+
+-- From not nice weather and the disjunction R3, infer not packed enough
+lemma not_enough_of_not_weather (x : obj) : ¬WeatherNice → ¬PackedEnough x := by
+  intro hNotW
+  have disj := R3 x
+  -- Simplify the trilemma to WeatherNice ∨ ¬PackedEnough x
+  have hW_or_NotE : WeatherNice ∨ ¬PackedEnough x := by
+    cases disj with
+    | inl hW => exact Or.inl hW
+    | inr h2 =>
+      cases h2 with
+      | inl hNotE => exact Or.inr hNotE
+      | inr hBoth => exact Or.inr hBoth.right
+  -- Use ¬WeatherNice to conclude ¬PackedEnough x
+  cases hW_or_NotE with
+  | inl hW =>
+      intro _
+      exact hNotW hW
+  | inr hNotE =>
+      exact hNotE
+
+-- From "reads -> enough", infer "not enough -> not reads"
+lemma not_read_of_not_enough (x : obj) : ¬PackedEnough x → ¬ReadBooks x := by
+  intro hNotE
+  exact mt (R2 x) hNotE
+
+-- From "prepared -> reads", infer "not reads -> not prepared"
+lemma not_prepared_of_not_read (x : obj) : ¬ReadBooks x → ¬Prepared x := by
+  intro hNotB
+  exact mt (R4 x) hNotB
+
+-- We can show: if Jake cannot relax outside, then he is NOT prepared.
+theorem not_prepared_if_cannot_relax : (¬RelaxOutside Jake) → ¬Prepared Jake := by
+  intro hnr
+  have hnw : ¬WeatherNice := no_weather_of_no_relax Jake hnr
+  have hne : ¬PackedEnough Jake := not_enough_of_not_weather Jake hnw
+  have hnb : ¬ReadBooks Jake := not_read_of_not_enough Jake hne
+  exact not_prepared_of_not_read Jake hnb
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+<lean>
+axiom obj : Type
+axiom Jake : obj
+
+axiom WeatherNice : Prop
+axiom RelaxOutside : obj → Prop
+axiom ReadBooks : obj → Prop
+axiom PackedEnough : obj → Prop
+axiom Prepared : obj → Prop
+
+-- If the weather is nice, then one can relax outside
+axiom R1 : ∀ x : obj, WeatherNice → RelaxOutside x
+-- If one reads books, then they packed enough
+axiom R2 : ∀ x : obj, ReadBooks x → PackedEnough x
+-- Either the weather is nice, or they did not pack enough, or both
+axiom R3 : ∀ x : obj, WeatherNice ∨ ¬PackedEnough x ∨ (WeatherNice ∧ ¬PackedEnough x)
+-- If one is prepared, then they read books
+axiom R4 : ∀ x : obj, Prepared x → ReadBooks x
+
+-- From not relaxing, infer not nice weather (modus tollens on R1)
+lemma no_weather_of_no_relax (x : obj) : ¬RelaxOutside x → ¬WeatherNice := by
+  intro hnr
+  exact mt (R1 x) hnr
+
+-- From not nice weather and the disjunction R3, infer not packed enough
+lemma not_enough_of_not_weather (x : obj) : ¬WeatherNice → ¬PackedEnough x := by
+  intro hNotW
+  intro hPE
+  have h := R3 x
+  cases h
+  case inl hW =>
+    exact hNotW hW
+  case inr h2 =>
+    cases h2
+    case inl hNotE =>
+      exact hNotE hPE
+    case inr hBoth =>
+      exact hBoth.right hPE
+
+-- From "reads -> enough", infer "not enough -> not reads"
+lemma not_read_of_not_enough (x : obj) : ¬PackedEnough x → ¬ReadBooks x := by
+  intro hNotE
+  exact mt (R2 x) hNotE
+
+-- From "prepared -> reads", infer "not reads -> not prepared"
+lemma not_prepared_of_not_read (x : obj) : ¬ReadBooks x → ¬Prepared x := by
+  intro hNotB
+  exact mt (R4 x) hNotB
+
+-- If Jake cannot relax outside, then he is NOT prepared.
+theorem not_prepared_if_cannot_relax : (¬RelaxOutside Jake) → ¬Prepared Jake := by
+  intro hnr
+  have hnw : ¬WeatherNice := no_weather_of_no_relax Jake hnr
+  have hne : ¬PackedEnough Jake := not_enough_of_not_weather Jake hnw
+  have hnb : ¬ReadBooks Jake := not_read_of_not_enough Jake hne
+  exact not_prepared_of_not_read Jake hnb
+</lean>
+
+ANSWER: Failure

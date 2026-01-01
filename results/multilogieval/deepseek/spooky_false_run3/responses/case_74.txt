@@ -1,0 +1,102 @@
+<lean>
+axiom obj : Type
+axiom James : obj
+axiom Friday : Prop
+axiom GoesToParty : obj → Prop
+axiom FinishesHomework : obj → Prop
+axiom CanWatchGame : obj → Prop
+axiom StudiesEveryday : obj → Prop
+axiom PlansScheduleWell : obj → Prop
+
+axiom A1 : Friday → ∀ s, GoesToParty s
+axiom A2 : ∀ s, FinishesHomework s → CanWatchGame s
+axiom A3 : Friday ∨ (∀ s, ¬ CanWatchGame s)
+axiom A4 : ∀ s, StudiesEveryday s → FinishesHomework s
+axiom A5 : ∀ s, PlansScheduleWell s → StudiesEveryday s
+
+-- Given that James is not going to the party
+premise not_goes : ¬ GoesToParty James
+
+theorem not_planned : ¬ PlansScheduleWell James := by
+  -- Prove Friday is false (because if Friday, all go to party including James)
+  have not_friday : ¬ Friday := by
+    intro frid
+    have all_go : ∀ s, GoesToParty s := A1 frid
+    exact not_goes (all_go James)
+  -- From A3 and ¬Friday, get that no one can watch the game
+  have no_watch : ∀ s, ¬ CanWatchGame s := by
+    cases A3 with
+    | inl frid => contradiction
+    | inr no => exact no
+  -- Specifically for James
+  have james_no_watch : ¬ CanWatchGame James := no_watch James
+  -- If James finished homework, he could watch game (A2), but he can't
+  have no_homework : ¬ FinishesHomework James := by
+    intro home
+    exact james_no_watch (A2 James home)
+  -- If James studied everyday, he'd finish homework (A4), but he didn't
+  have no_study : ¬ StudiesEveryday James := by
+    intro study
+    exact no_homework (A4 James study)
+  -- If James planned well, he'd study everyday (A5), but he didn't
+  intro planned
+  exact no_study (A5 James planned)
+</lean>
+
+ANSWER: No
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors occurred due to the use of `premise` instead of `axiom` for the given fact about James, and a missing `;` after `cases A3`. Here's the corrected Lean code:
+
+<lean>
+axiom obj : Type
+axiom James : obj
+axiom Friday : Prop
+axiom GoesToParty : obj → Prop
+axiom FinishesHomework : obj → Prop
+axiom CanWatchGame : obj → Prop
+axiom StudiesEveryday : obj → Prop
+axiom PlansScheduleWell : obj → Prop
+
+axiom A1 : Friday → ∀ s, GoesToParty s
+axiom A2 : ∀ s, FinishesHomework s → CanWatchGame s
+axiom A3 : Friday ∨ (∀ s, ¬ CanWatchGame s)
+axiom A4 : ∀ s, StudiesEveryday s → FinishesHomework s
+axiom A5 : ∀ s, PlansScheduleWell s → StudiesEveryday s
+axiom not_goes : ¬ GoesToParty James  -- James is not going to party
+
+theorem not_planned : ¬ PlansScheduleWell James := by
+  -- Prove Friday is false (if Friday, all go to party including James)
+  have not_friday : ¬ Friday := by
+    intro frid
+    have all_go : ∀ s, GoesToParty s := A1 frid
+    exact not_goes (all_go James)
+  -- From A3 and ¬Friday, deduce no one can watch the game
+  have no_watch : ∀ s, ¬ CanWatchGame s := by
+    cases A3 with
+    | inl frid => contradiction  -- Contradicts not_friday
+    | inr no => exact no
+  -- Derive James didn't finish homework
+  have no_homework : ¬ FinishesHomework James := by
+    intro home
+    exact no_watch James (A2 James home)
+  -- Derive James didn't study everyday
+  have no_study : ¬ StudiesEveryday James := by
+    intro study
+    exact no_homework (A4 James study)
+  -- Final proof
+  intro planned
+  exact no_study (A5 James planned)
+</lean>
+
+ANSWER: No
+
+The proof successfully demonstrates that if James didn't attend the party, he couldn't have planned his schedule well. The derivation path is:
+1. James not at party ⇒ Friday is false (via A1)
+2. ¬Friday and A3 ⇒ nobody can watch the game
+3. James can't watch game ⇒ didn't finish homework (via A2)
+4. Didn't finish homework ⇒ didn't study everyday (via A4)
+5. Didn't study everyday ⇒ didn't plan schedule well (via A5)

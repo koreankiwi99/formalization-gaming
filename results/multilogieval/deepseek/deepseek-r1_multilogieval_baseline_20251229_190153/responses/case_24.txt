@@ -1,0 +1,79 @@
+The context provides the following information:
+1. If the temperature drops below freezing, there is snow on the ground: `Freezing → SnowOnGround`.
+2. Building a snowman requires enough snow: `∀p, BuildsSnowman p → EnoughSnow`.
+3. It is known that either it is below freezing or there is not enough snow: `Freezing ∨ ¬EnoughSnow`.
+4. Anyone who loves winter builds snowmen: `∀p, LovesWinter p → BuildsSnowman p`.
+
+The question asks, under the assumption of no snow on the ground (`¬SnowOnGround`), whether Mary loves winter.
+
+From the first implication and the absence of snow, we deduce that it is not freezing (`¬Freezing`). Using the disjunction (point 3) and `¬Freezing`, we get `¬EnoughSnow`. Now, if Mary loved winter, then by point 4 she would build a snowman. But building a snowman requires enough snow (point 2), which contradicts `¬EnoughSnow`. Thus, Mary cannot love winter under this condition.
+
+<lean>
+axiom Person : Type
+axiom Mary : Person
+axiom Freezing : Prop
+axiom SnowOnGround : Prop
+axiom EnoughSnow : Prop
+axiom BuildsSnowman : Person → Prop
+axiom LovesWinter : Person → Prop
+
+axiom known : Freezing → SnowOnGround
+axiom snowman_snow : ∀ (p : Person), BuildsSnowman p → EnoughSnow
+axiom certainty : Freezing ∨ ¬EnoughSnow
+axiom friend : ∀ (p : Person), LovesWinter p → BuildsSnowman p
+
+theorem no_snow_implies_mary_not_love_winter (no_snow : ¬SnowOnGround) : ¬LovesWinter Mary :=
+  fun (love : LovesWinter Mary) =>
+    have not_freezing : ¬Freezing := fun (fr : Freezing) => no_snow (known fr)
+    have not_enough : ¬EnoughSnow := by 
+      cases certainty with 
+      | inl fr => exact not_freezing fr 
+      | inr neg => exact neg
+    have builds : BuildsSnowman Mary := friend Mary love
+    not_enough (snowman_snow Mary builds)
+
+</lean>
+
+ANSWER: Yes
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The error occurred because the term `not_freezing fr` in the `inl` branch produced a value of type `False`, but we needed a value of type `¬EnoughSnow` (which is `EnoughSnow → False`). This mismatch was fixed by restructuring the proof to derive a contradiction directly in both branches of the disjunction without intermediate type conversions. The corrected proof uses pattern matching to handle the disjunction, deriving `False` in both branches under the assumptions.
+
+Here's the corrected Lean code:
+
+<lean>
+axiom Person : Type
+axiom Mary : Person
+axiom Freezing : Prop
+axiom SnowOnGround : Prop
+axiom EnoughSnow : Prop
+axiom BuildsSnowman : Person → Prop
+axiom LovesWinter : Person → Prop
+
+axiom known : Freezing → SnowOnGround
+axiom snowman_snow : ∀ (p : Person), BuildsSnowman p → EnoughSnow
+axiom certainty : Freezing ∨ ¬EnoughSnow
+axiom friend : ∀ (p : Person), LovesWinter p → BuildsSnowman p
+
+theorem no_snow_implies_mary_not_love_winter (no_snow : ¬SnowOnGround) : ¬LovesWinter Mary :=
+  fun (love : LovesWinter Mary) =>
+    let builds := friend Mary love
+    let enough := snowman_snow Mary builds
+    match certainty with
+    | Or.inl freezing => no_snow (known freezing)   -- Contradiction: freezing → snow vs no_snow
+    | Or.inr not_enough => not_enough enough         -- Contradiction: not_enough vs enough
+</lean>
+
+The proof operates as follows:
+1. Assume Mary loves winter (for contradiction)
+2. By `friend`, Mary builds a snowman
+3. By `snowman_snow`, there is enough snow
+4. Use disjunction `certainty`:
+   - If freezing: `known` forces snow on ground, contradicting `no_snow`
+   - If not enough snow: directly contradicts `enough`
+Both cases yield a contradiction, proving Mary cannot love winter when there's no snow.
+
+ANSWER: Yes

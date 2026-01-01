@@ -1,0 +1,115 @@
+<lean>
+axiom obj : Type
+axiom Mary : obj
+
+axiom Sale : Prop
+axiom Payday : Prop
+axiom PricesUp : Prop
+
+axiom StockUp : obj → Prop
+axiom MakeList : obj → Prop
+axiom Plan : obj → Prop
+
+-- If the supermarket has a sale, then people will stock up on groceries.
+axiom A1 : Sale → ∀ x : obj, StockUp x
+
+-- If someone makes a shopping list, then they plan what to buy.
+axiom A2 : ∀ x : obj, MakeList x → Plan x
+
+-- Either the store has a sale, or people don't plan what to buy, or there's a sale but they don't plan ahead.
+axiom A3 : Sale ∨ (∀ x : obj, ¬ Plan x) ∨ (Sale ∧ (∀ x : obj, ¬ Plan x))
+
+-- If payday was this week, then people make a shopping list.
+axiom A4 : Payday → ∀ x : obj, MakeList x
+
+-- Either it was payday this week, or prices went up recently, or both.
+axiom A5 : Payday ∨ PricesUp ∨ (Payday ∧ PricesUp)
+
+theorem mary_not_stockup_implies_pricesUp : (¬ StockUp Mary) → PricesUp := by
+  intro hNS
+  -- From Mary's not stocking up, we get not Sale.
+  have hNotSale : ¬ Sale := fun s => hNS ((A1 s) Mary)
+  -- From the trichotomy, deduce that nobody plans what to buy.
+  have allNotPlan : ∀ x : obj, ¬ Plan x := by
+    cases A3 with
+    | inl hSale =>
+      exact False.elim (hNotSale hSale)
+    | inr h =>
+      cases h with
+      | inl hAllNotPlan => exact hAllNotPlan
+      | inr hSaleAndAll => exact hSaleAndAll.right
+  have notPlanMary : ¬ Plan Mary := allNotPlan Mary
+  -- Payday would imply Mary plans; hence not Payday.
+  have payday_implies_planMary : Payday → Plan Mary := fun p =>
+    let allML := A4 p
+    have mlMary : MakeList Mary := allML Mary
+    exact A2 Mary mlMary
+  have notPayday : ¬ Payday := fun p => notPlanMary (payday_implies_planMary p)
+  -- From Payday ∨ PricesUp ∨ (Payday ∧ PricesUp) and not Payday, conclude PricesUp.
+  have hPricesUp : PricesUp := by
+    cases A5 with
+    | inl hPayday => exact False.elim (notPayday hPayday)
+    | inr h =>
+      cases h with
+      | inl hUp => exact hUp
+      | inr hBoth => exact hBoth.right
+  exact hPricesUp
+</lean>
+
+ANSWER: Yes
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom obj : Type
+axiom Mary : obj
+
+axiom Sale : Prop
+axiom Payday : Prop
+axiom PricesUp : Prop
+
+axiom StockUp : obj → Prop
+axiom MakeList : obj → Prop
+axiom Plan : obj → Prop
+
+-- If the supermarket has a sale, then people will stock up on groceries.
+axiom A1 : Sale → ∀ x : obj, StockUp x
+
+-- If someone makes a shopping list, then they plan what to buy.
+axiom A2 : ∀ x : obj, MakeList x → Plan x
+
+-- Either the store has a sale, or people don't plan what to buy, or there's a sale but they don't plan ahead.
+axiom A3 : Sale ∨ (∀ x : obj, ¬ Plan x) ∨ (Sale ∧ (∀ x : obj, ¬ Plan x))
+
+-- If payday was this week, then people make a shopping list.
+axiom A4 : Payday → ∀ x : obj, MakeList x
+
+-- Either it was payday this week, or prices went up recently, or both.
+axiom A5 : Payday ∨ PricesUp ∨ (Payday ∧ PricesUp)
+
+theorem mary_not_stockup_implies_pricesUp : (¬ StockUp Mary) → PricesUp :=
+  fun hNS =>
+    let hNotSale : ¬ Sale := fun s => hNS ((A1 s) Mary)
+    let allNotPlan : ∀ x : obj, ¬ Plan x :=
+      Or.elim A3
+        (fun hSale => False.elim (hNotSale hSale))
+        (fun h =>
+          Or.elim h
+            (fun hAllNotPlan => hAllNotPlan)
+            (fun hSaleAndAll => hSaleAndAll.right))
+    let notPlanMary : ¬ Plan Mary := allNotPlan Mary
+    let payday_implies_planMary : Payday → Plan Mary :=
+      fun p => A2 Mary ((A4 p) Mary)
+    let notPayday : ¬ Payday := fun p => notPlanMary (payday_implies_planMary p)
+    show PricesUp from
+      Or.elim A5
+        (fun hPayday => False.elim (notPayday hPayday))
+        (fun h =>
+          Or.elim h
+            (fun hUp => hUp)
+            (fun hBoth => hBoth.right))
+</lean>
+
+ANSWER: Yes

@@ -1,0 +1,93 @@
+The context provides two implications:  
+1. If someone is cold, they add layers: ∀x, Cold x → AddLayers x  
+2. If someone feels a chill, they turn up the heat: ∀x, Chill x → TurnUpHeat x  
+
+The statement is: Linda is either not adding layers or not turning up the heat: ¬AddLayers Linda ∨ ¬TurnUpHeat Linda  
+
+We aim to prove: Cold Linda  
+
+Analysis:  
+- If ¬AddLayers Linda holds, by contraposition of (1), ¬Cold Linda must hold (so Linda is not cold).  
+- If ¬TurnUpHeat Linda holds, it implies ¬Chill Linda (by contraposition of (2)), but this does not relate to Cold Linda.  
+- The disjunction means at least one of these cases is true. In the first case, we know ¬Cold Linda. In the second case, we lack information about Cold Linda.  
+- It is possible for Linda to be cold without contradiction: e.g., Cold Linda and AddLayers Linda (from (1)), but then ¬TurnUpHeat Linda must hold (satisfying the disjunction), which is valid if ¬Chill Linda (since Chill Linda is independent of Cold Linda).  
+- Therefore, we cannot prove Cold Linda from the premises.  
+
+<lean>
+axiom obj : Type
+axiom Linda : obj
+axiom Cold : obj → Prop
+axiom Chill : obj → Prop
+axiom AddLayers : obj → Prop
+axiom TurnUpHeat : obj → Prop
+
+-- Context: If cold then add layers; if chill then turn up heat
+axiom R1 : ∀ x : obj, Cold x → AddLayers x
+axiom R2 : ∀ x : obj, Chill x → TurnUpHeat x
+
+-- Statement: Linda is either not adding layers or not turning up heat
+axiom A1 : ¬ AddLayers Linda ∨ ¬ TurnUpHeat Linda
+
+-- We try to prove: Cold Linda
+theorem linda_cold : Cold Linda := by
+  -- We cannot prove this. Consider cases from A1:
+  cases A1 with
+  | inl not_add =>
+    -- If Linda isn't adding layers, then she can't be cold (modus tollens on R1)
+    have not_cold : ¬ Cold Linda := fun h => not_add (R1 Linda h)
+    contradiction  -- But we don't have an assumption for Cold Linda here to contradict
+    -- Actually, we have evidence against Cold Linda, so we cannot prove it
+    sorry          -- Cannot proceed
+  | inr not_heat =>
+    -- If Linda isn't turning up heat, this only shows ¬Chill Linda (from R2)
+    have not_chill : ¬ Chill Linda := fun h => not_heat (R2 Linda h)
+    -- But no link exists between Chill and Cold, so we cannot derive anything about Cold Linda
+    sorry          -- Stuck
+-- Therefore, the proof fails.
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation error occurred because the `contradiction` tactic was used without having both a proposition and its negation in the context. Specifically, in the `inl` case, we had:
+- `not_add : ¬AddLayers Linda`
+- `not_cold : ¬Cold Linda` (derived from modus tollens)
+- Goal: `Cold Linda`
+
+The `contradiction` tactic couldn't find a contradiction since `Cold Linda` wasn't actually assumed in the context. This confirms the proof attempt for `Cold Linda` is impossible in both cases of the disjunction.
+
+Corrected Lean code:
+<lean>
+axiom obj : Type
+axiom Linda : obj
+axiom Cold : obj → Prop
+axiom Chill : obj → Prop
+axiom AddLayers : obj → Prop
+axiom TurnUpHeat : obj → Prop
+
+-- Context: If cold then add layers; if chill then turn up heat
+axiom R1 : ∀ x : obj, Cold x → AddLayers x
+axiom R2 : ∀ x : obj, Chill x → TurnUpHeat x
+
+-- Statement: Linda is either not adding layers or not turning up heat
+axiom A1 : ¬ AddLayers Linda ∨ ¬ TurnUpHeat Linda
+
+-- Attempt to prove: Cold Linda
+theorem linda_cold : Cold Linda := by
+  cases A1 with
+  | inl not_add =>  -- Case: Linda not adding layers
+    -- If Linda were cold, she'd add layers (contradicting not_add)
+    have not_cold : ¬ Cold Linda := fun h => not_add (R1 Linda h)
+    -- No way to prove Cold Linda when we have ¬Cold Linda
+    sorry
+  | inr not_heat =>  -- Case: Linda not turning up heat
+    -- This branch only proves ¬Chill Linda (no relation to Cold)
+    have not_chill : ¬ Chill Linda := fun h => not_heat (R2 Linda h)
+    -- No information connects Chill and Cold, so stuck
+    sorry
+</lean>
+
+ANSWER: Failure

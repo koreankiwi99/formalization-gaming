@@ -1,0 +1,51 @@
+<lean>
+axiom Person : Type
+axiom John : Person
+
+axiom CloseLunch : Prop
+axiom HungryCoworkers : Person → Prop
+axiom PreparedWell : Person → Prop
+axiom Ready : Person → Prop
+axiom Diligent : Person → Prop
+
+-- If it is close to lunchtime, then that person's coworkers are hungry.
+axiom A1 : ∀ x : Person, CloseLunch → HungryCoworkers x
+-- If a person prepared well, then they are ready.
+axiom A2 : ∀ x : Person, PreparedWell x → Ready x
+-- Either it is close to lunchtime, or John is not ready, or both close to lunchtime and John not ready.
+axiom A3 : CloseLunch ∨ ¬Ready John ∨ (CloseLunch ∧ ¬Ready John)
+-- Everyone: if someone is diligent, they prepare well.
+axiom A4 : ∀ x : Person, Diligent x → PreparedWell x
+
+-- From "John's coworkers are not hungry" we get "it is not close to lunchtime".
+theorem not_close_of_not_hungry : ¬HungryCoworkers John → ¬CloseLunch := by
+  intro nh
+  intro cl
+  have h : HungryCoworkers John := A1 John cl
+  exact nh h
+
+-- From "John's coworkers are not hungry" we get "John is not ready".
+theorem not_ready_of_not_hungry : ¬HungryCoworkers John → ¬Ready John := by
+  intro nh
+  have ncl : ¬CloseLunch := not_close_of_not_hungry nh
+  have disj := A3
+  cases disj with
+  | inl cl =>
+      exact False.elim (ncl cl)
+  | inr rest =>
+      cases rest with
+      | inl nready => exact nready
+      | inr clnready =>
+          exact clnready.right
+
+-- Hence, from "John's coworkers are not hungry" we conclude "John is not diligent".
+theorem not_diligent_of_not_hungry : ¬HungryCoworkers John → ¬Diligent John := by
+  intro nh
+  have nr : ¬Ready John := not_ready_of_not_hungry nh
+  intro dj
+  have prep : PreparedWell John := A4 John dj
+  have r : Ready John := A2 John prep
+  exact nr r
+</lean>
+
+ANSWER: Failure

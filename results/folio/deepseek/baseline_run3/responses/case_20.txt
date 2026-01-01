@@ -1,0 +1,102 @@
+The given context leads to an inconsistency when combined with the statement to be evaluated. Here's the Lean formalization and proof:
+
+<lean>
+axiom Animal : Type
+axiom Rockie : Animal
+axiom SpottedNearCampus : Animal → Prop
+axiom Cute : Animal → Prop
+axiom Rabbit : Animal → Prop
+axiom Turtle : Animal → Prop
+axiom Squirrel : Animal → Prop
+axiom Skittish : Animal → Prop
+axiom Calm : Animal → Prop
+
+axiom A1 : ∀ a : Animal, Rabbit a ∧ SpottedNearCampus a → Cute a
+axiom A2 : ∃ a : Animal, Turtle a ∧ SpottedNearCampus a
+axiom A3 : ∀ a : Animal, SpottedNearCampus a → Rabbit a ∨ Squirrel a
+axiom A4 : ∀ a : Animal, Skittish a → ¬ Calm a
+axiom A5 : ∀ a : Animal, Squirrel a ∧ SpottedNearCampus a → Skittish a
+axiom A6 : SpottedNearCampus Rockie ∧ Calm Rockie
+
+theorem false_implication : ¬((Cute Rockie ∧ Calm Rockie) → (Skittish Rockie ∧ Turtle Rockie)) := by
+  intro H
+  have R : Rabbit Rockie := by
+    have R_or_S := A3 Rockie A6.1
+    cases R_or_S with
+    | inl r => exact r
+    | inr s =>
+        have skit := A5 Rockie ⟨s, A6.1⟩
+        have not_calm := A4 Rockie skit
+        contradiction
+  have cute : Cute Rockie := A1 Rockie ⟨R, A6.1⟩
+  have P : Cute Rockie ∧ Calm Rockie := ⟨cute, A6.2⟩
+  have Q := H P
+  have not_skittish : ¬Skittish Rockie := by
+    intro skit
+    have not_calm := A4 Rockie skit
+    contradiction
+  exact not_skittish Q.1
+</lean>
+
+The proof shows that the implication "If Rockie is cute and calm, then Rockie is a skittish turtle" is false. Specifically:
+1. Rockie must be a rabbit (not a squirrel, due to calmness contradiction).
+2. Rockie is cute (as a spotted rabbit).
+3. Rockie is calm, so cannot be skittish.
+4. The conclusion requires Rockie to be both skittish and a turtle, which is impossible given the above.
+Thus, the implication has a true premise but false conclusion, making the entire implication false.
+
+ANSWER: False
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors occurred because the `contradiction` tactic couldn't automatically find the necessary contradictions. The proof requires explicit handling of the calmness contradiction in both cases. Here's the corrected Lean code:
+
+<lean>
+axiom Animal : Type
+axiom Rockie : Animal
+axiom SpottedNearCampus : Animal → Prop
+axiom Cute : Animal → Prop
+axiom Rabbit : Animal → Prop
+axiom Turtle : Animal → Prop
+axiom Squirrel : Animal → Prop
+axiom Skittish : Animal → Prop
+axiom Calm : Animal → Prop
+
+axiom A1 : ∀ a : Animal, Rabbit a ∧ SpottedNearCampus a → Cute a
+axiom A2 : ∃ a : Animal, Turtle a ∧ SpottedNearCampus a
+axiom A3 : ∀ a : Animal, SpottedNearCampus a → Rabbit a ∨ Squirrel a
+axiom A4 : ∀ a : Animal, Skittish a → ¬ Calm a
+axiom A5 : ∀ a : Animal, Squirrel a ∧ SpottedNearCampus a → Skittish a
+axiom A6 : SpottedNearCampus Rockie ∧ Calm Rockie
+
+theorem impl_false : ¬((Cute Rockie ∧ Calm Rockie) → (Skittish Rockie ∧ Turtle Rockie)) := by
+  intro H
+  have R : Rabbit Rockie := by
+    have R_or_S := A3 Rockie A6.1
+    cases R_or_S with
+    | inl r => exact r
+    | inr s =>
+        have skit := A5 Rockie ⟨s, A6.1⟩
+        have not_calm := A4 Rockie skit
+        exact False.elim (not_calm A6.2)  -- Explicit contradiction
+  have cute := A1 Rockie ⟨R, A6.1⟩
+  have P : Cute Rockie ∧ Calm Rockie := ⟨cute, A6.2⟩
+  have Q := H P
+  have not_skittish : ¬Skittish Rockie := by
+    intro skit
+    exact A4 Rockie skit A6.2  -- Direct contradiction
+  exact not_skittish Q.1
+</lean>
+
+**Proof explanation:**  
+1. Rockie must be a rabbit (not a squirrel, as squirrels are skittish and would contradict calmness).  
+2. As a spotted rabbit, Rockie is cute (A1).  
+3. Thus Rockie is both cute and calm (premise true).  
+4. The conclusion requires Rockie to be skittish, but calmness implies non-skittish (A4).  
+5. This makes the implication false (true premise → false conclusion).  
+
+The statement "If Rockie is cute and calm, then Rockie is a skittish turtle" is **false**.
+
+ANSWER: False

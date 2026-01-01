@@ -1,0 +1,54 @@
+<lean>
+axiom obj : Type
+
+-- Predicates
+axiom AtSchool : obj → Prop
+axiom WorkJob : obj → Prop
+axiom NeedMoney : obj → Prop
+axiom OrderTakeout : obj → Prop
+axiom EnjoyDining : obj → Prop
+axiom Picky : obj → Prop
+axiom SpendTimeDining : obj → Prop
+
+-- Rules
+axiom R1 : ∀ x : obj, AtSchool x ∧ WorkJob x → NeedMoney x
+axiom R2 : ∀ x : obj, AtSchool x ∧ OrderTakeout x → WorkJob x
+axiom R3 : ∀ x : obj, AtSchool x → (OrderTakeout x ∨ EnjoyDining x)
+axiom R4 : ∀ x : obj, AtSchool x ∧ EnjoyDining x → ¬ Picky x
+axiom R5 : ∀ x : obj, AtSchool x ∧ EnjoyDining x → SpendTimeDining x
+
+-- Hannah and facts about her
+axiom Hannah : obj
+axiom H_at : AtSchool Hannah
+axiom H_work : WorkJob Hannah
+axiom H_cond : NeedMoney Hannah → (¬ Picky Hannah ∧ ¬ NeedMoney Hannah)
+
+theorem hannah_goal :
+  AtSchool Hannah ∧ ¬ Picky Hannah ∧ SpendTimeDining Hannah :=
+by
+  -- Show that Hannah does not order takeout (it would lead to a contradiction)
+  have notOrder : ¬ OrderTakeout Hannah := by
+    intro hOT
+    have wj : WorkJob Hannah := by
+      exact R2 Hannah (And.intro H_at hOT)
+    have need : NeedMoney Hannah := by
+      exact R1 Hannah (And.intro H_at wj)
+    have notNeed : ¬ NeedMoney Hannah := by
+      exact (H_cond need).right
+    exact notNeed need
+  -- From the disjunction, deduce that Hannah enjoys dining
+  have disj : OrderTakeout Hannah ∨ EnjoyDining Hannah := by
+    exact R3 Hannah H_at
+  have enjoy : EnjoyDining Hannah := by
+    cases disj with
+    | inl hOT => exact False.elim (notOrder hOT)
+    | inr hE  => exact hE
+  -- Derive not picky and spends time dining
+  have notPicky : ¬ Picky Hannah := by
+    exact R4 Hannah (And.intro H_at enjoy)
+  have spend : SpendTimeDining Hannah := by
+    exact R5 Hannah (And.intro H_at enjoy)
+  exact And.intro H_at (And.intro notPicky spend)
+</lean>
+
+ANSWER: True

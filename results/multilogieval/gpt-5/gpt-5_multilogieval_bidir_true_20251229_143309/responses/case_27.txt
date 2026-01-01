@@ -1,0 +1,44 @@
+<lean>
+axiom Person : Type
+axiom John : Person
+
+axiom CloseToLunch : Prop
+axiom CoworkersHungry : Person → Prop
+axiom Diligent : Person → Prop
+axiom PreparedWell : Person → Prop
+axiom Ready : Person → Prop
+
+-- If it is close to lunchtime, then coworkers (of any person) are hungry
+axiom A1 : ∀ p : Person, CloseToLunch → CoworkersHungry p
+-- If someone prepared well, then they are ready
+axiom A2 : ∀ p : Person, PreparedWell p → Ready p
+-- Either it is close to lunchtime, or John is not ready, or both
+axiom A3 : CloseToLunch ∨ ¬ Ready John ∨ (CloseToLunch ∧ ¬ Ready John)
+-- If someone is diligent, then they prepare well
+axiom A4 : ∀ p : Person, Diligent p → PreparedWell p
+
+-- From "John's coworkers are not hungry" we can actually derive "John is not diligent"
+theorem not_diligent_from_not_hungry : (¬ CoworkersHungry John) → (¬ Diligent John) := by
+  intro hNotHungry
+  intro hDil
+  have hNotL : ¬ CloseToLunch := fun hL => hNotHungry (A1 John hL)
+  have hDisj : CloseToLunch ∨ ¬ Ready John := by
+    cases A3 with
+    | inl hL =>
+        exact Or.inl hL
+    | inr h2 =>
+        cases h2 with
+        | inl hNotR =>
+            exact Or.inr hNotR
+        | inr hLAndNotR =>
+            exact Or.inl hLAndNotR.left
+  have hNotReady : ¬ Ready John := Or.resolve_left hDisj hNotL
+  have hPrep : PreparedWell John := A4 John hDil
+  have hReady : Ready John := A2 John hPrep
+  exact hNotReady hReady
+
+-- Therefore, we cannot prove: (¬ CoworkersHungry John) → Diligent John
+-- from the given axioms.
+</lean>
+
+ANSWER: Failure

@@ -1,0 +1,58 @@
+<lean>
+axiom obj : Type
+axiom Luke : obj
+
+axiom MultipleBirth : obj → Prop
+axiom SpendTimeWithSiblings : obj → Prop
+axiom HaveSiblingsBornTogether : obj → Prop
+axiom ComplainOften : obj → Prop
+axiom LiveAtHome : obj → Prop
+axiom LiveWithStrangers : obj → Prop
+
+-- People who are born in a multiple birth with siblings spend a lot of time with their siblings.
+axiom R1 : ∀ x : obj, MultipleBirth x → SpendTimeWithSiblings x
+-- If people have siblings who were born together, then they were born in a multiple birth.
+axiom R2 : ∀ x : obj, HaveSiblingsBornTogether x → MultipleBirth x
+-- If people complain often about annoying siblings, then they have siblings who were born together.
+axiom R3 : ∀ x : obj, ComplainOften x → HaveSiblingsBornTogether x
+-- If people live at home, then they do not live with strangers.
+axiom R4 : ∀ x : obj, LiveAtHome x → ¬LiveWithStrangers x
+-- If people spend a lot of time with their siblings, then they often live at home.
+axiom R5 : ∀ x : obj, SpendTimeWithSiblings x → LiveAtHome x
+-- Luke either is born in a multiple birth and lives with strangers, or is not born in a multiple birth and does not live with strangers.
+axiom Luke_case : (MultipleBirth Luke ∧ LiveWithStrangers Luke) ∨ (¬MultipleBirth Luke ∧ ¬LiveWithStrangers Luke)
+
+-- From being born in a multiple birth, one cannot live with strangers.
+theorem mult_implies_not_strangers : ∀ x : obj, MultipleBirth x → ¬LiveWithStrangers x := by
+  intro x
+  intro hM
+  have hST : SpendTimeWithSiblings x := R1 x hM
+  have hHome : LiveAtHome x := R5 x hST
+  exact R4 x hHome
+
+-- Luke is neither born in a multiple birth nor complains often about annoying siblings.
+theorem luke_neither_multiple_nor_complains : ¬MultipleBirth Luke ∧ ¬ComplainOften Luke := by
+  -- Eliminate the impossible first disjunct (MultipleBirth ∧ LiveWithStrangers).
+  have not_first : ¬(MultipleBirth Luke ∧ LiveWithStrangers Luke) := by
+    intro h
+    have hM : MultipleBirth Luke := And.left h
+    have hS : LiveWithStrangers Luke := And.right h
+    have hnS : ¬LiveWithStrangers Luke := mult_implies_not_strangers Luke hM
+    exact hnS hS
+  have second : ¬MultipleBirth Luke ∧ ¬LiveWithStrangers Luke := Or.resolve_left Luke_case not_first
+  have notM : ¬MultipleBirth Luke := And.left second
+  -- Complains → MultipleBirth
+  have comp_to_mult : ∀ x : obj, ComplainOften x → MultipleBirth x := by
+    intro x
+    intro hC
+    have hTogether : HaveSiblingsBornTogether x := R3 x hC
+    exact R2 x hTogether
+  -- Hence ¬Complains from ¬MultipleBirth
+  have notC : ¬ComplainOften Luke := by
+    intro hC
+    have hM : MultipleBirth Luke := comp_to_mult Luke hC
+    exact notM hM
+  exact And.intro notM notC
+</lean>
+
+ANSWER: Failure

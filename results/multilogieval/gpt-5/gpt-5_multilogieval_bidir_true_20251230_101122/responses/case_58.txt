@@ -1,0 +1,53 @@
+<lean>
+axiom obj : Type
+axiom Savory : Prop
+axiom Thick : Prop
+axiom AddsSalt : obj → Prop
+axiom Stirs : obj → Prop
+axiom Tastes : obj → Prop
+axiom PrepSalad : obj → Prop
+
+-- If someone adds salt, the stew becomes savory
+axiom R1 : ∀ x : obj, AddsSalt x → Savory
+-- If someone stirs continuously, the stew thickens perfectly
+axiom R2 : ∀ x : obj, Stirs x → Thick
+-- Either someone adds salt to the stew or the stew does not thicken perfectly (or both)
+axiom Law1 : (∃ x : obj, AddsSalt x) ∨ ¬ Thick
+-- If someone tastes the stew, then they stir it continuously
+axiom R3 : ∀ x : obj, Tastes x → Stirs x
+-- Either someone tastes the stew or someone prepares a salad (or both)
+axiom Secret : (∃ x : obj, Tastes x) ∨ (∃ x : obj, PrepSalad x)
+
+theorem salad_prepared (hns : ¬ Savory) : ∃ x : obj, PrepSalad x := by
+  -- No one added salt (since that would make the stew savory)
+  have hno_salt : ¬ (∃ x : obj, AddsSalt x) := by
+    intro hex
+    cases hex with
+    | intro w hw =>
+      exact hns (R1 w hw)
+  -- Therefore, by the law, the stew does not thicken
+  have hnot_thick : ¬ Thick := by
+    cases Law1 with
+    | inl hexsalt =>
+      have fals : False := hno_salt hexsalt
+      exact (fun _ => False.elim fals)
+    | inr hnt => exact hnt
+  -- Hence, no one stirs (since stirring implies thickening)
+  have hno_stirs : ¬ (∃ x : obj, Stirs x) := by
+    intro hex
+    cases hex with
+    | intro w hw =>
+      exact hnot_thick (R2 w hw)
+  -- Hence, no one tastes (since tasting implies stirring)
+  have hno_tastes : ¬ (∃ x : obj, Tastes x) := by
+    intro hex
+    cases hex with
+    | intro w hw =>
+      exact hno_stirs ⟨w, R3 w hw⟩
+  -- From the secret, it follows someone prepared a salad
+  cases Secret with
+  | inl ht => exact False.elim (hno_tastes ht)
+  | inr hs => exact hs
+</lean>
+
+ANSWER: Yes

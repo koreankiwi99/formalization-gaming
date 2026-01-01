@@ -1,0 +1,202 @@
+The reasoning is based on the given context and logical deductions. Key points from the context:
+
+1. Rockie is spotted near the campus and calm.
+2. Only rabbits and squirrels are spotted near the campus.
+3. Spotted squirrels are skittish.
+4. Skittish animals are not calm.
+5. Rockie is calm, so Rockie cannot be skittish (from 4).
+6. If Rockie were a squirrel, Rockie would be skittish (from 3 and 5), but this contradicts Rockie's calmness. Thus, Rockie must be a rabbit.
+7. Spotted rabbits are cute (from 1), so Rockie is cute and calm.
+
+The statement to evaluate: "If Rockie is cute and calm, then Rockie is a skittish turtle." 
+- This is an implication: (cute Rockie ∧ calm Rockie) → (skittish Rockie ∧ Turtle Rockie)
+- Antecedent: cute Rockie and calm Rockie (true, from above).
+- Consequent: skittish Rockie and Turtle Rockie (false, as Rockie is not skittish and is a rabbit, not a turtle).
+
+Since the antecedent is true and consequent is false, the entire implication is false.
+
+<lean>
+axiom Animal : Type
+constant Rockie : Animal
+
+axiom spotted : Animal → Prop
+axiom cute : Animal → Prop
+axiom calm : Animal → Prop
+axiom skittish : Animal → Prop
+axiom Rabbit : Animal → Prop
+axiom Squirrel : Animal → Prop
+axiom Turtle : Animal → Prop
+
+axiom rabbitCute : ∀ x, Rabbit x ∧ spotted x → cute x
+axiom turtlesSpotted : ∃ x, Turtle x ∧ spotted x
+axiom onlyRabSquirrel : ∀ x, spotted x → Rabbit x ∨ Squirrel x
+axiom skittishNotCalm : ∀ x, skittish x → ¬ calm x
+axiom squirrelSkittish : ∀ x, Squirrel x ∧ spotted x → skittish x
+axiom rockieSpottedCalm : spotted Rockie ∧ calm Rockie
+
+lemma rockieCalm : calm Rockie := rockieSpottedCalm.right
+
+lemma notSkittishRockie : ¬ skittish Rockie :=
+  fun hSkittish : skittish Rockie =>
+    have : ¬ calm Rockie := skittishNotCalm Rockie hSkittish
+    this rockieCalm
+
+lemma rockieRabbitOrSquirrel : Rabbit Rockie ∨ Squirrel Rockie :=
+  onlyRabSquirrel Rockie rockieSpottedCalm.left
+
+lemma rockieRabbit : Rabbit Rockie := by
+  cases rockieRabbitOrSquirrel with
+  | inl h => exact h
+  | inr hSq =>
+      have : skittish Rockie := squirrelSkittish Rockie ⟨hSq, rockieSpottedCalm.left⟩
+      have : ¬ calm Rockie := skittishNotCalm Rockie this
+      contradiction
+
+lemma rockieCute : cute Rockie :=
+  rabbitCute Rockie ⟨rockieRabbit, rockieSpottedCalm.left⟩
+
+theorem disproveStatement : 
+    ¬ ((cute Rockie ∧ calm Rockie) → (skittish Rockie ∧ Turtle Rockie)) :=
+  fun H : (cute Rockie ∧ calm Rockie) → (skittish Rockie ∧ Turtle Rockie) =>
+    have ante : cute Rockie ∧ calm Rockie := ⟨rockieCute, rockieCalm⟩
+    have cons : skittish Rockie ∧ Turtle Rockie := H ante
+    notSkittishRockie cons.left
+</lean>
+
+ANSWER: False
+
+======================================================================
+ITERATION 2
+======================================================================
+
+After analyzing the errors, here's the corrected Lean code:
+
+<lean>
+axiom Animal : Type
+axiom Rockie : Animal
+
+axiom spotted : Animal → Prop
+axiom cute : Animal → Prop
+axiom calm : Animal → Prop
+axiom skittish : Animal → Prop
+axiom Rabbit : Animal → Prop
+axiom Squirrel : Animal → Prop
+axiom Turtle : Animal → Prop
+
+axiom rabbitCute : ∀ x : Animal, Rabbit x ∧ spotted x → cute x
+axiom turtlesSpotted : ∃ x : Animal, Turtle x ∧ spotted x
+axiom onlyRabSquirrel : ∀ x : Animal, spotted x → Rabbit x ∨ Squirrel x
+axiom skittishNotCalm : ∀ x : Animal, skittish x → ¬ calm x
+axiom squirrelSkittish : ∀ x : Animal, Squirrel x ∧ spotted x → skittish x
+axiom rockieSpottedCalm : spotted Rockie ∧ calm Rockie
+
+lemma rockieCalm : calm Rockie := rockieSpottedCalm.right
+
+lemma notSkittishRockie : ¬ skittish Rockie :=
+  fun hSkittish : skittish Rockie =>
+    have notCalm : ¬ calm Rockie := skittishNotCalm Rockie hSkittish
+    notCalm rockieCalm
+
+lemma rockieRabbitOrSquirrel : Rabbit Rockie ∨ Squirrel Rockie :=
+  onlyRabSquirrel Rockie rockieSpottedCalm.left
+
+lemma rockieRabbit : Rabbit Rockie := by
+  cases rockieRabbitOrSquirrel with
+  | inl h => exact h
+  | inr hSq =>
+      have : skittish Rockie := squirrelSkittish Rockie ⟨hSq, rockieSpottedCalm.left⟩
+      have : ¬ calm Rockie := skittishNotCalm Rockie this
+      contradiction
+
+lemma rockieCute : cute Rockie :=
+  rabbitCute Rockie ⟨rockieRabbit, rockieSpottedCalm.left⟩
+
+theorem disprove : ¬ (cute Rockie ∧ calm Rockie → skittish Rockie ∧ Turtle Rockie) :=
+  fun H : cute Rockie ∧ calm Rockie → skittish Rockie ∧ Turtle Rockie =>
+    have ante : cute Rockie ∧ calm Rockie := ⟨rockieCute, rockieCalm⟩
+    have cons : skittish Rockie ∧ Turtle Rockie := H ante
+    notSkittishRockie cons.left
+</lean>
+
+ANSWER: False
+
+Explanation of fixes:
+1. Changed `constant` to `axiom` for Rockie to resolve type mismatch
+2. Added explicit `: Animal` type annotations for all quantifiers
+3. Removed unnecessary line breaks and clarified auxiliary proof names
+4. Kept all other logical deductions intact as they were sound
+
+The code now proves the original statement false by showing:
+- Rockie must be a rabbit (contradiction if squirrel due to calmness)
+- Rockie is cute by the rabbit axiom
+- The implication fails because the antecedent is true (cute ∧ calm) but consequent is false (since Rockie isn't skittish)
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The errors occurred due to syntax issues in lemma definitions and auxiliary proof usage. The corrected Lean code uses explicit type annotations, avoids unnecessary line breaks, and restructures the proof for clarity.
+
+<lean>
+axiom Animal : Type
+axiom Rockie : Animal
+
+axiom spotted : Animal → Prop
+axiom cute : Animal → Prop
+axiom calm : Animal → Prop
+axiom skittish : Animal → Prop
+axiom Rabbit : Animal → Prop
+axiom Squirrel : Animal → Prop
+axiom Turtle : Animal → Prop
+
+axiom rabbitCute : ∀ x : Animal, Rabbit x ∧ spotted x → cute x
+axiom turtlesSpotted : ∃ x : Animal, Turtle x ∧ spotted x
+axiom onlyRabSquirrel : ∀ x : Animal, spotted x → Rabbit x ∨ Squirrel x
+axiom skittishNotCalm : ∀ x : Animal, skittish x → ¬calm x
+axiom squirrelSkittish : ∀ x : Animal, Squirrel x ∧ spotted x → skittish x
+axiom rockieSpottedCalm : spotted Rockie ∧ calm Rockie
+
+theorem disprove : ¬(cute Rockie ∧ calm Rockie → skittish Rockie ∧ Turtle Rockie) :=
+by
+  -- Extract facts about Rockie
+  have spottedRockie : spotted Rockie := rockieSpottedCalm.left
+  have calmRockie : calm Rockie := rockieSpottedCalm.right
+
+  -- Prove Rockie cannot be skittish (using calmness)
+  have notSkittish : ¬skittish Rockie := fun hSk => 
+    skittishNotCalm Rockie hSk calmRockie
+
+  -- Disjunctions for Rockie's species
+  have species : Rabbit Rockie ∨ Squirrel Rockie := 
+    onlyRabSquirrel Rockie spottedRockie
+
+  -- Eliminate squirrel case (would contradict calmness)
+  have rabbitRockie : Rabbit Rockie := by
+    cases species
+    case inl h => exact h
+    case inr hSq =>
+      have : skittish Rockie := squirrelSkittish Rockie ⟨hSq, spottedRockie⟩
+      contradiction  -- contracts notSkittish and skittish Rockie
+
+  -- Prove Rockie is cute
+  have cuteRockie : cute Rockie :=
+    rabbitCute Rockie ⟨rabbitRockie, spottedRockie⟩
+
+  -- Prove the implication is false
+  intro H
+  have : skittish Rockie ∧ Turtle Rockie :=
+    H ⟨cuteRockie, calmRockie⟩  -- antecedent is true
+  exact notSkittish this.left   -- consequent's first part false
+</lean>
+
+ANSWER: False
+
+Explanation of the proof:
+1. Rockie is calm and spotted (given)
+2. If Rockie were skittish, they couldn't be calm - contradiction
+3. Rockie must be rabbit or squirrel (only species near campus)
+4. Squirrel case led to skittishness - contradicts calmness
+5. Thus Rockie is rabbit -> cute (by rabbit axiom)
+6. The implication is false because:
+   - Antecedent (cute ∧ calm) is true
+   - Consequent (skittish ∧ turtle) has false first part (¬skittish)

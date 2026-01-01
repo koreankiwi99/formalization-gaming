@@ -1,0 +1,91 @@
+<lean>
+axiom Person : Type
+axiom Sam : Person
+
+axiom Hungry : Person → Prop
+axiom MakePancakes : Person → Prop
+axiom UseStove : Person → Prop
+axiom AteDinner : Person → Prop
+
+axiom StoveOn : Prop
+axiom KitchenHot : Prop
+
+-- If the stove is on, the kitchen gets hot.
+axiom stove_on_hot : StoveOn → KitchenHot
+-- If someone makes pancakes, they use the stove.
+axiom pancakes_use : ∀ p : Person, MakePancakes p → UseStove p
+-- Either the stove was on, or no one used the stove.
+axiom stove_on_or_no_use : StoveOn ∨ ¬ (∃ p : Person, UseStove p)
+-- If someone is hungry, they make pancakes.
+axiom hungry_pancakes : ∀ p : Person, Hungry p → MakePancakes p
+-- If Sam did not eat dinner last night, he was hungry this morning.
+axiom not_eat_hungry : ¬AteDinner Sam → Hungry Sam
+
+-- From "the kitchen did not get hot", we can derive that Sam ate dinner last night.
+theorem sam_ate_if_kitchen_not_hot : ¬KitchenHot → AteDinner Sam := by
+  intro notHot
+  classical
+  by_contra hNotAte
+  have hHun : Hungry Sam := not_eat_hungry hNotAte
+  have hPan : MakePancakes Sam := hungry_pancakes Sam hHun
+  have hUse : UseStove Sam := pancakes_use Sam hPan
+  have hOn : StoveOn :=
+    Or.elim stove_on_or_no_use
+      (fun h => h)
+      (fun hnone => by
+        have hex : ∃ p : Person, UseStove p := Exists.intro Sam hUse
+        exact False.elim (hnone hex))
+  have hHot : KitchenHot := stove_on_hot hOn
+  exact notHot hHot
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom Person : Type
+axiom Sam : Person
+
+axiom Hungry : Person → Prop
+axiom MakePancakes : Person → Prop
+axiom UseStove : Person → Prop
+axiom AteDinner : Person → Prop
+
+axiom StoveOn : Prop
+axiom KitchenHot : Prop
+
+-- If the stove is on, the kitchen gets hot.
+axiom stove_on_hot : StoveOn → KitchenHot
+-- If someone makes pancakes, they use the stove.
+axiom pancakes_use : ∀ p : Person, MakePancakes p → UseStove p
+-- Either the stove was on, or no one used the stove.
+axiom stove_on_or_no_use : StoveOn ∨ ¬ (∃ p : Person, UseStove p)
+-- If someone is hungry, they make pancakes.
+axiom hungry_pancakes : ∀ p : Person, Hungry p → MakePancakes p
+-- If Sam did not eat dinner last night, he was hungry this morning.
+axiom not_eat_hungry : ¬AteDinner Sam → Hungry Sam
+
+-- Classical double negation elimination (used to conclude AteDinner Sam from ¬¬AteDinner Sam)
+axiom NNPP : ∀ {p : Prop}, (¬p → False) → p
+
+-- From "the kitchen did not get hot", we can derive that Sam ate dinner last night.
+theorem sam_ate_if_kitchen_not_hot : ¬KitchenHot → AteDinner Sam := by
+  intro notHot
+  apply NNPP
+  intro hNotAte
+  have hHun : Hungry Sam := not_eat_hungry hNotAte
+  have hPan : MakePancakes Sam := hungry_pancakes Sam hHun
+  have hUse : UseStove Sam := pancakes_use Sam hPan
+  have hex : ∃ p : Person, UseStove p := Exists.intro Sam hUse
+  have hOn : StoveOn :=
+    Or.elim stove_on_or_no_use
+      (fun h => h)
+      (fun hnone => False.elim (hnone hex))
+  have hHot : KitchenHot := stove_on_hot hOn
+  exact notHot hHot
+</lean>
+
+ANSWER: Failure

@@ -1,0 +1,72 @@
+<lean>
+axiom obj : Type
+axiom ColorectalCancer : obj
+
+axiom DeadlyDisease : obj → Prop
+axiom LowSurvival : obj → Prop
+axiom SevereCancer : obj → Prop
+axiom BileDuctCancer : obj → Prop
+axiom Cholangiocarcinoma : obj → Prop
+axiom MildFlu : obj → Prop
+
+-- If something is a deadly disease, then it comes with a low survival rate.
+axiom A1 : ∀ x : obj, DeadlyDisease x → LowSurvival x
+-- Severe cancers are deadly diseases.
+axiom A2 : ∀ x : obj, SevereCancer x → DeadlyDisease x
+-- Bile duct cancer is a severe form cancer.
+axiom A3 : ∀ x : obj, BileDuctCancer x → SevereCancer x
+-- All Cholangiocarcinoma is bile duct cancer.
+axiom A4 : ∀ x : obj, Cholangiocarcinoma x → BileDuctCancer x
+-- Mild flu comes with a low survival rate.
+axiom A5 : ∀ x : obj, MildFlu x → LowSurvival x
+-- Colorectal cancer is not both a bile duct cancer and with a low survival rate.
+axiom A6 : ¬(BileDuctCancer ColorectalCancer ∧ LowSurvival ColorectalCancer)
+
+-- From the chain of implications: BileDuctCancer → SevereCancer → DeadlyDisease → LowSurvival
+theorem bdc_implies_low : ∀ x : obj, BileDuctCancer x → LowSurvival x :=
+by
+  intro x
+  intro hb
+  have hs : SevereCancer x := A3 x hb
+  have hd : DeadlyDisease x := A2 x hs
+  exact A1 x hd
+
+-- Therefore, ColorectalCancer is not a bile duct cancer
+theorem not_bdc_cc : ¬BileDuctCancer ColorectalCancer :=
+by
+  intro hb
+  have lsr : LowSurvival ColorectalCancer := bdc_implies_low ColorectalCancer hb
+  have both : BileDuctCancer ColorectalCancer ∧ LowSurvival ColorectalCancer := And.intro hb lsr
+  exact A6 both
+
+-- And thus not Cholangiocarcinoma either (since that would imply bile duct cancer)
+theorem not_chol_cc : ¬Cholangiocarcinoma ColorectalCancer :=
+by
+  intro hc
+  have hb : BileDuctCancer ColorectalCancer := A4 ColorectalCancer hc
+  exact not_bdc_cc hb
+
+-- From assuming the antecedent (BDC ∨ Chol), we derive False
+theorem disj_false :
+  (BileDuctCancer ColorectalCancer ∨ Cholangiocarcinoma ColorectalCancer) → False :=
+by
+  intro h
+  cases h with
+  | inl hb =>
+      exact not_bdc_cc hb
+  | inr hc =>
+      exact not_chol_cc hc
+
+-- Hence the implication in the statement is actually provable (vacuously, via ex falso)
+theorem statement_true :
+  (BileDuctCancer ColorectalCancer ∨ Cholangiocarcinoma ColorectalCancer) →
+  (BileDuctCancer ColorectalCancer ∧ MildFlu ColorectalCancer) :=
+by
+  intro h
+  have f : False := disj_false h
+  exact False.elim f
+
+-- Cannot prove the negation of the statement from the given premises.
+</lean>
+
+ANSWER: Failure

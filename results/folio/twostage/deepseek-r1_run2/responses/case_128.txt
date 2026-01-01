@@ -1,0 +1,1051 @@
+======================================================================
+STAGE 1: TRANSLATION
+======================================================================
+
+--- Iteration 1 ---
+
+=== REASONING ===
+We are given several premises and a conclusion. We need to formalize them in Lean 4.
+
+ Steps:
+ 1. Identify the types: We have "people" and "John". We can have an axiom for the type of people and a constant for John.
+ 2. Predicates and relations:
+    - Make wedding plans: let's define `MakesWeddingPlans : obj → Prop`
+    - Engaged: `Engaged : obj → Prop`
+    - Invite others to come to their ceremony: `InvitesToCeremony : obj → Prop`
+    - Has a well-attended wedding: `HasWellAttended : obj → Prop`
+    - Has a larger family: `HasLargerFamily : obj → Prop`
+
+    Additionally, note that one premise has "invites friends to their ceremony". Is this the same as "invites others to come to their ceremony"? The problem uses two different phrases. Let's assume:
+        - "invite others to come to their ceremony" (used in two premises) is represented by `InvitesToCeremony`.
+        - The premise about John mentions "invites friends to their ceremony". We might need a separate predicate for this? But note the conclusion. Let me re-read:
+
+    Premise: "All people who invite others to come to their ceremony make wedding plans." -> So `InvitesToCeremony` leads to `MakesWeddingPlans`.
+
+    Then: "If John is engaged, then John does not invite friends to their ceremony and make wedding plans." 
+        Here, note: "invite friends" might be the same as "invite others"? Or different? The problem says "invite others" and "invite friends". We must be cautious.
+
+    However, the last premise: "If John has a larger family, then either John has a well-attended wedding or invites friends to their ceremony."
+
+    Since the premises use both, we might need two different predicates for inviting: one for "others" (which seems to be about the ceremony) and one for "friends" (which might be a subset, or even the same?).
+
+    But note: the problem says "invites others to come to their ceremony" in the second premise and then "invites friends to their ceremony" in the premises about John. 
+
+    Since the problem does not specify that they are the same and the wording is slightly different, to be safe we will create two different predicates:
+
+        - `InvitesToCeremony` : for inviting others to the ceremony (as in the premises that talk about making plans and well-attended weddings).
+        - `InvitesFriends` : for inviting friends (as in the premises about John).
+
+    However, note the conclusion only involves the family and the well-attended wedding? Actually, the conclusion is "John does not have a larger family."
+
+    But wait: the problem also has "Some people that have well-attended weddings have larger families." which suggests that having a well-attended wedding doesn't preclude having a larger family. But the conclusion is about John.
+
+ 3. Let me break down the premises:
+
+    P1: All people who make wedding plans are people who are engaged.
+        ∀ x, MakesWeddingPlans x → Engaged x
+
+    P2: All people who invite others to come to their ceremony make wedding plans.
+        ∀ x, InvitesToCeremony x → MakesWeddingPlans x   [so: inviting others to ceremony implies making plans]
+
+    P3: Anyone who has a well-attended wedding invites others to come to their ceremony.
+        ∀ x, HasWellAttended x → InvitesToCeremony x
+
+    P4: Some people that have well-attended weddings have larger families.
+        ∃ x, HasWellAttended x ∧ HasLargerFamily x
+
+    P5: If John is engaged, then John does not invite friends to their ceremony and make wedding plans.
+        Let John be a constant: `John : obj`
+        Engaged John → ¬ (InvitesFriends John ∧ MakesWeddingPlans John)
+
+        But note: the negation is on the conjunction. So if John is engaged, then it is not the case that he both invites friends and makes wedding plans.
+
+        Alternatively, this could be interpreted as: Engaged John implies (does not invite friends) OR (does not make wedding plans). But the wording "does not invite friends to their ceremony and make wedding plans" is ambiguous. Actually, it says: "does not [invite friends to their ceremony and (simultaneously) make wedding plans]".
+
+        So the interpretation as ¬ (A ∧ B) is correct.
+
+    P6: If John has a larger family, then either John has a well-attended wedding or invites friends to their ceremony.
+        HasLargerFamily John → (HasWellAttended John ∨ InvitesFriends John)
+
+ 4. We are to conclude: John does not have a larger family, i.e., ¬ HasLargerFamily John.
+
+ 5. We note that we are not required to prove, only set up the axioms and the theorem.
+
+ 6. We declare:
+    - The type of people: `axiom obj : Type`
+    - A constant for John: `axiom John : obj`
+    - The predicates:
+        MakesWeddingPlans, Engaged, InvitesToCeremony, HasWellAttended, HasLargerFamily, InvitesFriends: all of type `obj → Prop`
+
+ 7. Then we formalize the premises as axioms (T1 to T6) and the conclusion as the theorem.
+
+ 8. Note: P4 (the existence) can be an axiom that asserts existence. We don't need to name the existing person because we are not proving, only setting up.
+
+ 9. Let's write:
+
+    axiom P1 : ∀ x : obj, MakesWeddingPlans x → Engaged x
+    axiom P2 : ∀ x : obj, InvitesToCeremony x → MakesWeddingPlans x
+    axiom P3 : ∀ x : obj, HasWellAttended x → InvitesToCeremony x
+    axiom P4 : ∃ x : obj, HasWellAttended x ∧ HasLargerFamily x
+    axiom P5 : Engaged John → ¬ (InvitesFriends John ∧ MakesWeddingPlans John)
+    axiom P6 : HasLargerFamily John → (HasWellAttended John ∨ InvitesFriends John)
+
+ 10. The theorem we want:
+     theorem goal : ¬ HasLargerFamily John := sorry
+
+However, note that the existence in P4 is about some people, not John. So the existence alone might not directly contradict. But the proof (which we are not required to write) would use all these premises.
+
+But wait: the problem gives premises about John and also about people in general. We are to formalize exactly as stated.
+
+Important: We must be cautious of the scope of variables. Also, note that the constant John is a specific object.
+
+Now, let's write the code accordingly.
+
+But note: the premise P5: 
+    "If John is engaged, then John does not invite friends to their ceremony and make wedding plans."
+
+This is ambiguous. Let me re-read: "John does not invite friends to their ceremony and make wedding plans."
+
+This could mean: 
+    John does not [invite friends to their ceremony] and [make wedding plans] 
+      OR 
+    John does not [invite friends to their ceremony and make wedding plans] (as a single action?).
+
+However, the phrase is "invite friends to their ceremony and make wedding plans" as two things. The negation applies to the conjunction? Or to each?
+
+In logic, the most straightforward is to treat it as the negation of a conjunction. So: ¬ (InvitesFriends John ∧ MakesWeddingPlans John)
+
+But note: if John is engaged, then it is false that he both invites friends and makes wedding plans. This could be because he does not invite friends, or because he does not make wedding plans, or both.
+
+Alternatively, the English might be parsed as "John does not invite friends to their ceremony" and "John (does) make wedding plans", but that would be two separate statements. The word "and" in the negative context usually connects the two things that are being negated together (meaning they do not both occur).
+
+Therefore, we stick to ¬ (InvitesFriends John ∧ MakesWeddingPlans John).
+
+Now, let's write the code.
+
+Note: We need to declare the type and all predicates and the constant for John.
+
+We'll use:
+
+<lean>
+axiom obj : Type
+
+-- Predicates
+axiom MakesWeddingPlans : obj → Prop
+axiom Engaged : obj → Prop
+axiom InvitesToCeremony : obj → Prop
+axiom HasWellAttended : obj → Prop
+axiom HasLargerFamily : obj → Prop
+axiom InvitesFriends : obj → Prop
+
+-- Constant for John
+axiom John : obj
+
+-- Premises
+axiom P1 : ∀ x : obj, MakesWeddingPlans x → Engaged x
+axiom P2 : ∀ x : obj, InvitesToCeremony x → MakesWeddingPlans x
+axiom P3 : ∀ x : obj, HasWellAttended x → InvitesToCeremony x
+axiom P4 : ∃ x : obj, HasWellAttended x ∧ HasLargerFamily x
+axiom P5 : Engaged John → ¬ (InvitesFriends John ∧ MakesWeddingPlans John)
+axiom P6 : HasLargerFamily John → HasWellAttended John ∨ InvitesFriends John
+
+-- Conclusion to prove (we state the theorem and use sorry for the proof)
+theorem goal : ¬ HasLargerFamily John := sorry
+</lean>
+
+But note: the problem says "If John is engaged, then John does not invite friends to their ceremony and make wedding plans." We interpreted as a negation of a conjunction. However, in logic, we can write:
+
+  Engaged John → ¬ (InvitesFriends John ∧ MakesWeddingPlans John)
+
+However, let me check with the rest: 
+
+We have a chain from HasWellAttended: 
+    HasWellAttended John → InvitesToCeremony John → MakesWeddingPlans John → Engaged John
+
+Suppose John has a well-attended wedding, then by P3, he invites others to the ceremony, then by P2 he makes wedding plans, then by P1 he is engaged.
+
+Then by P5: if he is engaged, then he does not (invite friends AND make wedding plans). But we already have that he makes wedding plans (from the chain). So if he is engaged and makes wedding plans, then by P5 he cannot also invite friends? Actually, P5 says it is not the case that he does both. Since he makes wedding plans, then it must be that he does not invite friends.
+
+But note: the P6 says: if John has a larger family, then either he has a well-attended wedding or he invites friends.
+
+But if he has a well-attended wedding, we get that he makes wedding plans and becomes engaged, and then we must have that he does not invite friends. And if he doesn't have a well-attended wedding, then by P6 he must invite friends.
+
+But the existence of an individual in P4 is not immediately about John. We are to conclude that John does not have a larger family.
+
+This setup should be consistent. Now, we write the code accordingly.
+
+One more thing: the problem uses "some people that have well-attended weddings have larger families" which we have formalized as ∃ as P4.
+
+We'll code accordingly.
+
+Let me now write the complete Lean code block.
+
+Note: The theorem is about John: we want to show ¬ HasLargerFamily John.
+
+We are done.
+
+
+=== RESPONSE ===
+Here's the Lean 4 formalization of the premises and conclusion:
+
+<lean>
+axiom obj : Type
+
+-- Key entities
+axiom John : obj
+
+-- Predicates
+axiom MakesWeddingPlans : obj → Prop
+axiom Engaged : obj → Prop
+axiom InvitesToCeremony : obj → Prop
+axiom HasWellAttended : obj → Prop
+axiom HasLargerFamily : obj → Prop
+axiom InvitesFriends : obj → Prop
+
+-- Premises
+axiom all_planners_engaged : ∀ x : obj, MakesWeddingPlans x → Engaged x
+axiom inviting_implies_planning : ∀ x : obj, InvitesToCeremony x → MakesWeddingPlans x
+axiom attended_implies_inviting : ∀ x : obj, HasWellAttended x → InvitesToCeremony x
+axiom some_large_families : ∃ x : obj, HasWellAttended x ∧ HasLargerFamily x
+axiom engaged_john_restriction : Engaged John → ¬(InvitesFriends John ∧ MakesWeddingPlans John)
+axiom family_condition_john : HasLargerFamily John → (HasWellAttended John ∨ InvitesFriends John)
+
+-- Conclusion to prove
+theorem john_no_large_family : ¬HasLargerFamily John := sorry
+</lean>
+
+This formalization includes:
+1. A base type `obj` for all objects/people
+2. Constant `John` representing the specific person
+3. Six predicates for the different properties described in the premises
+4. Six axioms corresponding to each natural language premise
+5. The conclusion as a theorem with `sorry` placeholder
+
+The key translations:
+- Premise 1: "All planners are engaged" → universal quantifier with implication
+- Premise 2: "Inviting implies planning" → universal quantifier with implication
+- Premise 3: "Well-attended implies inviting" → universal quantifier with implication
+- Premise 4: "Some have both" → existential quantifier
+- Premises 5-6 about John: direct implications
+- Conclusion: Negation of John having a larger family
+
+
+======================================================================
+STAGE 2: PROVING
+======================================================================
+
+--- Iteration 1 ---
+
+=== REASONING ===
+We are given several premises and we wish to prove that John does not have a larger family.
+
+ Let me restate the premises:
+
+ 1. ∀ x, MakesWeddingPlans x → Engaged x
+ 2. ∀ x, InvitesToCeremony x → MakesWeddingPlans x
+ 3. ∀ x, HasWellAttended x → InvitesToCeremony x
+ 4. ∃ x, HasWellAttended x ∧ HasLargerFamily x   [Note: This is about some x, not necessarily John]
+ 5. Engaged John → ¬(InvitesFriends John ∧ MakesWeddingPlans John)
+ 6. HasLargerFamily John → (HasWellAttended John ∨ InvitesFriends John)
+
+ We wish to prove: ¬HasLargerFamily John.
+
+ Approach:
+
+ We will assume that John has a larger family (i.e., HasLargerFamily John) and derive a contradiction.
+
+ If John has a larger family, by premise 6: 
+    HasWellAttended John ∨ InvitesFriends John
+
+ We consider cases:
+
+ Case 1: HasWellAttended John.
+   Then by premise 3: InvitesToCeremony John.
+   Then by premise 2: MakesWeddingPlans John.
+   Then by premise 1: Engaged John.
+
+   Now, from premise 5, since Engaged John, we have ¬(InvitesFriends John ∧ MakesWeddingPlans John).
+   But note: we have MakesWeddingPlans John. So for the conjunction to be false, it must be that InvitesFriends John is false.
+
+   However, we are in Case 1 and have not used any information about InvitesFriends John. At this point we don't have an immediate contradiction.
+
+   But note: we have no premise that says if John must invite friends in any situation? We have the existence of some people who have well-attended weddings and large families, but that doesn't tell us about John.
+
+   However, in this case, we have Engaged John and MakesWeddingPlans John -> so by premise 5 we must NOT have InvitesFriends John.
+
+   But now we are in Case 1: HasWellAttended John. We don't have a contradiction yet.
+
+   However, look at the conclusion we are trying to get? We are only trying to show that John does not have春色大家族, so if we can show that both cases of the disjunction lead to contradiction we are done.
+
+ Case 2: InvitesFriends John.
+
+   From premise 4 we know that there exists someone with a well-attended wedding and a larger family, but we don't know about John.
+
+   We are in the case that InvitesFriends John. 
+
+   Now, note that we also assumed HasLargerFamily John, which led to this case.
+
+   But we don't have a direct link from InvitesFriends to anything that would contradict? However, let me see if we can derive more:
+
+   We have InvitesFriends John. But note that premise 5: if John is engaged, then he does not (invite friends and make wedding plans).
+
+   But we haven't derived that John is engaged? We need to show that John is engaged? How?
+
+   From the fact that we have InvitesFriends John? That is not in the premises.
+
+   Alternatively, we might try to show that John invites to the ceremony? But we don't have a premise that says "invites friends" implies "invites to ceremony". In fact, note:
+
+   Premise: "Anyone who has a well-attended wedding invites others to come to their ceremony." -> HasWellAttended John → InvitesToCeremony John
+
+   But we are in Case 2: not HasWellAttended (we are in the second disjunct: InvitesFriends John).
+
+   We do not have a direct link from InvitesFriends John to other things.
+
+   However, note that John might be making wedding plans? We have no information that if you invite friends you are making wedding plans? The only way to get making wedding plans is if you invite to the ceremony (premise 2), and inviting to the ceremony is caused by having a well-attended wedding (premise 3). But in Case 2 we don't have well-attended for John.
+
+   This suggests that in Case 2 we might not have a direct contradiction. But let's see.
+
+   Premise 5: Engaged John → ¬(InvitesFriends John ∧ MakesWeddingPlans John)
+
+   But if John invites friends, we don't know if he is making wedding plans? We don't require it? So we might avoid being engaged? But we are not forced to have John engaged? How do we force that?
+
+   Consider: if John is making wedding plans, then he must be engaged (premise 1). But we have no information that John is making wedding plans? 
+
+   So in Case 2: we have InvitesFriends John. We do not have MakesWeddingPlans John? We don't have Engaged John? 
+
+   Therefore, we cannot apply premise 5 to get a contradiction.
+
+   But then we have not dismissed Case 2.
+
+   Therefore, it seems we need to close both cases.
+
+   Let me reexamine the structure.
+
+   We are assuming HasLargerFamily John. Then by premise 6, we have either HasWellAttended John or InvitesFriends John.
+
+   We must show both lead to a contradiction.
+
+   Case 1: HasWellAttended John.
+        Then: 
+          HasWellAttended John → InvitesToCeremony John                [premise 3]
+          → MakesWeddingPlans John                                     [premise 2]
+          → Engaged John                                               [premise 1]
+
+        Now, by premise 5: Engaged John → ¬ (InvitesFriends John ∧ MakesWeddingPlans John)
+
+        So we have: ¬ (InvitesFriends John ∧ MakesWeddingPlans John)
+
+        But we already have MakesWeddingPlans John. So if we also had InvitesFriends John, we would have a contradiction. But we don't have InvitesFriends John in this branch? 
+
+        Specifically, we know that the conjunction is false. Since MakesWeddingPlans John is true, it must be that InvitesFriends John is false.
+
+        But that by itself is not a contradiction.
+
+   So in Case 1 we have not reached a contradiction.
+
+   Case 2: InvitesFriends John.
+        Then we have:
+          InvitesFriends John.
+
+        We are also assuming HasLargerFamily John (from the beginning of the proof-by-contradiction).
+
+        assumption.
+
+        Now, we have no other information. We cannot derive anything about MakesWeddingPlans? Because we have no rule that says if you invite friends then you are making wedding plans? Or that it leads to engagement.
+
+        We cannot get a contradiction here.
+
+   Therefore, the proof-by-contradiction fails? 
+
+   But note: there is a part of the story I missed. The problem says "If John is engaged, then John does not invite friends to their ceremony and make wedding plans". 
+
+   Let me parse this carefully: This can be interpreted as: 
+        Engaged John → ¬(InvitesFriends John ∧ MakesWeddingPlans John)
+
+   But note that it doesn't say that engaged John can't invite friends OR can't make wedding plans. It says the conjunction is false.
+
+   So in Case 2, we have InvitesFriends John. We do not know that John is making wedding plans? So the conjunction (InvitesFriends John and MakesWeddingPlans John) might be false even if John invites friends? Because he might not make wedding plans. So no contradiction.
+
+   Then we cannot conclude.
+
+   However, let me check the original premise 4: some people that have well-attended weddings have larger families. This doesn't involve John.
+
+   So the fact that John has a larger family in our assumption does not force him to have a well-attended wedding? Only that either he has a well-attended wedding or he invites friends.
+
+   What if we look for non-contradiction? 
+
+   We can try to build a model? 
+
+   We have the existence of at least one individual (say 'a') with HasWellAttended a and HasLargerFamily a.
+
+   Now, for John, we suppose HasLargerFamily John. To satisfy premise 6: John must either have a well-attended wedding or invite friends.
+
+   Consider:
+
+        Option A: HasWellAttended John
+          Then: 
+            InvitesToCeremony John     [premise 3]
+            MakesWeddingPlans John     [premise 2]
+            Engaged John               [premise 1]
+
+          Now, by premise 5: since Engaged John, we must have that the conjunction (InvitesFriends John ∧ MakesWeddingPlans John) is false.
+          But since MakesWeddingPlans John is true, it must be that InvitesFriends John is false.
+
+          That is acceptable.
+
+        Option B: InvitesFriends John.
+          Then we have nothing else we can derive? 
+
+          Is there a contradiction? 
+
+          We don't know if John is making wedding plans. But note: if John were making wedding plans, then we would have an issue because premise 1 would lead to Engaged John, and then premise 5 would forbid the conjunction (InvitesFriends John and MakesWeddingPlans John). So if he invites friends and also by chance makes wedding plans, that would be forbidden.
+
+          However, we don't require that if you invite friends you must make wedding plans? There's no such premise. 
+
+          So John might just invite friends and not make wedding plans? Then he wouldn't be engaged? And then premise 5 doesn't apply. So not engaged, but that's okay.
+
+   Therefore, it is possible that John has a larger family? 
+
+   How? Specifically, if he chooses to invite friends but does not make wedding plans? Then he avoids being engaged? Or is engagement forced? 
+
+   Note: the chain of implications for having a well-attended wedding goes:
+
+        HasWellAttended → InvitesToCeremony → MakesWeddingPlans → Engaged
+
+   But in Option B, John doesn't have well-attended wedding, so he doesn't have to go through any of that. 
+
+   So he can have a larger family and choose Option B: invite friends. But then he must not at the same time make wedding plans? But the problem doesn't prevent him from having a larger family and just inviting friends without making wedding plans.
+
+   Therefore, we cannot prove that John does not have a larger family.
+
+   How does the premise 5 constrain? It says: if John is engaged, then he can't do both. But if he is not engaged, then premise 5 doesn't apply.
+
+   And in Option B, we have avoided getting engaged because we haven't made wedding plans.
+
+   Therefore, we cannot conclude that John does not have a larger family.
+
+   However, we must check the logic in the code.
+
+   We have the theorem: ¬HasLargerFamily John.
+
+   But we just found a possible model:
+
+        obj = {John, a}
+        MakesWeddingPlans: only a? (since a has well-attended, which forces the chain)
+        Engaged: maybe only a.
+        InvitesToCeremony: only a.
+        HasWellAttended: a and possibly not John? (we don't require it for John in Option B)
+        HasLargerFamily: both a and John?
+        InvitesFriends: John? (and not a? we don't know about a, but for John we set it true)
+
+        For John: 
+          He has larger family -> True
+          Then by premise 6: we choose the right disjunct: InvitesFriends John (so true).
+
+        But we also have to check: 
+          Premise 5: Engaged John → ... 
+          But we can set Engaged John to be false? How? We don't force it. 
+          Because by premises 1-3: we have no trigger for John. John doesn't invite to the ceremony (we only set that for a) so he doesn't make wedding plans? So by premise 1 we don't get Engaged John. So premise 5: the implication holds because Engaged John is false.
+
+        Therefore, it is consistent.
+
+   This shows that the theorem ¬HasLargerFamily John is not provable.
+
+   So we answer Uncertain? But wait: the problem asks for a proof in Lean, and we found that we cannot prove it because there is a countermodel.
+
+   However, note that the problem says: "Conclusion: John does not have a larger family" and we are to either prove it or not. Since we cannot prove it, we must return that the theorem is not provable? But our code has a theorem that we are to replace sorry. However, without a proof we cannot remove sorry? 
+
+   But the Lean system doesn't know about countermodels? The code we are writing is an attempt to prove the theorem. Since we cannot prove it, we must not be able to complete the proof? 
+
+   However, consider the possibility that we might have missed something: 
+
+   The existence of some large families (some_large_families) does not say anything about John? So that doesn't force a contradiction.
+
+   Also, note the premise 5: 
+        Engaged John → ¬(InvitesFriends John ∧ MakesWeddingPlans John)
+
+   This is equivalent to:
+        Engaged John → (¬InvitesFriends John ∨ ¬MakesWeddingPlans John)
+
+   But that doesn't help.
+
+   Therefore, we cannot prove the theorem.
+
+   But note: the original problem asks for the answer: True/False/Uncertain. And in the context, we are to say whether the conclusion follows from the premises.
+
+   Since in our countermodel it is possible that John has a larger family, the conclusion "John does not have a larger family" does not necessarily follow.
+
+   Therefore, we must say that the theorem is no
+
+=== RESPONSE ===
+
+
+[LEAN ERROR]: No Lean code found in response
+
+--------------------------------------------------
+--- Iteration 2 ---
+
+=== REASONING ===
+We are given several premises and we are to prove that John does not have a larger family.
+
+ Let me restate the premises in logical terms:
+
+ 1. ∀x, MakesWeddingPlans x → Engaged x
+ 2. ∀x, InvitesToCeremony x → MakesWeddingPlans x
+ 3. ∀x, HasWellAttended x → InvitesToCeremony x
+ 4. ∃x, HasWellAttended x ∧ HasLargerFamily x   [Note: This is about some individual, not necessarily John]
+ 5. Engaged John → ¬ (InvitesFriends John ∧ MakesWeddingPlans John)
+ 6. HasLargerFamily John → (HasWellAttended John ∨ InvitesFriends John)
+
+ We are to prove: ¬HasLargerFamily John
+
+ Approach:
+ We will try to prove by contradiction. Assume that John has a larger family (HasLargerFamily John).
+ Then by premise 6, either:
+    HasWellAttended John ∨ InvitesFriends John
+
+ We consider cases.
+
+ Case 1: HasWellAttended John.
+   Then by premise 3: InvitesToCeremony John.
+   Then by premise 2: MakesWeddingPlans John.
+   Then by premise 1: Engaged John.
+
+   Now, we have Engaged John. By premise 5: ¬(InvitesFriends John ∧ MakesWeddingPlans John)
+   But we have MakesWeddingPlans John. So if we also had InvitesFriends John, we'd have a contradiction.
+   However, in this branch we only know HasWellAttended John and not necessarily InvitesFriends John.
+
+   But note: we have MakesWeddingPlans John and Engaged John. Premise 5 tells us that we cannot have both InvitesFriends and MakesWeddingPlans.
+   Since we have MakesWeddingPlans, we must not have InvitesFriends John.
+
+   Now, in this case we don't have InvitesFriends John? Actually, we don't need it in this branch. We are just in the branch where we have HasWellAttended John.
+
+   But wait: the case is self-contained? We have to show that having HasWellAttended John leads to a contradiction? Not necessarily.
+
+   Actually, we don't have any contradiction yet. So we must consider the second case.
+
+ Case 2: InvitesFriends John.
+   Then we have InvitesFriends John.
+
+   But we also have from our branch (case 2): InvitesFriends John. However, we don't have anything about MakesWeddingPlans from this case.
+
+   But wait: we assumed HasLargerFamily John and then in this case we have InvitesFriends John.
+
+   Now, can we derive MakesWeddingPlans John? Not directly. Note that InvitesFriends John is a separate predicate from InvitesToCeremony John.
+
+   The premises do not say anything about InvitesFriends in relation to the others. However, we can try to see if we can get to MakesWeddingPlans.
+
+   But note: if John invites friends, that's not the same as inviting others to the ceremony? The premise "anyone who has a well-attended wedding invites others to their ceremony" uses InvitesToCeremony. And premise 2 says that inviting to the ceremony implies making plans.
+
+   But we don't have any connection between InvitesFriends and InvitesToCeremony. So we cannot derive that John makes wedding plans from inviting friends.
+
+   Therefore, we don't get Engaged John? And then we don't have a contradiction from premise 5.
+
+   However, we do have the fact that we assumed HasLargerFamily John. And in this case we have InvitesFriends John.
+
+   Now, if we also had MakesWeddingPlans John, then we would have Engaged John by premise 1, and then by premise 5 we would have a contradiction because premise 5 says that if John is engaged then he cannot both invite friends and make wedding plans.
+
+   So the problem is: we don't have MakesWeddingPlans John in case 2.
+
+ How can we get MakesWeddingPlans John?
+   We have only two ways: from inviting to the ceremony (premise 2) or from somewhere else? But if we don't have that he invites to the ceremony, we can't get there.
+
+   And in case 2 we have not used the well-attended part. We only have InvitesFriends John.
+
+   So without a link between InvitesFriends and InvitesToCeremony, we cannot proceed.
+
+   This suggests that we might not be able to prove the conclusion? But let's look back at the original problem.
+
+ There is an important point: we also have the premise that there exists some person with a well-attended wedding and a larger family. But that person is not necessarily John.
+
+ Therefore, we have no contradiction by assuming John has a larger family? 
+
+ However, let me try to use the premise about John: engaged_john_restriction.
+
+ We are assuming HasLargerFamily John. Then by family_condition_john, we have two cases:
+
+   Case 1: HasWellAttended John
+      Then we can get: InvitesToCeremony John (from attended_implies_inviting), 
+      then MakesWeddingPlans John (from inviting_implies_planning),
+      then Engaged John (from all_planners_engaged).
+
+      Now, we have Engaged John. Then by engaged_john_restriction, we cannot have both InvitesFriends and MakesWeddingPlans. 
+      But we have MakesWeddingPlans John. Therefore, we must not have InvitesFriends John.
+
+      So in this case, we have HasWellAttended John, MakesWeddingPlans John, Engaged John, and not InvitesFriends John.
+
+      But that doesn't contradict anything? It seems consistent.
+
+   Case 2: InvitesFriends John
+      Now, if we can also get that John is engaged, then we would have a contradiction because we have both InvitesFriends and MakesWeddingPlans? But we don't know if John is making wedding plans.
+
+      Unless we can derive MakesWeddingPlans John from something. But we don't have that.
+
+      However, note that from premise 6 we only get one of the two. We are in the InvitesFriends John branch.
+
+      Without any way to get MakesWeddingPlans John, we don't get Engaged.
+
+      So John might not be making wedding plans? Then he is not engaged (by premise 1?) No: because premise 1 says that making wedding plans implies engaged. But without making wedding plans, we don't know anything about engaged.
+
+      So in this case, we have John has a larger family and invites friends, but not necessarily engaged or making wedding plans.
+
+      No immediate contradiction.
+
+ We don't have any premise that forces that if someone invites friends then they must also make wedding plans? Or anything else.
+
+ Therefore, it looks like we cannot prove that John does not have a larger family? 
+
+ But wait: what if we combine with the existential? The existential says there exists someone with a well-attended wedding and a larger family. But that person is not John.
+
+ So the argument above for John in case 1 is consistent? And case 2 is also consistent? Then the conclusion would be that we cannot prove that John does not have a larger family.
+
+ However, let me check if there is an implicit contradiction.
+
+ But note that in case 1 (for John) we have:
+      HasWellAttended John
+      InvitesToCeremony John
+      MakesWeddingPlans John
+      Engaged John
+      and we deduced that we do not have InvitesFriends John.
+
+ In case 2, we have:
+      HasLargerFamily John and InvitesFriends John.
+
+ Now, the engaged_john_restriction is an implication: if engaged, then not both. In case 1 we used that because we had engaged, so not both (and we indeed avoided having both because we don't have invites friends). In case 2, we don't have engaged? So we are free to have invites friends? And without engaged we are free to have makes wedding plans? But wait: we don't have makes wedding plans in case 2, so we don't get engaged from that.
+
+ However, is there any other way that John must make wedding plans in case 2? No.
+
+ Therefore, both cases are logically possible? 
+
+ But let me see: we have:
+   Case 1: John has a well-attended wedding -> then we get that he must be engaged and then he cannot do both invites friends and makes wedding plans. But we get that he makes wedding plans and thus he must not invite friends. But he doesn't have to invite friends? So that's fine.
+
+   Case 2: John doesn't have a well-attended wedding? He just invites friends. Then we don't get that he is engaged? And don't get that he makes wedding plans? 
+
+   So a model where John has a larger family and invites friends, does not make wedding plans and is not engaged, and does not have a well-attended wedding? 
+
+   But is that allowed? The premises don't say anything about requiring that someone who invites friends must also make wedding plans? 
+
+   So yes, this scenario is allowed.
+
+ Therefore, we cannot conclude that John does not have a larger family.
+
+ So we return Uncertain? Actually, no: the task is to prove the theorem in Lean. If we cannot prove it, then we cannot replace the sorry? But the problem says "validated Lean 4 axiom definitions and a theorem declaration with 'sorry'", meaning the theorem is expected to hold? Or perhaps it is a request to formalize the reasoning.
+
+ But the given theorem is `theorem john_no_large_family : ¬HasLargerFamily John`.
+
+ And we found that the premises are not sufficient to prove it. Then the answer should be that we cannot complete the proof? But the problem says: replace 'sorry' with a valid proof term. However, there is no valid proof.
+
+ But note: we have premise 4: `some_large_families : ∃ x, HasWellAttended x ∧ HasLargerFamily x` - this doesn't help because it is about someone else.
+
+ How about we try to assume `HasLargerFamily John` and see if we can get a contradiction?
+
+ We tried and got two cases. In the second case, we cannot get a contradiction. So we cannot prove the theorem.
+
+ Therefore, the theorem as stated is not provable from these premises.
+
+ But wait: is there a way that in the second case we do get a contradiction?
+
+ Let me try to see if we missed any connection.
+
+ The premises:
+   All people who make wedding plans are engaged -> not directly about invites friends.
+   All people who invite others to come to their ceremony make wedding plans -> again, about invites to ceremony, not invites friends.
+   Anyone who has a well-attended wedding invites others -> again, about invites to ceremony.
+
+ And the restriction: if engaged, then not (invites friends and makes wedding plans).
+
+ And family condition for John: if larger family, then either well-attended or invites friends.
+
+ There is no link that says that invites friends implies invites to the ceremony? Or vice versa? No.
+
+ Therefore, we cannot force that in case 2 John must also make wedding plans? So he gets to break the possibility of being engaged? And then the engaged_john_restriction doesn't get activated.
+
+ Since the theorem is `¬HasLargerFamily John`, and we have shown that it might be possible for John to have a larger family in the second case, we cannot prove the theorem.
+
+ Decision: We must admit that the theorem is not provable. However, in a Lean context, we can attempt to construct a valid proof? We cannot. So the answer should be that we cannot prove the goal.
+
+ But the problem says: replace sorry with a valid proof term. If we believe it is true, we would write a proof. But we found it false (or at least unprovable).
+
+ Therefore, I must conclude that there is an issue. However, note that the problem is to provide the complete code with a proof? If we can't, but we detected that, we should output the code with sorry and then answer Uncertain?
+
+ But the problem says: TASK: Replace 'sorry' with a valid proof term.
+
+ We don't have one. So we cannot complete the task.
+
+ Alternatively, we can try to prove it by using the existential? But that existential doesn't mention John.
+
+ Let's think: we have an individual (say a) who has a well-attended wedding and a larger family. Then for a, we can deduce:
+   HasWellAttended a -> InvitesToCeremony a -> MakesWeddingPlans a -> Engaged a.
+
+ But again, that is about a, not about John.
+
+ There is no premise that links John to this individual? So we cannot get anything.
+
+ Therefore, the proof is not possible.
+
+ However, note that we have an additional restriction specifically for John: engaged_john_restriction and family_condition_john. But with these and the global ones, we still cannot block case 2 for John.
+
+ So we must answer that the theorem cannot be proven? But the problem says we must provide complete code with a proof. What to do?
+
+ Since we cannot prove it, we conclude that the conclusion is Uncertain? And then we should say so?
+
+ But the instructions: after the code, provide your final answer: ANSWER: True/False/Uncertain.
+
+ And the original problem is an argument: we are to determine if the conclusion follows.
+
+ However, the Lean code provided has the theorem, and if we cannot prove it, we must leave a sorry? That would be invalid.
+
+ Given the problem: "Replace 'sorry' with a valid proof term", if we don't provide a proof term then we are not following. And if we leave it as sorry, then it is not complete.
+
+ This leads me to believe that perhaps we are missing something.
+
+ Let me revisit case 2:
+
+   Assume HasLargerFamily John -> so by family_condition_john, we have either:
+        (i) HasWellAttended John -> handled in case 1: we get Engaged John and MakesWeddingPlans, and then from engaged_john_restriction we cannot have both InvitesFriends and MakesWeddingPlans. Since we are in case 1 we don't have InvitesFriends? Actually, in case 1 we have the well-attended branch? But in case 1 the well-attended branch leads to MakesWeddingPlans and then Engaged, and then we get that John does not invite friends. So in case 1 we do not have InvitesFriends.
+
+   But what about the possibility in case 2: InvitesFriends John. We have:
+
+        InvitesFriends John.
+
+        Now, we want to see if we can get a contradiction.
+
+        We don't have MakesWeddingPlans John? So we don't get Engaged John? But then the engaged_john_restriction doesn't apply? So we are free? 
+
+        But note: the engaged_john_restriction says: "If John is engaged, then ...". If he is not engaged, there's no restriction.
+
+        In this state we have only:
+            HasLargerFamily John and InvitesFriends John.
+
+        We don't know if John makes wedding plans? We don't know if he is engaged? 
+
+        So no contradiction.
+
+ How about from the other premises? 
+      Do we have anything that says having a larger family and inviting friends leads to a contradiction? No.
+
+ Therefore, we have a counter-model: we could assume
+    John has a larger family and invites friends.
+    He does not have a well-attended wedding (so not in case 1).
+    He does not make wedding plans? -> that's allowed because the universal quantifiers don't force him to.
+    And he is not engaged.
+
+        Afternote: can John have a larger family without having a well-attended wedding? According to the family condition for John, he must either have well-attended or invite friends. We chose invite friends.
+
+        All the universal premises: 
+            If anyone makes wedding plans then they are engaged -> no one forces John to make plans, so he might be making wedding plans? But we have assumed he doesn't? 
+            Or if he does, then he would be engaged? But then by engaged_john_restriction, he cannot both invite friends and make wedding plans. So if we also had him make wedding plans, then we would have contradiction.
+
+        Therefore, to avoid contradiction, we also assume he does not make wedding plans.
+
+        But is that consistent? 
+          He invites friends -> but this doesn't necessarily trigger InvitesToCeremony (which would require MakesWeddingPlans).
+          He has a larger family -> true.
+          He does not have well-attended -> then we don't force him to invite to the ceremony? So we don't force him to make wedding plans.
+
+          So he doesn't make wedding plans -> then the universal premise about making wedding plans requiring engaged is left for others? And the engaged_john_restriction: we assume he is not engaged so the implication holds.
+
+        Everything appears consistent.
+
+ Therefore, the argument is invalid.
+
+ Thus, we cannot prove the theorem.
+
+ But the problem says: 
+   "Given validated Lean 4 axiom definitions"
+
+   We have the axioms. And the theorem we are to prove is `¬HasLargerFamily John`.
+
+   Since we found a model (the above scenario) that satisfies all the axioms and has `HasLargerFamily John`, then the law of non-contradiction would say that we cannot prove `¬HasLargerFamily John`.
+
+   So what to do in Lean? We can keep the sorry? But the task says to replace it with a valid proof term.
+
+   We don't have one. Therefore, we cannot do it.
+
+   Now, note: the Lean code we are provided already has axioms and the theorem. If we formally want to show it's false, we would need to construct a counterexample? But the problem doesn't allow us to change the axioms.
+
+   We are only allowed to replace sorry.
+
+   We have detected that the theorem is not provable. So we should answer Uncertain and leave the proof incomplete? But the problem says we must provide the complete code with the proof? That's impossible.
+
+   Or should we use by_contradiction and then case analysis and then show that in case 1 we don't get a contradiction and in case 2 we don't get a contradiction? But then we haven't proved `False`.
+
+   We can't.
+
+   Therefore, I think we must abandon and output the original code with sorry? That's not allowed.
+
+   Alternatively, we might have missed a connection.
+
+   Let me look at the original English:
+
+     Premise: All people who invite others to come to their ceremony make wedding plans.
+
+     And here the word "invite others to come to their ceremony" is represented by `InvitesToCeremony`.
+
+     But what does "John does not invite friends to their ceremony" mean? The premise says "invite others" - is that including friends? The general invites, or specific friends?
+
+     In the premise, we have `InvitesFriends` as a separate predicate.
+
+     So it's likely that friends are a subset of other people? So perhaps `InvitesFriends John` implies `InvitesToCeremony John`?
+
+     But the formalization does not include that. And in the axioms given, there is no such connection.
+
+     So if we had this extra entailment (inviting friends implies inviting to the ceremony), then we could proceed in case 2: 
+          InvitesFriends John → InvitesToCeremony John → MakesWeddingPlans John.
+
+     Then we would have:
+        HasLargerFamily John → case 2: InvitesFriends John → (by extra step) MakesWeddingPlans John.
+
+     And then by `all_planners_engaged`, Engaged John.
+
+     Then by `engaged_john_restriction`, we get ¬(InvitesFriends John ∧ MakesWeddingPlans John). But we have both! Contradiction.
+
+     So in case 2 we would get a contradiction.
+
+     And in case 1? We had no contradiction? But we also didn't have both? In case 1 we avoided InvitesFriends.
+
+     But then the theorem would be provable.
+
+     However, in the given axioms, we do not have that `∀ x, InvitesFriends x → InvitesToCeremony x`.
+
+     And in the original problem, the distinction might be intentional? For example, inviting friends might be for a different event? Or perhaps not.
+
+     Without that extra link, we cannot prove.
+
+     Therefore, our answer is that based on the given axioms, the theorem is not provable.
+
+     So we return Uncertain.
+
+ But the problem says "Provide the complete code". We cannot complete the code.
+
+ We must reply with the axioms and the theorem with sorry? And then say Uncertain.
+
+  However, note: the stage 1 validated the axioms. So they are fixed.
+
+  Since we cannot replace sorry with a valid proof, we do not change the sorry? But that would be to fail the task.
+
+  We are allowed to use `show False by ...` tactics? Maybe we can try to prove it and then the specific case causes an issue.
+
+  But in case 2, we cannot find a contradiction.
+
+  We could try:
+
+   ```
+   theorem john_no_large_family : ¬HasLargerFamily John := by
+      by_contra h -- assume John has a larger family
+      have H := family_condition_john h -- HasWellAttended John ∨ InvitesFriends John
+      cases H with
+      | inl hw => 
+          -- John has a well-attended wedding
+          have invC : InvitesToCeremony John := attended_implies_inviting John hw
+          have mkPlan : MakesWeddingPlans John := inviting_implies_planning John invC
+          have engaged : Engaged John := all_planners_engaged John mkPlan
+          have restriction : ¬ (InvitesFriends John ∧ MakesWeddingPlans John) := engaged_john_restriction engaged
+          -- But we don't have (and don't need) InvitesFriends. We only have a contradiction if we had both? We don't.
+          -- Why would there be a contradiction? There isn't one in this case.
+          sorry -- stuck in branch 1? But in branch 1 we don't necessarily have a contradiction.
+      | inr hfr =>
+          -- John invites friends
+          -- We are stuck because we'd only get a contradiction if John makes wedding plans and also is engaged? 
+          -- But we don't have that.
+          sorry
+   ```
+
+   We got stuck in both branches.
+
+  But in branch 1, we have John making wedding plans and engaged, and the restriction tells us that we cannot ALSO have invites friends. But we don't have invites friends? So there's no contradiction. Branch 2 also has no contradiction.
+
+  Therefore, we cannot fill the sorry.
+
+  Given that, we must likely say that the conclusion is Uncertain.
+
+  However, observe: in the first branch, we have `HasLargerFamily John` and `HasWellAttended John` -> then John is engaged and makes wedding plans, but not necessarily invites friends -> so no immediate contradiction. But note that family_condition_john gives the disjunction and we chose left, so we are not using invites friends. But the restriction doesn't say anything about having well attended and not inviting friends? It's not forbidden.
+
+  In branch 2, we have `InvitesFriends John` and that's fine.
+
+  Therefore, we have two ways that John might have a larger family without contradiction? So the theorem Fails.
+
+  Final answer: Uncertain (because the premises do not force the not of the conclusion, nor do they force the conclusion).
+
+  But the task asks to replace sorry. We cannot. We must provide the code however? But we leave the proof with two `sorry`s?
+
+  We must reformulate: we are trapped at two places.
+
+  Alternatively, we can try to use the existential? We have:
+
+        some_large_families : ∃ x, HasWellAttended x ∧ HasLargerFamily x
+
+  Let me call one such x `a`.
+
+        a has well-attended and has larger family.
+
+        For a, we can derive:
+          invC_a : InvitesToCeremony a
+          mk_a : MakesWeddingPlans a
+          engaged_a : Engaged a
+
+        But what about John? Not related.
+
+  Another try: we might apply the restriction to a? But the restriction `engaged_john_restriction` is only for John.
+
+  Similarly, family_condition_john is only for John.
+
+  So no luck.
+
+  Conclusion: we cannot prove the theorem. Thus, we keep the sorry? But we can't arbitrarily make up a proof.
+
+  After reading the instructions: "After your code, provide your final answer: ANSWER: True/False/Uncertain"
+
+  We return the same code but with the theorem as `theorem john_no_large_family : ¬HasLargerFamily John := sorry` and then ANSWER: Uncertain.
+
+  But note: the task says to replace 'sorry' with a valid proof term. But we cannot because it's unprovable.
+
+  We have to options:
+      1. We output the same code with sorry.
+      2. We report that we fail to find a proof.
+
+  Given the instructions, we must provide the complete code. So we output:
+
+<lean>
+... same axioms ...
+theorem john_no_large_family : ¬HasLargerFamily John := sorry
+</lean>
+
+ANSWER: Uncertain
+
+But I note: the problem says "Replace 'sorry' with a valid proof term". We are unable to. So we are not completing the task? But the alternative is to not output.
+
+ Clarification: in the problem, it says: "Given validated Lean 4 axiom definitions and a theorem declaration with 'sorry', your task is to provide the complete code with a valid proof."
+
+ This is only possible if we can prove it. Otherwise, if we cannot prove it, then it is not valid to output a false proof.
+
+ Therefore, we must ANSWER: Uncertain.
+
+  However, what if we are to output the Lean code, and because we believe it is Uncertain, we leave the proof as sorry? But then we haven't provided a valid proof.
+
+  The instructions also say: "CRITICAL: Use only Lean 4 syntax."
+
+  One piece of syntax in Lean is the `sorry` axiom, but it is not a proof.
+
+  Given the dilemma, we will output the code in the required format, leave the sorry, and then answer Uncertain.
+
+  But note: The problem says "valid proof term", so if we keep `sorry`, that's not valid. So we are not following instructions.
+
+  I think there is a misunderstanding: the problem should have been: either you see that the theorem is provable and you provide the proof, or you say it is not provable.
+
+  And the answer section says: True/False/Uncertain. The model: True would mean the conclusion is true given the premises, False means definitely not, Uncertain otherwise.
+
+  But in our case, we found that the premises do not force the conclusion? Or we found that the conclusion is actually false under the premises?
+
+  Wait! We don't see if the conclusion is true or false? We see that the premises together with the negation of the conclusion (i.e., HasLargerFamily John) might be consistent? In which case the argument is not valid. So the answer should be Uncertain.
+
+  But also note: the premises are about the world, and John might in fact not have a larger family? But in our model where the premises are true and the conclusion is false, then it was false.
+
+  The premises do not force the conclusion.
+
+  Therefore, we answer Uncertain.
+
+  In summary, we output the same code with sorry and then add: ANSWER: Uncertain.
+
+  However, let me see if there's a proof workaround.
+
+  We might have missed something with the existential? Or with the context of tautology? No.
+
+  Final decision:
+
+    - We cannot complete the proof.
+    - We return the original code with `sorry`.
+    - ANSWER: Uncertain
+
+  Or: we might notice that branch 1: allows John to have a larger family? We don't get a contradiction in branch 1. Branch 2 does not get a contradiction either.
+
+  So it is possible for John to have a larger family? Then the conclusion `¬HasLargerFamily John` would be false.
+
+  And if it's false (that is, there exists a model where the premises are true and the conclusion is false), then the correct answer for the argument is that the reasoning is invalid -> the conclusion does not logically follow. Therefore, we cannot prove the theorem.
+
+  But the theorem we are to prove in Lean is `¬HasLargerFamily John`. Since we have found that it does not logically follow (and indeed there are models where it's false) then we must not be able to prove it.
+
+  So answer: Uncertain (because the assignment is about whether the conclusion follows? and it does not follow, so not necessarily true).
+
+  But technically for John? In some models he has a larger family, in some he doesn't? But our premises are silent. 
+
+  However, note: we have `some_large_families` but that doesn't prevent John from being that someone? 
+
+  `some_large_families` does not say that there is someone else. It could be John? Then if we use it to the same John, we would get the same consequences? But it doesn't yield a contradiction by itself.
+
+  Perhaps we are forced to use the existential to have an example? But it doesn't get in contradiction with anything.
+
+  Therefore, again, we cannot prove that John does not have a larger family.
+
+  We must output:
+
+ <lean>
+ ... the code including the sorry ...
+ </lean>
+ ANSWER: Uncertain
+
+ If we are not allowed to leave sorry, then we cannot comply. But the problem says to replace sorry with a valid proof term, so we may simply not be able to find one? But then we are expected to output the code with a proof? We cannot.
+
+  Given that, I will output the code with sorry and mark Uncertain.
+
+  But note: the EXAMPLE had a proof. So we are to only use the given axioms.
+
+  However, after careful reasoning, it is not provable.
+
+  This is the best I can do.
+
+
+=== RESPONSE ===
+<lean>
+axiom obj : Type
+
+-- Key entities
+axiom John : obj
+
+-- Predicates
+axiom MakesWeddingPlans : obj → Prop
+axiom Engaged : obj → Prop
+axiom InvitesToCeremony : obj → Prop
+axiom HasWellAttended : obj → Prop
+axiom HasLargerFamily : obj → Prop
+axiom InvitesFriends : obj → Prop
+
+-- Premises
+axiom all_planners_engaged : ∀ x : obj, MakesWeddingPlans x → Engaged x
+axiom inviting_implies_planning : ∀ x : obj, InvitesToCeremony x → MakesWeddingPlans x
+axiom attended_implies_inviting : ∀ x : obj, HasWellAttended x → InvitesToCeremony x
+axiom some_large_families : ∃ x : obj, HasWellAttended x ∧ HasLargerFamily x
+axiom engaged_john_restriction : Engaged John → ¬(InvitesFriends John ∧ MakesWeddingPlans John)
+axiom family_condition_john : HasLargerFamily John → (HasWellAttended John ∨ InvitesFriends John)
+
+-- Conclusion to prove
+theorem john_no_large_family : ¬HasLargerFamily John :=
+  fun h : HasLargerFamily John => 
+    have H := family_condition_john h
+    Or.elim H
+      (fun well : HasWellAttended John =>
+        have invC : InvitesToCeremony John := attended_implies_inviting John well
+        have plan : MakesWeddingPlans John := inviting_implies_planning John invC
+        have eng : Engaged John := all_planners_engaged John plan
+        have no : ¬(InvitesFriends John ∧ MakesWeddingPlans John) := engaged_john_restriction eng
+        have notBoth : MakesWeddingPlans John → ¬InvitesFriends John := fun p f => no ⟨f, p⟩
+        -- No contradiction derived in this branch (consistent state)
+        False.elim (sorry)  -- No contradiction obtained
+      )
+      (fun fr : InvitesFriends John =>
+        -- No premises derive MakesWeddingPlans John or Engaged John from InvitesFriends John
+        -- Cannot activate engaged_john_restriction
+        False.elim (sorry)  -- No contradiction obtained
+      )
+
+</lean>
+
+ANSWER: Uncertain
+
+**Explanation:**  
+The premises do not provide a contradiction under the assumption `HasLargerFamily John`:
+- In the case where `HasWellAttended John`, we derive `Engaged John` and `MakesWeddingPlans John` but need `InvitesFriends John` for a contradiction (which is absent).
+- In the case where `InvitesFriends John`, no premise forces `MakesWeddingPlans John` or `Engaged John`, so `engaged_john_restriction` is not activated.
+- The existential `some_large_families` does not constrain John.  
+Thus, John could have a larger family without contradiction, so the conclusion cannot be proven from the premises.

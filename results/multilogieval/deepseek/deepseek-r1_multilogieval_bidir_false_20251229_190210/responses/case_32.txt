@@ -1,0 +1,63 @@
+<lean>
+axiom obj : Type
+axiom Jane : obj
+axiom Active : obj → Prop
+axiom Energetic : obj → Prop
+axiom Exercise : obj → Prop
+axiom EatNutritious : obj → Prop
+axiom ValuesWellness : obj → Prop
+
+axiom exercise_leads_active : ∀ x : obj, Exercise x → Active x
+axiom eat_nutritious_leads_energetic : ∀ x : obj, EatNutritious x → Energetic x
+axiom not_all_active_or_energetic : ∃ x : obj, ¬(Active x ∨ Energetic x)
+axiom wellness_leads_exercise : ∀ x : obj, ValuesWellness x → Exercise x
+
+axiom Jane_eats_nutritious : EatNutritious Jane
+
+-- We attempt to prove ¬ValuesWellness Jane
+-- First, derive that Jane is energetic
+theorem Jane_energetic : Energetic Jane := by
+  apply eat_nutritious_leads_energetic Jane Jane_eats_nutritious
+
+-- From not_all_active_or_energetic, there exists some x0 who is neither active nor energetic
+-- Let that x0 be fixed (using Classical.choose)
+noncomputable def inactive_person : obj := Classical.choose not_all_active_or_energetic
+theorem inactive_proof : ¬(Active inactive_person ∨ Energetic inactive_person) :=
+  Classical.choose_spec not_all_active_or_energetic
+
+-- Decompose the inactive_proof to get ¬Active inactive_person and ¬Energetic inactive_person
+theorem not_active_inactive : ¬Active inactive_person := by
+  intro h
+  apply inactive_proof
+  apply Or.inl h
+theorem not_energetic_inactive : ¬Energetic inactive_person := by
+  intro h
+  apply inactive_proof
+  apply Or.inr h
+
+-- Contraposition of exercise_leads_active: ¬Active x → ¬Exercise x
+theorem no_active_implies_no_exercise (x : obj) : ¬Active x → ¬Exercise x := by
+  intro hna hex
+  exact hna (exercise_leads_active x hex)
+
+-- Apply to inactive_person: ¬Exercise inactive_person
+theorem no_exercise_inactive : ¬Exercise inactive_person :=
+  no_active_implies_no_exercise inactive_person not_active_inactive
+
+-- Contraposition of wellness_leads_exercise: ¬Exercise x → ¬ValuesWellness x
+theorem no_exercise_implies_no_wellness (x : obj) : ¬Exercise x → ¬ValuesWellness x := by
+  intro hnex hvw
+  exact hnex (wellness_leads_exercise x hvw)
+
+-- Thus, inactive_person does not value wellness
+theorem inactive_no_wellness : ¬ValuesWellness inactive_person :=
+  no_exercise_implies_no_wellness inactive_person no_exercise_inactive
+
+-- However, we cannot prove anything about Jane's ValuesWellness
+-- Jane is energetic, but we have no rule linking Energetic to Exercise
+-- Jane might exercise (and possibly value wellness) or not exercise (and not value wellness)
+-- We have no information forcing Jane to not exercise
+-- Therefore, ¬ValuesWellness Jane is not provable
+</lean>
+
+ANSWER: Failure

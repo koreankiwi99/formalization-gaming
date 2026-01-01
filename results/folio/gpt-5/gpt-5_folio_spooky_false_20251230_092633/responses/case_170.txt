@@ -1,0 +1,65 @@
+<lean>
+axiom obj : Type
+
+-- Predicates
+axiom Deadly : obj → Prop
+axiom LowSurvival : obj → Prop
+axiom Severe : obj → Prop
+axiom BileDuct : obj → Prop
+axiom Cholangio : obj → Prop
+axiom MildFlu : obj → Prop
+
+-- Constants
+axiom Colorectal : obj
+
+-- Premises
+axiom P1 : ∀ x : obj, Deadly x → LowSurvival x
+axiom P2 : ∀ x : obj, Severe x → Deadly x
+axiom P3 : ∀ x : obj, BileDuct x → Severe x
+axiom P4 : ∀ x : obj, Cholangio x → BileDuct x
+axiom P5 : ∀ x : obj, MildFlu x → LowSurvival x
+axiom P6 : ¬(BileDuct Colorectal ∧ LowSurvival Colorectal)
+
+-- Derived: Bile duct cancer implies low survival
+theorem BileDuct_implies_Low : ∀ x : obj, BileDuct x → LowSurvival x := by
+  intro x
+  intro hB
+  have hS : Severe x := P3 x hB
+  have hD : Deadly x := P2 x hS
+  exact P1 x hD
+
+-- From P6 and BileDuct → LowSurvival, conclude colorectal is not a bile duct cancer
+theorem not_BileDuct_Colorectal : ¬ BileDuct Colorectal := by
+  intro hB
+  have hL : LowSurvival Colorectal := BileDuct_implies_Low Colorectal hB
+  have hBL : BileDuct Colorectal ∧ LowSurvival Colorectal := And.intro hB hL
+  exact P6 hBL
+
+-- Hence colorectal is not cholangiocarcinoma either (since that implies bile duct)
+theorem not_Cholangio_Colorectal : ¬ Cholangio Colorectal := by
+  intro hCh
+  have hB : BileDuct Colorectal := P4 Colorectal hCh
+  exact not_BileDuct_Colorectal hB
+
+-- The antecedent of the statement is false
+theorem antecedent_false : ¬(BileDuct Colorectal ∨ Cholangio Colorectal) := by
+  intro h
+  cases h with
+  | inl hB => exact not_BileDuct_Colorectal hB
+  | inr hCh => exact not_Cholangio_Colorectal hCh
+
+-- The statement to evaluate actually holds vacuously (since the antecedent is false)
+theorem statement_true :
+  (BileDuct Colorectal ∨ Cholangio Colorectal) → (BileDuct Colorectal ∧ MildFlu Colorectal) := by
+  intro h
+  cases h with
+  | inl hB =>
+    have f : False := not_BileDuct_Colorectal hB
+    exact False.elim f
+  | inr hCh =>
+    have hB : BileDuct Colorectal := P4 Colorectal hCh
+    have f : False := not_BileDuct_Colorectal hB
+    exact False.elim f
+</lean>
+
+ANSWER: Failure

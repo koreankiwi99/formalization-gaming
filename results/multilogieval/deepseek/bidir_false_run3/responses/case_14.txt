@@ -1,0 +1,78 @@
+<lean>
+axiom obj : Type
+axiom Alex : obj
+axiom AdvertisesCleverly : obj → Prop
+axiom OffersDiscounts : obj → Prop
+axiom AttractMoreCustomers : obj → Prop
+axiom IncreaseSales : obj → Prop
+axiom ExpandBusiness : obj → Prop
+
+axiom ad_attract : ∀ x, AdvertisesCleverly x → AttractMoreCustomers x
+axiom discount_sales : ∀ x, OffersDiscounts x → IncreaseSales x
+axiom ad_or_discount : ∀ x, AdvertisesCleverly x ∨ OffersDiscounts x
+axiom sales_expand : ∀ x, IncreaseSales x → ExpandBusiness x
+axiom no_attract : ¬ AttractMoreCustomers Alex
+
+-- Attempt to prove ¬ExpandBusiness Alex
+theorem not_expand : ¬ ExpandBusiness Alex := by
+  -- We know Alex didn't attract more customers
+  have no_ad : ¬ AdvertisesCleverly Alex := fun h => no_attract (ad_attract Alex h)
+  -- By ad_or_discount, Alex must offer discounts
+  have discount : OffersDiscounts Alex := by
+    cases (ad_or_discount Alex) with
+    | inl ad => contradiction
+    | inr disc => exact disc
+  -- Then Alex increases sales
+  have sales : IncreaseSales Alex := discount_sales Alex discount
+  -- Then Alex expands business
+  have expand : ExpandBusiness Alex := sales_expand Alex sales
+  -- But we need ¬ExpandBusiness Alex - contradiction found
+  contradiction
+</lean>
+
+ANSWER: Failure
+
+Explanation: The Lean proof demonstrates that from the given premises and ¬AttractMoreCustomers Alex, we can derive ExpandBusiness Alex. This creates a contradiction when attempting to prove ¬ExpandBusiness Alex. Since we cannot prove the negation (Alex did not expand), the result is Failure.
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation error occurred because the `contradiction` tactic was used incorrectly. The context contained `expand : ExpandBusiness Alex` and the goal was `¬ExpandBusiness Alex` (which is `ExpandBusiness Alex → False`). This isn't a direct contradiction since the goal requires showing that `ExpandBusiness Alex` implies false, while we have evidence of `ExpandBusiness Alex`. 
+
+However, the deeper issue is that the premises actually prove `ExpandBusiness Alex`:
+1. From `¬AttractMoreCustomers Alex` and `∀x, AdvertisesCleverly x → AttractMoreCustomers x`, we get `¬AdvertisesCleverly Alex`.
+2. From `∀x, AdvertisesCleverly x ∨ OffersDiscounts x`, we get `OffersDiscounts Alex` (since the first branch leads to contradiction).
+3. Then `OffersDiscounts Alex → IncreaseSales Alex` gives `IncreaseSales Alex`.
+4. Finally `IncreaseSales Alex → ExpandBusiness Alex` gives `ExpandBusiness Alex`.
+
+Since we can prove `ExpandBusiness Alex`, we cannot prove its negation `¬ExpandBusiness Alex`. Therefore, the answer is Failure.
+
+Here's the corrected Lean code:
+
+<lean>
+axiom obj : Type
+axiom Alex : obj
+axiom AdvertisesCleverly : obj → Prop
+axiom OffersDiscounts : obj → Prop
+axiom AttractMoreCustomers : obj → Prop
+axiom IncreaseSales : obj → Prop
+axiom ExpandBusiness : obj → Prop
+
+axiom ad_attract : ∀ x, AdvertisesCleverly x → AttractMoreCustomers x
+axiom discount_sales : ∀ x, OffersDiscounts x → IncreaseSales x
+axiom ad_or_discount : ∀ x, AdvertisesCleverly x ∨ OffersDiscounts x
+axiom sales_expand : ∀ x, IncreaseSales x → ExpandBusiness x
+axiom no_attract : ¬ AttractMoreCustomers Alex
+
+-- Proof that Alex expands his business
+theorem alex_expands : ExpandBusiness Alex := by
+  have no_ad : ¬ AdvertisesCleverly Alex := fun h => no_attract (ad_attract Alex h)
+  cases (ad_or_discount Alex) with
+  | inl ad => contradiction  -- Contradiction from ad and no_ad
+  | inr disc => exact sales_expand Alex (discount_sales Alex disc)
+
+-- Therefore, ¬ExpandBusiness Alex cannot be proven
+</lean>
+
+ANSWER: Failure

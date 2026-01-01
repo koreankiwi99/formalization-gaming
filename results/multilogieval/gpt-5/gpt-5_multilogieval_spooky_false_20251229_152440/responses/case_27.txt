@@ -1,0 +1,66 @@
+<lean>
+axiom Person : Type
+axiom John : Person
+
+axiom CloseToLunch : Prop
+axiom CoworkersHungry : Person → Prop
+axiom PreparedWell : Person → Prop
+axiom Ready : Person → Prop
+axiom Diligent : Person → Prop
+
+-- If it is close to lunchtime, then their coworkers would be hungry (for John)
+axiom LtoH : CloseToLunch → CoworkersHungry John
+-- If they prepared well for the presentation, then they would be ready for the meeting (for any person)
+axiom PtoR : ∀ x : Person, PreparedWell x → Ready x
+-- Either it was close to lunchtime, or they were not ready, or both
+axiom Disj : CloseToLunch ∨ ¬Ready John ∨ (CloseToLunch ∧ ¬Ready John)
+-- If someone was diligent, they would prepare well (everyone at the office)
+axiom DtoP : ∀ x : Person, Diligent x → PreparedWell x
+
+-- From not hungry to not close to lunch
+theorem notH_to_notL : ¬CoworkersHungry John → ¬CloseToLunch := by
+  intro nh
+  intro l
+  have h : CoworkersHungry John := LtoH l
+  exact nh h
+
+-- Simplify the given disjunction to L ∨ ¬R
+theorem L_or_notR : CloseToLunch ∨ ¬Ready John := by
+  have d := Disj
+  cases d with
+  | inl l => exact Or.inl l
+  | inr rest =>
+    cases rest with
+    | inl notR => exact Or.inr notR
+    | inr both => exact Or.inl both.left
+
+-- From not L and (L ∨ ¬R) derive ¬R
+theorem notL_to_notR : ¬CloseToLunch → ¬Ready John := by
+  intro nL
+  have d : CloseToLunch ∨ ¬Ready John := L_or_notR
+  cases d with
+  | inl l => exact False.elim (nL l)
+  | inr notR => exact notR
+
+-- Diligent implies Ready (via PreparedWell)
+theorem D_implies_R : Diligent John → Ready John := by
+  intro d
+  have pw : PreparedWell John := DtoP John d
+  exact PtoR John pw
+
+-- From ¬R derive ¬D
+theorem notR_to_notD : ¬Ready John → ¬Diligent John := by
+  intro nR
+  intro d
+  have r : Ready John := D_implies_R d
+  exact nR r
+
+-- From ¬Hungry derive ¬Diligent
+theorem notH_to_notD : ¬CoworkersHungry John → ¬Diligent John := by
+  intro nh
+  have nL : ¬CloseToLunch := notH_to_notL nh
+  have nR : ¬Ready John := notL_to_notR nL
+  exact notR_to_notD nR
+</lean>
+
+ANSWER: Failure

@@ -1,0 +1,128 @@
+<lean>
+axiom obj : Type
+axiom Vladimir : obj
+axiom Ekaterina : obj
+axiom CanRegisterToVoteInUS : obj → Prop
+axiom HasUSCitizenship : obj → Prop
+axiom HasTaiwaneseCitizenship : obj → Prop
+axiom IsRussianFedOfficial : obj → Prop
+axiom IsManagerAtGazprom : obj → Prop
+
+-- Premises:
+axiom P1 : ∀ x : obj, HasUSCitizenship x → CanRegisterToVoteInUS x
+axiom P2 : ∀ x : obj, HasUSCitizenship x ∨ HasTaiwaneseCitizenship x
+axiom P3 : ∀ x : obj, IsRussianFedOfficial x → ¬ HasTaiwaneseCitizenship x
+axiom P4 : ¬ HasTaiwaneseCitizenship Vladimir ∧ ¬ IsManagerAtGazprom Vladimir
+axiom P5 : CanRegisterToVoteInUS Ekaterina ∨ IsRussianFedOfficial Ekaterina
+
+-- Attempt to prove ¬IsRussianFedOfficial Vladimir
+-- From P4, we know Vladimir has no Taiwanese citizenship
+theorem no_taiwanese_vlad : ¬ HasTaiwaneseCitizenship Vladimir := P4.left
+
+-- From P2, Vladimir must have US citizenship
+theorem vlad_has_us : HasUSCitizenship Vladimir := by
+  have h := P2 Vladimir
+  cases h with
+  | inl us => exact us
+  | inr tai => contradiction  -- Contradicts no_taiwanese_vlad
+
+-- Vladimir can register to vote (though not needed for conclusion)
+theorem vlad_can_register : CanRegisterToVoteInUS Vladimir := P1 Vladimir vlad_has_us
+
+-- However, no premise links US citizenship to Russian official status
+-- P3 only restricts Russian officials from having Taiwanese citizenship
+-- Vladimir has US citizenship, which doesn't contradict being a Russian official
+-- Thus, we cannot prove ¬IsRussianFedOfficial Vladimir
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation error occurred because the `contradiction` tactic couldn't automatically detect the contradiction between `HasTaiwaneseCitizenship Vladimir` and the axiom `P4.left` in the local context. This is fixed by explicitly using `absurd` with `P4.left` to derive the contradiction.
+
+However, even after fixing this error, the conclusion "Vladimir is not a Russian federation official" cannot be proven. Here's why:
+
+1. We can prove Vladimir has US citizenship (using P2 and P4)
+2. We can prove Vladimir doesn't have Taiwanese citizenship (from P4)
+3. But there's no premise linking US citizenship to Russian official status
+4. P3 only restricts Russian officials from having Taiwanese citizenship, which Vladimir already doesn't have
+5. Vladimir could theoretically have US citizenship and still be a Russian official
+
+Thus, the proof fails.
+
+<lean>
+axiom obj : Type
+axiom Vladimir : obj
+axiom Ekaterina : obj
+axiom CanRegisterToVoteInUS : obj → Prop
+axiom HasUSCitizenship : obj → Prop
+axiom HasTaiwaneseCitizenship : obj → Prop
+axiom IsRussianFedOfficial : obj → Prop
+axiom IsManagerAtGazprom : obj → Prop
+
+-- Premises:
+axiom P1 : ∀ x : obj, HasUSCitizenship x → CanRegisterToVoteInUS x
+axiom P2 : ∀ x : obj, HasUSCitizenship x ∨ HasTaiwaneseCitizenship x
+axiom P3 : ∀ x : obj, IsRussianFedOfficial x → ¬ HasTaiwaneseCitizenship x
+axiom P4 : ¬ HasTaiwaneseCitizenship Vladimir ∧ ¬ IsManagerAtGazprom Vladimir
+axiom P5 : CanRegisterToVoteInUS Ekaterina ∨ IsRussianFedOfficial Ekaterina
+
+-- Prove Vladimir has US citizenship
+theorem vlad_has_us : HasUSCitizenship Vladimir := by
+  cases P2 Vladimir with
+  | inl us => exact us
+  | inr tai => absurd tai P4.left
+
+-- Show we cannot prove ¬IsRussianFedOfficial Vladimir
+-- Vladimir has US citizenship (vlad_has_us) but no premise prevents
+-- Russian officials from having US citizenship. P3 only forbids them
+-- from having Taiwanese citizenship, which Vladimir already lacks.
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The compilation error occurred because the `contradiction` tactic wasn't resolving the contradiction between `tai` and `P4.left` in the `inr` branch. This is fixed by explicitly deriving `False` using `P4.left tai` and then eliminating it with `False.elim`.
+
+However, even after fixing this, we still cannot prove "Vladimir is not a Russian federation official" because:
+1. We know Vladimir has US citizenship (from P2 and P4)
+2. We know Vladimir doesn't have Taiwanese citizenship (from P4)
+3. But there's no premise preventing Russian officials from having US citizenship
+4. P3 only restricts Russian officials from having Taiwanese citizenship, which Vladimir already lacks
+5. Thus, Vladimir could theoretically be a Russian official with US citizenship
+
+<lean>
+axiom obj : Type
+axiom Vladimir : obj
+axiom Ekaterina : obj
+axiom CanRegisterToVoteInUS : obj → Prop
+axiom HasUSCitizenship : obj → Prop
+axiom HasTaiwaneseCitizenship : obj → Prop
+axiom IsRussianFedOfficial : obj → Prop
+axiom IsManagerAtGazprom : obj → Prop
+
+-- Premises:
+axiom P1 : ∀ x : obj, HasUSCitizenship x → CanRegisterToVoteInUS x
+axiom P2 : ∀ x : obj, HasUSCitizenship x ∨ HasTaiwaneseCitizenship x
+axiom P3 : ∀ x : obj, IsRussianFedOfficial x → ¬ HasTaiwaneseCitizenship x
+axiom P4 : ¬ HasTaiwaneseCitizenship Vladimir ∧ ¬ IsManagerAtGazprom Vladimir
+axiom P5 : CanRegisterToVoteInUS Ekaterina ∨ IsRussianFedOfficial Ekaterina
+
+-- Prove Vladimir has US citizenship
+theorem vlad_has_us : HasUSCitizenship Vladimir := by
+  cases P2 Vladimir with
+  | inl us => exact us
+  | inr tai => exact False.elim (P4.left tai)
+
+-- Show we cannot prove ¬IsRussianFedOfficial Vladimir
+-- Vladimir has US citizenship but no premise prevents Russian officials
+-- from having US citizenship. P3 only forbids Taiwanese citizenship.
+</lean>
+
+ANSWER: Failure

@@ -1,0 +1,47 @@
+<lean>
+axiom obj : Type
+axiom Mix : obj
+
+axiom Hydrocarbon : obj → Prop
+axiom Organic : obj → Prop
+axiom Alkane : obj → Prop
+axiom Chem : obj → Prop
+axiom ContainsCarbon : obj → Prop
+axiom OneElement : obj → Prop
+
+-- All hydrocarbons are organic compounds.
+axiom A1 : ∀ x : obj, Hydrocarbon x → Organic x
+-- All alkanes are hydrocarbons.
+axiom A2 : ∀ x : obj, Alkane x → Hydrocarbon x
+-- All organic compounds are chemical compounds.
+axiom A3 : ∀ x : obj, Organic x → Chem x
+-- All organic compounds contain carbon.
+axiom A4 : ∀ x : obj, Organic x → ContainsCarbon x
+-- No chemical compounds contain only one element.
+axiom A5 : ∀ x : obj, Chem x → ¬ OneElement x
+-- The mixture either both is a chemical compound and contains only one element, or neither.
+axiom A6 : (Chem Mix ∧ OneElement Mix) ∨ (¬ Chem Mix ∧ ¬ OneElement Mix)
+
+theorem mixture_implication :
+  (OneElement Mix ∨ ContainsCarbon Mix) → (¬ Chem Mix ∧ ¬ Alkane Mix) := by
+  -- From A5 and A6, deduce the mixture is neither a chemical compound nor one-element.
+  have hneither : ¬ Chem Mix ∧ ¬ OneElement Mix := by
+    cases A6 with
+    | inl hboth =>
+      have hno : ¬ OneElement Mix := A5 Mix hboth.left
+      have f : False := hno hboth.right
+      exact False.elim f
+    | inr hne => exact hne
+  have hNotChem : ¬ Chem Mix := hneither.left
+  -- From ¬Chem Mix and the chain Alkane → Hydrocarbon → Organic → Chem, deduce ¬Alkane Mix.
+  have hNotAlk : ¬ Alkane Mix := by
+    intro hAlk
+    have hHydro : Hydrocarbon Mix := A2 Mix hAlk
+    have hOrg : Organic Mix := A1 Mix hHydro
+    have hChem : Chem Mix := A3 Mix hOrg
+    exact hNotChem hChem
+  intro _
+  exact And.intro hNotChem hNotAlk
+</lean>
+
+ANSWER: True

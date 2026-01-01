@@ -1,0 +1,65 @@
+<lean>
+axiom obj : Type
+
+-- Predicates
+axiom Spills : obj → Prop
+axiom Tidy : obj → Prop            -- notably tidy
+axiom Cleanly : obj → Prop
+axiom ValuesOrder : obj → Prop
+axiom FamilyPrioritizesOrder : obj → Prop
+axiom Clumsy : obj → Prop
+axiom Foodie : obj → Prop
+axiom GoesOutFrequently : obj → Prop
+
+-- Premises
+axiom A1 : ∀ x : obj, Spills x → ¬ Tidy x
+axiom A2 : ∀ x : obj, (Clumsy x ∧ Foodie x ∧ GoesOutFrequently x) → Spills x
+axiom A3 : ∀ x : obj, Cleanly x → Tidy x
+axiom A4 : ∀ x : obj, ValuesOrder x → Cleanly x
+axiom A5 : ∀ x : obj, FamilyPrioritizesOrder x → ValuesOrder x
+
+-- Peter and the exclusive-like disjunction
+axiom Peter : obj
+axiom A6 : (Spills Peter ∧ Cleanly Peter) ∨ (¬ Spills Peter ∧ ¬ Cleanly Peter)
+
+-- Derived consequences from A6 and other premises
+
+-- From (S ∧ C) ∨ (¬S ∧ ¬C) we can derive S ↔ C
+theorem spill_iff_cleanly_Peter : Spills Peter ↔ Cleanly Peter := by
+  cases A6 with
+  | inl h =>
+    have hS : Spills Peter := And.left h
+    have hC : Cleanly Peter := And.right h
+    apply Iff.intro
+    · intro _hS; exact hC
+    · intro _hC; exact hS
+  | inr h =>
+    have hNS : ¬ Spills Peter := And.left h
+    have hNC : ¬ Cleanly Peter := And.right h
+    apply Iff.intro
+    · intro hS; exact False.elim (hNS hS)
+    · intro hC; exact False.elim (hNC hC)
+
+-- From Cleanly → Tidy and Spills → ¬Tidy and (Spills ↔ Cleanly), we get ¬Cleanly Peter
+theorem not_cleanly_Peter : ¬ Cleanly Peter := by
+  intro hC
+  have t : Tidy Peter := A3 Peter hC
+  have s : Spills Peter := Iff.mpr spill_iff_cleanly_Peter hC
+  have nt : ¬ Tidy Peter := A1 Peter s
+  exact nt t
+
+-- And thus ¬Spills Peter
+theorem not_spills_Peter : ¬ Spills Peter := by
+  intro hS
+  have hC : Cleanly Peter := Iff.mp spill_iff_cleanly_Peter hS
+  exact not_cleanly_Peter hC
+
+-- So the second disjunct of A6 must hold
+theorem forced_second_disjunct : (¬ Spills Peter ∧ ¬ Cleanly Peter) :=
+  And.intro not_spills_Peter not_cleanly_Peter
+
+-- Note: From these premises we cannot derive Tidy Peter.
+-- We have shown ¬Cleanly Peter and ¬Spills Peter, and there is no premise implying Tidy without Cleanly.
+</lean>
+
+ANSWER: Failure

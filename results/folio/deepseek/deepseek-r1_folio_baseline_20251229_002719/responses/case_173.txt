@@ -1,0 +1,87 @@
+The context describes relationships involving health habits, and the question asks whether Taylor visits the gym daily. The analysis shows that Taylor's gym habits can be definitively concluded as false based on the premises. Here's the Lean proof:
+
+<lean>
+axiom Person : Type
+axiom Taylor : Person
+axiom EatsSaladsRegularly : Person → Prop
+axiom HealthConscious : Person → Prop
+axiom GrewUpHealthConsciousHome : Person → Prop
+axiom FulfillsNutrition : Person → Prop
+axiom DisregardPhysicalWellBeing : Person → Prop
+axiom VisitsGymDaily : Person → Prop
+
+-- Context axioms
+axiom A1 : ∀ x, EatsSaladsRegularly x → HealthConscious x
+axiom A2 : ∀ x, GrewUpHealthConsciousHome x → EatsSaladsRegularly x
+axiom A3 : ∀ x, FulfillsNutrition x → GrewUpHealthConsciousHome x
+axiom A4 : ∀ x, DisregardPhysicalWellBeing x → ¬ HealthConscious x
+axiom A5 : ∀ x, VisitsGymDaily x → FulfillsNutrition x
+axiom TaylorCase : 
+  (GrewUpHealthConsciousHome Taylor ∧ DisregardPhysicalWellBeing Taylor) ∨ 
+  (¬ GrewUpHealthConsciousHome Taylor ∧ ¬ DisregardPhysicalWellBeing Taylor)
+
+-- Proof that Taylor does NOT visit the gym daily
+theorem taylor_not_gym : ¬ VisitsGymDaily Taylor := by
+  intro gym
+  have fulfills := A5 Taylor gym
+  have grewUp := A3 Taylor fulfills
+  cases TaylorCase with
+  | inl h => 
+      have healthCon := A1 Taylor (A2 Taylor h.1)
+      have notHealthCon := A4 Taylor h.2
+      contradiction
+  | inr h => contradiction
+</lean>
+
+ANSWER: False
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation error occurred because the `contradiction` tactic couldn't automatically detect the contradiction in the second case. The explicit negation needed to be directly applied. Here's the corrected Lean proof:
+
+<lean>
+axiom Person : Type
+axiom Taylor : Person
+axiom EatsSaladsRegularly : Person → Prop
+axiom HealthConscious : Person → Prop
+axiom GrewUpHealthConsciousHome : Person → Prop
+axiom FulfillsNutrition : Person → Prop
+axiom DisregardPhysicalWellBeing : Person → Prop
+axiom VisitsGymDaily : Person → Prop
+
+axiom A1 : ∀ x, EatsSaladsRegularly x → HealthConscious x
+axiom A2 : ∀ x, GrewUpHealthConsciousHome x → EatsSaladsRegularly x
+axiom A3 : ∀ x, FulfillsNutrition x → GrewUpHealthConsciousHome x
+axiom A4 : ∀ x, DisregardPhysicalWellBeing x → ¬ HealthConscious x
+axiom A5 : ∀ x, VisitsGymDaily x → FulfillsNutrition x
+axiom TaylorCase : 
+  (GrewUpHealthConsciousHome Taylor ∧ DisregardPhysicalWellBeing Taylor) ∨ 
+  (¬ GrewUpHealthConsciousHome Taylor ∧ ¬ DisregardPhysicalWellBeing Taylor)
+
+theorem taylor_not_gym : ¬ VisitsGymDaily Taylor :=
+  fun gym =>
+  have fulfills : FulfillsNutrition Taylor := A5 Taylor gym
+  have grewUp : GrewUpHealthConsciousHome Taylor := A3 Taylor fulfills
+  match TaylorCase with
+  | Or.inl h =>   -- Case where Taylor grew up health-conscious AND disregards well-being
+      have healthCon : HealthConscious Taylor := 
+        A1 Taylor (A2 Taylor h.left)
+      have notHealthCon : ¬ HealthConscious Taylor := 
+        A4 Taylor h.right
+      notHealthCon healthCon
+  | Or.inr h =>   -- Case where Taylor didn't grow up health-conscious AND doesn't disregard well-being
+      h.left grewUp  -- Direct contradiction: h.left is ¬grewUp but we have grewUp
+</lean>
+
+ANSWER: False
+
+**Explanation:**  
+The proof demonstrates that Taylor **cannot** visit the gym daily:
+1. If Taylor visited the gym daily (assumption), she would fulfill her nutritional needs (A5)
+2. This requires her to have grown up in a health-conscious home (A3)
+3. But Taylor has two possible cases:
+   - **Case 1**: Grew up health-conscious **and** disregards well-being → creates contradiction between being health-conscious (A1-A2) and not being health-conscious (A4)
+   - **Case 2**: Didn't grow up health-conscious → directly contradicts requirement from step 2
+Both cases lead to contradiction, proving Taylor does NOT visit the gym daily.

@@ -1,0 +1,65 @@
+<lean>
+axiom obj : Type
+axiom John : obj
+
+axiom Sale : Prop
+axiom BuyMore : obj → Prop
+axiom GroceryShopping : obj → Prop
+axiom GetAllList : obj → Prop
+axiom BeginningMonth : Prop
+axiom FavoriteCerealSoldOut : obj → Prop
+
+-- If the store has a sale, then people will buy more items.
+axiom A1 : ∀ x : obj, Sale → BuyMore x
+-- If someone goes grocery shopping, then they will get everything on their list.
+axiom A2 : ∀ x : obj, GroceryShopping x → GetAllList x
+-- Either the store has a sale, or John did not get everything on his list, or there was a sale and he still did not get all his groceries.
+axiom A3 : Sale ∨ (¬GetAllList John ∨ (Sale ∧ ¬GetAllList John))
+-- If it is the beginning of the month, then people go grocery shopping.
+axiom A4 : ∀ x : obj, BeginningMonth → GroceryShopping x
+-- Either it is the beginning of the month, or John's favorite cereal is sold out, or both.
+axiom A5 : BeginningMonth ∨ (FavoriteCerealSoldOut John ∨ (BeginningMonth ∧ FavoriteCerealSoldOut John))
+
+theorem john_cereal_sold_out_from_not_buy_more :
+  ¬BuyMore John → FavoriteCerealSoldOut John := by
+  intro hnb
+  -- From ¬BuyMore John, deduce ¬Sale
+  have hnsale : ¬Sale := by
+    intro hs
+    exact hnb (A1 John hs)
+  -- From the disjunction A3 and ¬Sale, deduce ¬GetAllList John
+  have hnotGet : ¬GetAllList John := by
+    cases A3 with
+    | inl hs =>
+      exact False.elim (hnsale hs)
+    | inr h =>
+      cases h with
+      | inl hng =>
+        exact hng
+      | inr hboth =>
+        have : False := hnsale hboth.left
+        exact False.elim this
+  -- From A2, deduce ¬GroceryShopping John
+  have hnotShop : ¬GroceryShopping John := by
+    intro hshop
+    exact hnotGet (A2 John hshop)
+  -- From A4, deduce ¬BeginningMonth
+  have hnotBM : ¬BeginningMonth := by
+    intro hbm
+    exact hnotShop (A4 John hbm)
+  -- From the disjunction A5 and ¬BeginningMonth, deduce FavoriteCerealSoldOut John
+  have hfco : FavoriteCerealSoldOut John := by
+    cases A5 with
+    | inl hbm =>
+      exact False.elim (hnotBM hbm)
+    | inr h =>
+      cases h with
+      | inl hf =>
+        exact hf
+      | inr hboth =>
+        have : False := hnotBM hboth.left
+        exact False.elim this
+  exact hfco
+</lean>
+
+ANSWER: Yes

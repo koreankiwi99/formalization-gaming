@@ -1,0 +1,117 @@
+The context and statement involve logical reasoning about sales, marketing, and production costs. The premises are:
+
+1. If they invested in marketing (M), they gain more customers (C).
+2. If they gain more customers (C), sales increase (S).
+3. Either they invested in marketing (M), or production costs increased (P), or both (M ∨ P).
+4. Sales did not increase last quarter (¬S).
+
+From ¬S and premises 1-2, we derive ¬M. Then, from M ∨ P and ¬M, we derive P (production costs increased).
+
+The conclusion asks: "Then had production costs increased?" which means we seek to verify P. However, the task requires proving the **negation** of this conclusion (i.e., ¬P). But from the premises, we have proven P. Since ¬P (production costs did not increase) contradicts the derived P, we **cannot prove ¬P**.
+
+<lean>
+axiom M : Prop  -- Invested in marketing last quarter
+axiom P : Prop  -- Production costs increased last quarter
+axiom C : Prop  -- Gained more customers last quarter
+axiom S : Prop  -- Sales increased last quarter
+
+axiom T1 : M → C  -- If invested in marketing, gained customers
+axiom T2 : C → S  -- If gained customers, sales increased
+axiom T3 : M ∨ P  -- Either marketing, production costs, or both
+axiom Given : ¬S  -- Sales did not increase last quarter
+
+theorem notM : ¬M := fun hM => Given (T2 (T1 hM))  -- Proves ¬M from ¬S, T1, T2
+theorem p_increased : P := T3.elim (fun m => False.elim (notM m)) (fun p => p)  -- Proves P (from T3 and ¬M)
+
+-- Attempt to prove the negation (¬P) fails, since we have proved P
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors occurred due to an incorrect use of `False.elim` in the proof of `p_increased`. Specifically, the term `notM m` already produces a proof of `False`, so `False.elim` should be applied directly to it without additional arguments. Additionally, to avoid name conflicts, the theorem name was changed from `notM` to `not_M`.
+
+The corrected Lean code:
+<lean>
+axiom M : Prop  -- Invested in marketing last quarter
+axiom P : Prop  -- Production costs increased last quarter
+axiom C : Prop  -- Gained more customers last quarter
+axiom S : Prop  -- Sales increased last quarter
+
+axiom T1 : M → C  -- If invested in marketing, gained customers
+axiom T2 : C → S  -- If gained customers, sales increased
+axiom T3 : M ∨ P  -- Either marketing, production costs, or both
+axiom Given : ¬S  -- Sales did not increase last quarter
+
+theorem not_M : ¬M := fun hM => Given (T2 (T1 hM))
+
+theorem p_increased : P :=
+  match T3 with
+  | Or.inl m => False.elim (not_M m)  -- Directly use proof of False
+  | Or.inr p => p
+
+-- Attempt to prove ¬P (production costs did NOT increase)
+theorem negP : ¬P := by
+  -- We have p_increased : P, so ¬P is impossible
+  exact fun hnp => hnp p_increased  -- Contradiction: ¬P and P
+  -- This proof fails because p_increased proves P
+</lean>
+
+**Explanation:**
+- `not_M` proves ¬M using the contrapositive of the premises (¬S → ¬C → ¬M).
+- `p_increased` proves P by case analysis on `T3`: 
+  - If M is true, it contradicts `not_M`, yielding False (which implies anything, including P).
+  - If P is true, it directly returns P.
+- The attempt to prove ¬P fails because `p_increased` already establishes P, making ¬P unprovable (as it would create a contradiction with no new information).
+
+Since we cannot prove the negation of the conclusion (¬P), the answer is Failure.
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The compilation error occurred because the proof for `¬P` was incorrectly constructed. The term `hnp` in `fun hnp => hnp p_increased` is of type `¬P` (i.e., `P → False`), and `p_increased` is of type `P`, so applying `hnp` to `p_increased` yields `False`. However, this expression has type `¬¬P` (not `¬P`), causing a type mismatch.
+
+After correction:
+- We prove `¬M` from `¬S` and the implications
+- We prove `P` by case analysis on `T3`:
+  - If `M` holds, it contradicts `¬M` (yielding `False`)
+  - If `P` holds, we directly use it
+- Attempting to prove `¬P` fails because we've already proven `P`
+
+<lean>
+axiom M : Prop  -- Invested in marketing last quarter
+axiom P : Prop  -- Production costs increased last quarter
+axiom C : Prop  -- Gained more customers last quarter
+axiom S : Prop  -- Sales increased last quarter
+
+axiom T1 : M → C  -- If invested in marketing, gained customers
+axiom T2 : C → S  -- If gained customers, sales increased
+axiom T3 : M ∨ P  -- Either marketing, production costs, or both
+axiom Given : ¬S  -- Sales did not increase last quarter
+
+theorem not_M : ¬M := fun hM => Given (T2 (T1 hM))
+
+theorem p_increased : P :=
+  match T3 with
+  | Or.inl m => False.elim (not_M m)  -- Contradiction: M and ¬M
+  | Or.inr p => p
+
+-- Attempt to prove ¬P (production costs did NOT increase)
+theorem negP : ¬P := 
+  fun hP =>  -- Assume P is false
+  have hContra : P := p_increased  -- But we've proven P
+  hP hContra  -- Contradiction: ¬P and P
+</lean>
+
+**Result**: The proof of `negP` fails because:
+1. `p_increased` proves `P` from the premises
+2. Assuming `¬P` leads to a contradiction (`hP p_increased : False`)
+3. This means `¬P` is unprovable (since premises imply `P`)
+
+ANSWER: Failure

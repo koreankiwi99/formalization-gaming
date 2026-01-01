@@ -1,0 +1,73 @@
+<lean>
+axiom obj : Type
+
+-- Individuals
+axiom James : obj
+
+-- Predicates
+axiom Employee : obj → Prop
+axiom Manager : obj → Prop
+axiom LunchCompany : obj → Prop
+axiom LunchHome : obj → Prop
+axiom ScheduleMeeting : obj → Prop
+axiom GoCompanyToday : obj → Prop
+axiom Remote : obj → Prop
+axiom InOtherCountries : obj → Prop
+
+-- Premises from the context
+-- All employees who schedule a meeting with their customers will go to the company building today.
+axiom P1 : ∀ x : obj, Employee x → ScheduleMeeting x → GoCompanyToday x
+-- Everyone who has lunch in the company building schedules meetings with their customers.
+axiom P2 : ∀ x : obj, LunchCompany x → ScheduleMeeting x
+-- Employees have lunch either in the company building or at home.
+axiom P3 : ∀ x : obj, Employee x → (LunchCompany x ∨ LunchHome x)
+-- If an employee has lunch at home, they are working remotely from home. (We model just lunch-at-home implies remote)
+axiom P4 : ∀ x : obj, LunchHome x → Remote x
+-- All employees who are in other countries work remotely from home.
+axiom P5 : ∀ x : obj, Employee x → InOtherCountries x → Remote x
+-- No managers work remotely from home.
+axiom P6 : ∀ x : obj, Manager x → ¬ Remote x
+-- James will appear in the company today iff he is a manager. (identify "appear" with "go to the company today")
+axiom P7 : GoCompanyToday James ↔ Manager James
+
+-- Some derived lemmas (showing what would follow under additional assumptions)
+
+-- If James is an employee and a manager, then he has lunch in the company.
+theorem manager_employee_lunch_company :
+  Employee James → Manager James → LunchCompany James := by
+  intro eJ mJ
+  have notRemote : ¬ Remote James := P6 James mJ
+  have notLunchHome : ¬ LunchHome James := by
+    intro lh
+    have r : Remote James := P4 James lh
+    exact notRemote r
+  have disj : LunchCompany James ∨ LunchHome James := P3 James eJ
+  cases disj with
+  | inl lc => exact lc
+  | inr lh => exact False.elim (notLunchHome lh)
+
+-- If James is an employee and not a manager, then he has lunch at home.
+theorem not_manager_employee_lunch_home :
+  Employee James → ¬ Manager James → LunchHome James := by
+  intro eJ notM
+  -- From ¬Manager and (Go ↔ Manager), get ¬Go
+  have notGo : ¬ GoCompanyToday James := by
+    apply mt (Iff.mp P7)
+    exact notM
+  -- For employees, LunchCompany implies GoCompanyToday
+  have lunchCompany_implies_go : LunchCompany James → GoCompanyToday James := by
+    intro lc
+    have sm : ScheduleMeeting James := P2 James lc
+    exact P1 James eJ sm
+  -- So ¬Go implies ¬LunchCompany
+  have notLunchCompany : ¬ LunchCompany James := by
+    intro lc
+    exact notGo (lunchCompany_implies_go lc)
+  -- Use the employee lunch dichotomy
+  have disj : LunchCompany James ∨ LunchHome James := P3 James eJ
+  cases disj with
+  | inl lc => exact False.elim (notLunchCompany lc)
+  | inr lh => exact lh
+</lean>
+
+ANSWER: Failure

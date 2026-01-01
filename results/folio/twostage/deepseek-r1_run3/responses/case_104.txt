@@ -1,0 +1,329 @@
+======================================================================
+STAGE 1: TRANSLATION
+======================================================================
+
+--- Iteration 1 ---
+
+=== REASONING ===
+We are formalizing the logical structure of the given premises and conclusion.
+ Steps:
+ 1. Identify the types and predicates.
+ 2. Declare axioms for the premises.
+ 3. Declare the theorem corresponding to the conclusion.
+
+ Types and predicates:
+  - We have people (applicants) and possibly other entities. Let's define a type for applicants or individuals.
+  - We are talking about Tom, so we can have a constant for Tom.
+  - We need predicates:
+      * Cost: but note that the cost of GRE is given as a fact, so we might not need a predicate for cost unless we compare.
+        However, the premise says "It costs $205 ... which is cheaper than $300". We can have a predicate for the cost of taking the test? 
+        Alternatively, we can note that the cost is $205 and that $205 is less than $300, but we don't need to formalize numbers if we only care about the financial aid.
+      * Instead, we focus on the conditions for financial aid.
+
+ Proposed predicates and constants:
+  - Let `obj` be the type of individuals (applicants).
+  - Constants: `Tom : obj`
+  - Predicates:
+      * `GREApplicant : obj → Prop`   (someone is applying to take the GRE test)
+      * `CanProveEconomicHardship : obj → Prop`   (an applicant can prove economic hardship)
+      * `ETSProvidesFinancialAid : obj → Prop`   (ETS provides financial aid to the applicant)
+
+  - Conditions for proving economic hardship:
+      * `LivingInSingleParentFamily : obj → Prop`
+      * `HasFewResources : obj → Prop`
+
+  - Axioms from premises:
+      P1: "It costs $205 ..." (we don't use this directly in the conclusion about Tom, so we skip formalizing it for now)
+      P2: "ETS provides financial aid to those GRE applicants who prove economic hardship."
+          ∀ x : obj, GREApplicant x ∧ CanProveEconomicHardship x → ETSProvidesFinancialAid x
+      P3: "Those living in single-parent families or having few resources available to them can prove economic hardship."
+          ∀ x : obj, (LivingInSingleParentFamily x ∨ HasFewResources x) → CanProveEconomicHardship x
+      P4: "Tom lives in a single-parent family." 
+          LivingInSingleParentFamily Tom
+      P5: "Tom's dad has been out of work, and Tom has few resources available to them."
+          This gives: HasFewResources Tom
+      P6: "Tom is applying to take the GRE test."
+          GREApplicant Tom
+
+  Conclusion: ETS provides financial aid to Tom, i.e., ETSProvidesFinancialAid Tom.
+
+  We'll declare:
+    axiom obj : Type
+    axiom Tom : obj
+    axiom GREApplicant : obj → Prop
+    axiom CanProveEconomicHardship : obj → Prop
+    axiom ETSProvidesFinancialAid : obj → Prop
+    axiom LivingInSingleParentFamily : obj → Prop
+    axiom HasFewResources : obj → Prop
+
+  Then the axioms for premises:
+    axiom P2 : ∀ x : obj, GREApplicant x ∧ CanProveEconomicHardship x → ETSProvidesFinancialAid x
+    axiom P3 : ∀ x : obj, (LivingInSingleParentFamily x ∨ HasFewResources x) → CanProveEconomicHardship x
+    axiom P4 : LivingInSingleParentFamily Tom
+    axiom P5 : HasFewResources Tom
+    axiom P6 : GREApplicant Tom
+
+  Theorem: ETSProvidesFinancialAid Tom
+
+  However, note that Tom has two conditions: single-parent family and few resources. We only need one to trigger P3.
+
+  We can prove the theorem by:
+    - From P4 and P5, we know Tom has at least one condition (in fact both). We can use P4 alone (since OR) to show CanProveEconomicHardship Tom via P3.
+    - Then with P6, we get the financial aid by P2.
+
+  But note: we are not proving, just formalizing. So we write:
+
+  theorem goal : ETSProvidesFinancialAid Tom := sorry
+
+  However, note: we have two ways to show CanProveEconomicHardship for Tom: via single-parent OR via few resources. We can use either.
+
+  We'll formalize without proving.
+
+  Important: We must include all the axioms.
+
+  Let's write the Lean code accordingly.
+
+
+=== RESPONSE ===
+Based on the premises and conclusion, here's the Lean 4 formalization:
+
+<lean>
+axiom obj : Type
+axiom Tom : obj
+
+-- Predicates
+axiom GREApplicant : obj → Prop
+axiom CanProveEconomicHardship : obj → Prop
+axiom ETSProvidesFinancialAid : obj → Prop
+axiom LivingInSingleParentFamily : obj → Prop
+axiom HasFewResources : obj → Prop
+
+-- Premises
+axiom financial_aid_rule : ∀ x : obj, GREApplicant x ∧ CanProveEconomicHardship x → ETSProvidesFinancialAid x
+axiom hardship_criteria : ∀ x : obj, LivingInSingleParentFamily x ∨ HasFewResources x → CanProveEconomicHardship x
+axiom tom_single_parent : LivingInSingleParentFamily Tom
+axiom tom_few_resources : HasFewResources Tom
+axiom tom_applicant : GREApplicant Tom
+
+-- Conclusion
+theorem ets_aid_for_tom : ETSProvidesFinancialAid Tom := sorry
+</lean>
+
+Explanation:
+1. `obj` represents the type of all entities
+2. `Tom` is a specific constant of type `obj`
+3. Predicates defined:
+   - `GREApplicant` for GRE applicants
+   - `CanProveEconomicHardship` for proving economic hardship
+   - `ETSProvidesFinancialAid` for financial aid provision
+   - `LivingInSingleParentFamily` for family status
+   - `HasFewResources` for resource availability
+4. Premises formalized as axioms:
+   - Financial aid rule: Applicants who prove hardship get aid
+   - Hardship criteria: Single-parent family OR few resources → hardship proof
+   - Tom's single-parent family status
+   - Tom's few resources status
+   - Tom's applicant status
+5. Conclusion formalized as a theorem (using `sorry` as placeholder)
+
+
+======================================================================
+STAGE 2: PROVING
+======================================================================
+
+--- Iteration 1 ---
+
+=== REASONING ===
+We are given several axioms and need to prove that ETS provides financial aid to Tom.
+ The key is to chain the premises:
+ 1. Tom is a GRE applicant (tom_applicant).
+ 2. Tom can prove economic hardship because he lives in a single-parent family OR has few resources.
+    Specifically, we have two facts about Tom: tom_single_parent and tom_few_resources.
+    Since the hardship_criteria says that if someone lives in a single-parent family OR has few resources, then they can prove economic hardship.
+    We have both conditions, so we can show that Tom can prove economic hardship.
+ 3. Then, by the financial_aid_rule, if Tom is an applicant and can prove economic hardship, then ETS provides financial aid.
+
+ Steps:
+ - We know `LivingInSingleParentFamily Tom` (tom_single_parent) and `HasFewResources Tom` (tom_few_resources).
+ - The hardship_criteria: ∀ x, (LivingInSingleParentFamily x ∨ HasFewResources x) → CanProveEconomicHardship x.
+   For Tom, we can form the disjunction: either `LivingInSingleParentFamily Tom` OR `HasFewResources Tom` is true.
+   Actually, we have both, so we can use either. We can use the left one: `LivingInSingleParentFamily Tom` to form `Or.inl tom_single_parent`.
+   Alternatively, we could use the right one. But we only need one disjunct? Actually, the rule requires one of them.
+
+   We can prove `LivingInSingleParentFamily Tom ∨ HasFewResources Tom` by `Or.inl tom_single_parent` (since the left disjunct is true).
+
+ - Then, applying `hardship_criteria` to Tom and this proof of disjunction gives `CanProveEconomicHardship Tom`.
+ - Then, we have `GREApplicant Tom` (tom_applicant) and `CanProveEconomicHardship Tom`, so by `financial_aid_rule Tom` we get the conclusion.
+
+ Proof term:
+
+ `financial_aid_rule Tom (And.intro tom_applicant (hardship_criteria Tom (Or.inl tom_single_parent)))`
+
+ However, note that we also have `tom_few_resources` which we didn't use. But we don't need both because the disjunction only requires one.
+
+ Alternatively, we could have used `Or.inr tom_few_resources`. Both work.
+
+ But note: the hardship_criteria rule says "LivingInSingleParentFamily x OR HasFewResources x", so we only need one.
+
+ Let's write the proof step by step:
+
+   have h1 : LivingInSingleParentFamily Tom ∨ HasFewResources Tom := Or.inl tom_single_parent
+   have h2 : CanProveEconomicHardship Tom := hardship_criteria Tom h1
+   have h3 : GREApplicant Tom ∧ CanProveEconomicHardship Tom := And.intro tom_applicant h2
+   then: financial_aid_rule Tom h3
+
+ We can write this as a single term:
+
+   financial_aid_rule Tom (And.intro tom_applicant (hardship_criteria Tom (Or.inl tom_single_parent)))
+
+ However, we could also use the right disjunct:
+
+   financial_aid_rule Tom (And.intro tom_applicant (hardship_criteria Tom (Or.inr tom_few_resources)))
+
+ Both are valid.
+
+ Alternatively, we can use a proof using `by` and tactics.
+
+ But the problem says: use Lean 4 syntax, and we can use either a term or a tactic proof.
+
+ Since the example used a term, we can do that.
+
+ However, note that the original problem has two facts about Tom: single parent and few resources. We only need one for the disjunction.
+
+ We'll choose one arbitrarily, say the left one.
+
+ Complete code:
+
+<lean>
+axiom obj : Type
+axiom Tom : obj
+
+-- Predicates
+axiom GREApplicant : obj → Prop
+axiom CanProveEconomicHardship : obj → Prop
+axiom ETSProvidesFinancialAid : obj → Prop
+axiom LivingInSingleParentFamily : obj → Prop
+axiom HasFewResources : obj → Prop
+
+-- Premises
+axiom financial_aid_rule : ∀ x : obj, GREApplicant x ∧ CanProveEconomicHardship x → ETSProvidesFinancialAid x
+axiom hardship_criteria : ∀ x : obj, LivingInSingleParentFamily x ∨ HasFewResources x → CanProveEconomicHardship x
+axiom tom_single_parent : LivingInSingleParentFamily Tom
+axiom tom_few_resources : HasFewResources Tom
+axiom tom_applicant : GREApplicant Tom
+
+-- Conclusion
+theorem ets_aid_for_tom : ETSProvidesFinancialAid Tom :=
+  financial_aid_rule Tom (And.intro tom_applicant (hardship_criteria Tom (Or.inl tom_single_parent)))
+</lean>
+
+But note: we have two ways to prove the disjunction. We could also use `Or.inr tom_few_resources`. Both are acceptable.
+
+Alternatively, we can use a tactic proof:
+
+<lean>
+theorem ets_aid_for_tom : ETSProvidesFinancialAid Tom := by
+  apply financial_aid_rule Tom
+  apply And.intro
+  . exact tom_applicant
+  . apply hardship_criteria Tom
+    apply Or.inl
+    exact tom_single_parent
+</lean>
+
+But the example provided a term proof. We can choose either.
+
+However, the problem says: "Replace 'sorry' with a valid proof term", meaning we can write a term.
+
+But note: the example used a term. We'll use a term.
+
+But wait: the problem says "Provide the complete code with proof", so we write the entire code block.
+
+We'll use the term proof with `Or.inl`.
+
+Alternatively, we could use `Or.inr` and it would also be valid.
+
+But note: the problem says "Tom lives in a single-parent family" and "Tom has few resources", so both are true. We can use either.
+
+We'll use `Or.inl` for consistency.
+
+Final answer: the conclusion is True.
+
+However, note: the original problem also had a premise about the cost, but it was not used in the formalization. So we don't need it.
+
+Therefore, we write:
+
+ANSWER: True
+
+But note: the task is to provide the code and then the answer.
+
+So we output:
+
+<lean>
+axiom obj : Type
+axiom Tom : obj
+
+-- Predicates
+axiom GREApplicant : obj → Prop
+axiom CanProveEconomicHardship : obj → Prop
+axiom ETSProvidesFinancialAid : obj → Prop
+axiom LivingInSingleParentFamily : obj → Prop
+axiom HasFewResources : obj → Prop
+
+-- Premises
+axiom financial_aid_rule : ∀ x : obj, GREApplicant x ∧ CanProveEconomicHardship x → ETSProvidesFinancialAid x
+axiom hardship_criteria : ∀ x : obj, LivingInSingleParentFamily x ∨ HasFewResources x → CanProveEconomicHardship x
+axiom tom_single_parent : LivingInSingleParentFamily Tom
+axiom tom_few_resources : HasFewResources Tom
+axiom tom_applicant : GREApplicant Tom
+
+-- Conclusion
+theorem ets_aid_for_tom : ETSProvidesFinancialAid Tom :=
+  financial_aid_rule Tom (And.intro tom_applicant (hardship_criteria Tom (Or.inl tom_single_parent)))
+</lean>
+
+ANSWER: True
+
+But note: we could have used the other disjunct. We'll stick with this.
+
+Alternatively, if we want to use both, we don't have to because one is enough.
+
+However, we can also note that we have two ways to prove the disjunction. But the proof only requires one.
+
+So this is valid.
+
+
+=== RESPONSE ===
+The proof relies on the provided premises:
+1. Tom is a GRE applicant (`tom_applicant`).
+2. Tom lives in a single-parent family (`tom_single_parent`), which satisfies one disjunct of the hardship criteria.
+3. The hardship criteria (`hardship_criteria`) states that anyone living in a single-parent family OR having few resources can prove economic hardship.
+4. Since Tom lives in a single-parent family, he qualifies for hardship proof via `Or.inl tom_single_parent`.
+5. The financial aid rule (`financial_aid_rule`) requires an applicant who can prove hardship, which Tom satisfies via `And.intro tom_applicant ...`.
+
+Thus, ETS must provide financial aid to Tom.
+
+<lean>
+axiom obj : Type
+axiom Tom : obj
+
+-- Predicates
+axiom GREApplicant : obj → Prop
+axiom CanProveEconomicHardship : obj → Prop
+axiom ETSProvidesFinancialAid : obj → Prop
+axiom LivingInSingleParentFamily : obj → Prop
+axiom HasFewResources : obj → Prop
+
+-- Premises
+axiom financial_aid_rule : ∀ x : obj, GREApplicant x ∧ CanProveEconomicHardship x → ETSProvidesFinancialAid x
+axiom hardship_criteria : ∀ x : obj, LivingInSingleParentFamily x ∨ HasFewResources x → CanProveEconomicHardship x
+axiom tom_single_parent : LivingInSingleParentFamily Tom
+axiom tom_few_resources : HasFewResources Tom
+axiom tom_applicant : GREApplicant Tom
+
+-- Conclusion
+theorem ets_aid_for_tom : ETSProvidesFinancialAid Tom :=
+  financial_aid_rule Tom (And.intro tom_applicant (hardship_criteria Tom (Or.inl tom_single_parent)))
+</lean>
+
+ANSWER: True

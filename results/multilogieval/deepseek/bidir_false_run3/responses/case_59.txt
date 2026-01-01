@@ -1,0 +1,142 @@
+The context and statement are translated into Lean to evaluate whether we can prove that Emma does not gain knowledge of music theory given the premises.
+
+<lean>
+axiom Person : Type
+axiom Emma : Person
+axiom LearnedBasicChords : Person → Prop
+axiom LearnedStrumming : Person → Prop
+axiom PlaySimpleSongs : Person → Prop
+axiom EntertainFriends : Person → Prop
+axiom TookLessons : Person → Prop
+axiom GainMusicTheory : Person → Prop
+
+-- If someone learns basic chords and strumming patterns, they can play simple songs
+axiom A1 : ∀ x : Person, LearnedBasicChords x → LearnedStrumming x → PlaySimpleSongs x
+
+-- If someone can play simple songs, they can entertain friends
+axiom A2 : ∀ x : Person, PlaySimpleSongs x → EntertainFriends x
+
+-- Emma either learned basic chords, took lessons, or both
+axiom A3 : LearnedBasicChords Emma ∨ TookLessons Emma
+
+-- If someone takes lessons, they gain music theory knowledge
+axiom A4 : ∀ x : Person, TookLessons x → GainMusicTheory x
+
+-- Given: Emma cannot entertain friends
+axiom Given : ¬EntertainFriends Emma
+
+-- Attempt to prove Emma does NOT gain music theory knowledge
+theorem goal : ¬GainMusicTheory Emma := by
+  -- We know Emma cannot entertain friends, so by A2 she cannot play simple songs
+  have no_play : ¬PlaySimpleSongs Emma := fun h_play => Given (A2 Emma h_play)
+  -- By contrapositive of A1, if Emma can't play simple songs, then she lacks chords or strumming
+  have no_chords_or_no_strum : ¬LearnedBasicChords Emma ∨ ¬LearnedStrumming Emma := by
+    contrapose! no_play
+    exact A1 Emma no_play.1 no_play.2
+  -- Case split on A3: Emma either learned chords or took lessons
+  cases A3 with
+  | inl chords =>
+    -- If Emma learned chords, then by no_chords_or_no_strum she lacks strumming
+    -- However, this gives no information about lessons or music theory
+    -- We cannot prove ¬GainMusicTheory Emma here because she might have taken lessons
+    -- and A4 would force GainMusicTheory Emma
+    admit  -- Cannot prove in this branch
+  | inr lessons =>
+    -- If Emma took lessons, then by A4 she gains music theory
+    -- But we need to prove ¬GainMusicTheory Emma, which contradicts A4 Emma lessons
+    -- Thus this branch leads to contradiction with the desired conclusion
+    -- We cannot prove ¬GainMusicTheory Emma when she took lessons
+    admit  -- Cannot prove in this branch
+  -- In both cases, we fail to construct a proof
+</lean>
+
+**Explanation:**  
+- The premises are formalized using axioms.  
+- `Given` states Emma cannot entertain friends.  
+- The proof attempt shows:  
+  1. Emma cannot play simple songs (from `A2` and `Given`).  
+  2. This implies she lacks basic chords or strumming (contrapositive of `A1`).  
+  3. Case analysis on `A3` (Emma learned chords or took lessons):  
+     - If she learned chords, she lacks strumming, but this doesn’t preclude her from taking lessons (and gaining music theory).  
+     - If she took lessons, she gains music theory (`A4`), contradicting the goal `¬GainMusicTheory Emma`.  
+- Neither case proves `¬GainMusicTheory Emma`. The `admit` tactics indicate unprovable branches.  
+
+**Conclusion:** The negation (Emma does not gain music theory) cannot be proven from the premises.
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors occurred due to incorrect usage of the `contrapose!` tactic and missing classical logic declarations. After correcting these issues:
+
+1. Added `open Classical` to enable classical reasoning
+2. Replaced problematic `contrapose!` with direct proof of negation
+3. Used case analysis on disjunction properly
+4. Added `em` (excluded middle) for classical case analysis
+
+The corrected Lean code shows we cannot prove that Emma does not gain music theory knowledge:
+
+<lean>
+axiom Person : Type
+axiom Emma : Person
+axiom LearnedBasicChords : Person → Prop
+axiom LearnedStrumming : Person → Prop
+axiom PlaySimpleSongs : Person → Prop
+axiom EntertainFriends : Person → Prop
+axiom TookLessons : Person → Prop
+axiom GainMusicTheory : Person → Prop
+
+-- If someone learns basic chords and strumming patterns, they can play simple songs
+axiom A1 : ∀ x : Person, LearnedBasicChords x → LearnedStrumming x → PlaySimpleSongs x
+
+-- If someone can play simple songs, they can entertain friends
+axiom A2 : ∀ x : Person, PlaySimpleSongs x → EntertainFriends x
+
+-- Emma either learned basic chords, took lessons, or both
+axiom A3 : LearnedBasicChords Emma ∨ TookLessons Emma
+
+-- If someone takes lessons, they gain music theory knowledge
+axiom A4 : ∀ x : Person, TookLessons x → GainMusicTheory x
+
+-- Given: Emma cannot entertain friends
+axiom Given : ¬EntertainFriends Emma
+
+open Classical  -- Enable classical logic for disjunction reasoning
+
+-- Attempt to prove Emma does NOT gain music theory knowledge
+theorem goal : ¬GainMusicTheory Emma := by
+  intro h_gain  -- Assume Emma gains music theory
+  have no_play : ¬PlaySimpleSongs Emma := fun h_play => Given (A2 Emma h_play)
+  
+  -- Case split on Emma's learning method
+  cases A3 with
+  | inl chords =>  -- Case 1: Emma learned basic chords
+    -- Prove she lacks strumming patterns
+    have no_strum : ¬LearnedStrumming Emma := by
+      intro h_strum
+      exact no_play (A1 Emma chords h_strum)
+    -- No contradiction: Emma might still have taken lessons
+    admit  
+  | inr lessons =>  -- Case 2: Emma took lessons
+    -- A4 forces her to gain music theory
+    have : GainMusicTheory Emma := A4 Emma lessons
+    -- Contradicts our assumption? No - matches h_gain
+    admit  
+</lean>
+
+**Explanation of corrections:**
+1. Added `open Classical` to use excluded middle for disjunction reasoning
+2. Replaced flawed `contrapose!` with direct implication proof
+3. Used proper case analysis on `A3` disjunction
+4. Both branches require `admit` since:
+   - Chord branch: No link between chords/strumming and lessons
+   - Lessons branch: Forces music theory (contradicts negation goal)
+
+**Conclusion:** We cannot prove Emma does not gain music theory because:
+1. She might have taken lessons (forcing music theory via A4)
+2. Premises don't prohibit gaining music theory without lessons
+3. No connection between strumming patterns and lessons
+
+ANSWER: Failure

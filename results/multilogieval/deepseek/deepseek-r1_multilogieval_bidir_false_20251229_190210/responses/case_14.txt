@@ -1,0 +1,91 @@
+<lean>
+axiom obj : Type
+axiom Alex : obj
+axiom AdvertiseCleverly : obj → Prop
+axiom AttractMoreCustomers : obj → Prop
+axiom OfferDiscounts : obj → Prop
+axiom IncreaseSales : obj → Prop
+axiom ExpandBusiness : obj → Prop
+
+axiom A1 : ∀ x, AdvertiseCleverly x → AttractMoreCustomers x
+axiom A2 : ∀ x, OfferDiscounts x → IncreaseSales x
+axiom A3 : ∀ x, AdvertiseCleverly x ∨ OfferDiscounts x
+axiom A4 : ∀ x, IncreaseSales x → ExpandBusiness x
+
+axiom given : ¬ AttractMoreCustomers Alex
+
+-- Attempt to prove ¬ExpandBusiness Alex
+theorem neg_expand : ¬ExpandBusiness Alex := by
+  -- We know Alex didn't attract customers, so by contraposition of A1:
+  have not_advertise : ¬AdvertiseCleverly Alex := 
+    fun h => given (A1 Alex h)
+  -- From A3, Alex must offer discounts:
+  have offer : OfferDiscounts Alex := by
+    cases A3 Alex with
+    | inl adv => contradiction
+    | inr off => exact off
+  -- Then by A2, Alex increases sales:
+  have increase : IncreaseSales Alex := A2 Alex offer
+  -- By A4, Alex expands business:
+  have expand : ExpandBusiness Alex := A4 Alex increase
+  -- But we're trying to prove ¬ExpandBusiness Alex → contradiction
+  intro hneg
+  exact hneg expand
+
+-- This leads to contradiction since we have both expand and ¬expand
+-- However, note: we have constructed a proof of ExpandBusiness Alex above
+-- Therefore, attempting to prove ¬ExpandBusiness Alex creates a contradiction with the derived fact
+-- But actually, this shows we CANNOT prove ¬ExpandBusiness Alex because we have a proof of ExpandBusiness Alex
+-- Thus, we must abandon the attempt to prove the negation
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation error occurred because the theorem `neg_expand` incorrectly tried to apply a term of type `ExpandBusiness Alex` as if it were a function. The deeper issue is that the premises actually prove that Alex *did* expand his business, making it impossible to prove the negation.
+
+Corrected Lean code:
+<lean>
+axiom obj : Type
+axiom Alex : obj
+axiom AdvertiseCleverly : obj → Prop
+axiom AttractMoreCustomers : obj → Prop
+axiom OfferDiscounts : obj → Prop
+axiom IncreaseSales : obj → Prop
+axiom ExpandBusiness : obj → Prop
+
+axiom A1 : ∀ x, AdvertiseCleverly x → AttractMoreCustomers x
+axiom A2 : ∀ x, OfferDiscounts x → IncreaseSales x
+axiom A3 : ∀ x, AdvertiseCleverly x ∨ OfferDiscounts x
+axiom A4 : ∀ x, IncreaseSales x → ExpandBusiness x
+
+axiom given : ¬ AttractMoreCustomers Alex
+
+-- Deriving necessary facts
+theorem not_advertise : ¬AdvertiseCleverly Alex := 
+  fun h => given (A1 Alex h)
+
+theorem offer_discounts : OfferDiscounts Alex := by
+  cases A3 Alex with
+  | inl adv => exact (not_advertise adv).elim
+  | inr off => exact off
+
+theorem increased_sales : IncreaseSales Alex := 
+  A2 Alex offer_discounts
+
+theorem expanded_business : ExpandBusiness Alex := 
+  A4 Alex increased_sales
+
+-- Attempt to prove ¬ExpandBusiness Alex fails because we have a proof of ExpandBusiness Alex
+</lean>
+
+**Explanation**:  
+1. From `¬AttractMoreCustomers Alex` and axiom A1, we prove `¬AdvertiseCleverly Alex`  
+2. Using axiom A3, we show Alex must `OfferDiscounts` (since advertising is impossible)  
+3. Axioms A2 and A4 then prove `ExpandBusiness Alex`  
+4. Since we have a constructive proof that Alex expanded his business, it's impossible to prove the negation `¬ExpandBusiness Alex`
+
+ANSWER: Failure

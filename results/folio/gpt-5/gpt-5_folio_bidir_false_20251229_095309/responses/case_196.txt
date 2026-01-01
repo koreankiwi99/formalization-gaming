@@ -1,0 +1,61 @@
+<lean>
+axiom obj : Type
+axiom KiKi : obj
+
+axiom Animal : obj → Prop
+axiom Dog : obj → Prop
+axiom Barks : obj → Prop
+axiom Jumps : obj → Prop
+axiom Legs : obj → Prop
+axiom Terricolous : obj → Prop
+
+axiom LikesJane : obj → Prop
+
+-- Jane does not like any animals that bark.
+axiom H1 : ∀ x : obj, (Animal x ∧ Barks x) → ¬LikesJane x
+-- All dogs are animals that bark.
+axiom H2 : ∀ x : obj, Dog x → (Animal x ∧ Barks x)
+-- Jane likes all animals that jump.
+axiom H3 : ∀ x : obj, (Animal x ∧ Jumps x) → LikesJane x
+-- If an animal has legs, then it jumps.
+axiom H4 : ∀ x : obj, (Animal x ∧ Legs x) → Jumps x
+-- If an animal is terricolous, then it has legs.
+axiom H5 : ∀ x : obj, (Animal x ∧ Terricolous x) → Legs x
+-- KiKi is an animal.
+axiom H6 : Animal KiKi
+-- If KiKi neither jumps nor has legs, then KiKi is terricolous or has legs.
+axiom H7 : (¬Jumps KiKi ∧ ¬Legs KiKi) → (Terricolous KiKi ∨ Legs KiKi)
+
+theorem kiki_not_not_jumps_and_not_legs : ¬(¬Jumps KiKi ∧ ¬Legs KiKi) := by
+  intro h
+  have hdisj : Terricolous KiKi ∨ Legs KiKi := H7 h
+  cases hdisj with
+  | inr hL =>
+      exact h.right hL
+  | inl hT =>
+      have hL : Legs KiKi := H5 KiKi ⟨H6, hT⟩
+      exact h.right hL
+
+theorem kiki_jumps_or_legs : Jumps KiKi ∨ Legs KiKi := by
+  classical
+  by_cases hJ : Jumps KiKi
+  · exact Or.inl hJ
+  · by_cases hL : Legs KiKi
+    · exact Or.inr hL
+    · exact False.elim (kiki_not_not_jumps_and_not_legs ⟨hJ, hL⟩)
+
+theorem kiki_jumps : Jumps KiKi := by
+  cases kiki_jumps_or_legs with
+  | inl hJ => exact hJ
+  | inr hL => exact H4 KiKi ⟨H6, hL⟩
+
+theorem not_kiki_barking_dog : ¬(Dog KiKi ∧ Barks KiKi) := by
+  intro h
+  have hA : Animal KiKi := H6
+  have hB : Barks KiKi := h.right
+  have hNotLike : ¬LikesJane KiKi := H1 KiKi ⟨hA, hB⟩
+  have hLike : LikesJane KiKi := H3 KiKi ⟨hA, kiki_jumps⟩
+  exact hNotLike hLike
+</lean>
+
+ANSWER: False

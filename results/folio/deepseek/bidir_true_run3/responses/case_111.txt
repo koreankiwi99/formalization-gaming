@@ -1,0 +1,197 @@
+<lean>
+constant MountainRange : Type
+constant Mine : Type
+constant State : Type
+
+constant Picuris : MountainRange
+constant Harding : Mine
+constant NM : State
+constant TX : State
+
+-- Predicates
+constant In : MountainRange → State → Prop
+constant VisitedByOnate : MountainRange → Prop
+constant LocatedIn : Mine → MountainRange → Prop
+constant Donated : Mine → Prop
+
+-- Axioms from context
+axiom location : In Picuris NM ∨ In Picuris TX
+axiom visited : VisitedByOnate Picuris
+axiom mine_fact : LocatedIn Harding Picuris ∧ Donated Harding
+axiom no_donated_in_texas : ¬∃ (r : MountainRange), In r TX ∧ (∃ m, LocatedIn m r ∧ Donated m)
+
+-- Prove: Juan de Onate visited a mountain range in New Mexico
+theorem goal : ∃ r, In r NM ∧ VisitedByOnate r := by
+  -- We'll do case analysis on the location of Picuris
+  cases location with
+  | inl inNM =>  -- Case 1: Picuris is in New Mexico
+    exact ⟨Picuris, inNM, visited⟩
+  | inr inTX =>  -- Case 2: Picuris is in Texas
+    -- Show Picuris contradicts no_donated_in_texas
+    have contra : ∃ (r : MountainRange), In r TX ∧ (∃ m, LocatedIn m r ∧ Donated m) := by
+      apply Exists.intro Picuris
+      constructor
+      · exact inTX
+      · apply Exists.intro Harding
+        exact mine_fact
+    -- This contradicts axiom no_donated_in_texas
+    contradiction
+</lean>
+
+ANSWER: True
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors occurred because several predicate names conflicted with Lean 4 keywords or internal functions. Specifically, using `In` as a predicate name caused conflicts since "in" is a common term in quantifiers and tactics. Similarly, using `LocatedIn` with embedded capital letters may have caused parsing issues in existential quantifiers.
+
+Here's the corrected code with adjustments:
+- Renamed `In` → `LocatedInState` (for clarity and to avoid conflicts)
+- Renamed `LocatedIn` → `MineInRange` (to avoid confusion with state location)
+- Maintained consistent predicate naming conventions
+
+<lean>
+axiom MountainRange : Type
+axiom Mine : Type
+axiom State : Type
+
+axiom Picuris : MountainRange
+axiom Harding : Mine
+axiom NM : State
+axiom TX : State
+
+axiom LocatedInState : MountainRange → State → Prop
+axiom VisitedByOnate : MountainRange → Prop
+axiom MineInRange : Mine → MountainRange → Prop
+axiom Donated : Mine → Prop
+
+-- Axioms
+axiom location : LocatedInState Picuris NM ∨ LocatedInState Picuris TX
+axiom visited : VisitedByOnate Picuris
+axiom mine_fact : MineInRange Harding Picuris ∧ Donated Harding
+axiom no_donated_in_texas : ¬∃ (r : MountainRange), LocatedInState r TX ∧ (∃ m, MineInRange m r ∧ Donated m)
+
+theorem goal : ∃ r, LocatedInState r NM ∧ VisitedByOnate r := by
+  cases location with
+  | inl inNM => 
+    exact ⟨Picuris, inNM, visited⟩
+  | inr inTX => 
+    have contra : ∃ (r : MountainRange), LocatedInState r TX ∧ (∃ m, MineInRange m r ∧ Donated m) :=
+      ⟨Picuris, inTX, Harding, (And.left mine_fact), (And.right mine_fact)⟩
+    contradiction
+</lean>
+
+ANSWER: True
+
+Explanation of changes:
+1. **Predicate renaming**: 
+   - `LocatedInState` replaces `In` to clearly indicate state-level location
+   - `MineInRange` replaces `LocatedIn` to indicate mine-to-mountain-range relationship
+2. **Existential quantifier fix**: 
+   - Simplified the construction of `contra` in the Texas case by directly providing all required proofs in a single `⟨...⟩` expression
+3. **Type consistency**:
+   - All types (`MountainRange`, `Mine`, `State`) are properly declared and used
+   - The proof structure remains logically identical to the original reasoning
+
+The theorem successfully proves that Juan de Onate visited a New Mexico mountain range through case analysis:
+- If Picuris is in New Mexico, direct evidence exists
+- If in Texas, it contradicts the "no donated mines in Texas" axiom via the Harding mine donation
+The compilation errors occurred due to naming conflicts with Lean 4 keywords. Specifically, the predicate name `In` conflicted with Lean's built-in syntax. The solution involves renaming predicates to avoid conflicts while preserving logical structure.
+
+Corrected Lean code:
+<lean>
+axiom MountainRange : Type
+axiom Mine : Type
+axiom State : Type
+
+axiom Picuris : MountainRange
+axiom Harding : Mine
+axiom NM : State
+axiom TX : State
+
+axiom LocatedInState : MountainRange → State → Prop
+axiom VisitedByOnate : MountainRange → Prop
+axiom MineInRange : Mine → MountainRange → Prop
+axiom Donated : Mine → Prop
+
+-- Axioms from context
+axiom location : LocatedInState Picuris NM ∨ LocatedInState Picuris TX
+axiom visited : VisitedByOnate Picuris
+axiom mine_fact : MineInRange Harding Picuris ∧ Donated Harding
+axiom no_donated_in_texas : ¬∃ r, LocatedInState r TX ∧ (∃ m, MineInRange m r ∧ Donated m)
+
+theorem goal : ∃ r, LocatedInState r NM ∧ VisitedByOnate r := by
+  cases location with
+  | inl inNM => 
+    exact ⟨Picuris, inNM, visited⟩
+  | inr inTX => 
+    have contra : ∃ r, LocatedInState r TX ∧ (∃ m, MineInRange m r ∧ Donated m) := 
+      ⟨Picuris, inTX, Harding, mine_fact.left, mine_fact.right⟩
+    contradiction
+</lean>
+
+ANSWER: True
+
+Explanation:
+1. Fixed predicate names:
+   - `In → LocatedInState` (avoiding "in" keyword)
+   - `LocatedIn → MineInRange` (improved clarity)
+2. Simplified existential in `no_donated_in_texas` by removing redundant type annotations
+3. Streamlined proof in the Texas case:
+   - Used angle brackets `⟨⟩` to directly construct existential proof
+   - Split `mine_fact` into components (`left` and `right`) for clarity
+4. The logic remains unchanged:
+   - Picuris case analysis still covers both NM/TX possibilities
+   - Texas branch derives contradiction from the mine donation axiom
+   - New Mexico branch directly proves the theorem
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The compilation error occurred because the `contradiction` tactic didn't automatically resolve the contradiction between `contra` and `no_donated_in_texas`. We need to explicitly derive `False` from these conflicting propositions and use `False.elim` to prove the goal.
+
+Corrected Lean code:
+<lean>
+axiom MountainRange : Type
+axiom Mine : Type
+axiom State : Type
+
+axiom Picuris : MountainRange
+axiom Harding : Mine
+axiom NM : State
+axiom TX : State
+
+axiom LocatedInState : MountainRange → State → Prop
+axiom VisitedByOnate : MountainRange → Prop
+axiom MineInRange : Mine → MountainRange → Prop
+axiom Donated : Mine → Prop
+
+axiom location : LocatedInState Picuris NM ∨ LocatedInState Picuris TX
+axiom visited : VisitedByOnate Picuris
+axiom mine_fact : MineInRange Harding Picuris ∧ Donated Harding
+axiom no_donated_in_texas : ¬∃ r, LocatedInState r TX ∧ (∃ m, MineInRange m r ∧ Donated m)
+
+theorem goal : ∃ r, LocatedInState r NM ∧ VisitedByOnate r := by
+  cases location with
+  | inl inNM => 
+    exact ⟨Picuris, inNM, visited⟩
+  | inr inTX => 
+    have contra : ∃ r, LocatedInState r TX ∧ (∃ m, MineInRange m r ∧ Donated m) := 
+      ⟨Picuris, inTX, ⟨Harding, mine_fact.left, mine_fact.right⟩⟩
+    exact False.elim (no_donated_in_texas contra)
+</lean>
+
+ANSWER: True
+
+Explanation of changes:
+1. Fixed existential construction in `contra`:
+   - Used nested angle brackets `⟨Harding, mine_fact.left, mine_fact.right⟩` to construct the mine existence proof
+2. Explicit false elimination:
+   - Replaced `contradiction` with `exact False.elim (no_donated_in_texas contra)`
+   - Directly shows that `contra` contradicts `no_donated_in_texas`, proving any goal (including our existential)
+
+The logic remains sound:
+- New Mexico case: Directly proves the theorem using Picuris
+- Texas case: Derives contradiction from donated mine in Texas (via Harding mine) and the axiom forbidding such cases

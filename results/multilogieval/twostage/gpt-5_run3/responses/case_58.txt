@@ -1,0 +1,102 @@
+======================================================================
+STAGE 1: TRANSLATION
+======================================================================
+
+--- Iteration 1 ---
+
+<lean>
+axiom obj : Type
+
+axiom AddsSalt : obj → Prop
+axiom StirsContinuously : obj → Prop
+axiom Tastes : obj → Prop
+axiom PreparesSalad : obj → Prop
+
+axiom Savory : Prop
+axiom ThickensPerfectly : Prop
+
+-- If someone adds salt to the stew, then the stew becomes savory.
+axiom R1 : ∀ x : obj, AddsSalt x → Savory
+
+-- If someone stirs the stew continuously, then it thickens perfectly.
+axiom R2 : ∀ x : obj, StirsContinuously x → ThickensPerfectly
+
+-- Either someone adds salt, or the stew does not thicken perfectly, or both someone adds salt and it does not thicken perfectly.
+axiom Law1 : (∃ x : obj, AddsSalt x) ∨ ¬ ThickensPerfectly ∨ (∃ x : obj, AddsSalt x ∧ ¬ ThickensPerfectly)
+
+-- If someone tastes the stew, then they stir it continuously.
+axiom R3 : ∀ x : obj, Tastes x → StirsContinuously x
+
+-- Either someone tastes the stew, or someone prepares a salad, or both happen simultaneously.
+axiom Secret : (∃ x : obj, Tastes x) ∨ (∃ x : obj, PreparesSalad x) ∨ (∃ x : obj, Tastes x ∧ PreparesSalad x)
+
+-- Conclusion to formalize: Given the stew is not savory, did someone prepare a salad?
+theorem goal : ¬ Savory → ∃ x : obj, PreparesSalad x := sorry
+</lean>
+
+
+======================================================================
+STAGE 2: PROVING
+======================================================================
+
+--- Iteration 1 ---
+
+<lean>
+axiom obj : Type
+
+axiom AddsSalt : obj → Prop
+axiom StirsContinuously : obj → Prop
+axiom Tastes : obj → Prop
+axiom PreparesSalad : obj → Prop
+
+axiom Savory : Prop
+axiom ThickensPerfectly : Prop
+
+-- If someone adds salt to the stew, then the stew becomes savory.
+axiom R1 : ∀ x : obj, AddsSalt x → Savory
+
+-- If someone stirs the stew continuously, then it thickens perfectly.
+axiom R2 : ∀ x : obj, StirsContinuously x → ThickensPerfectly
+
+-- Either someone adds salt, or the stew does not thicken perfectly, or both someone adds salt and it does not thicken perfectly.
+axiom Law1 : (∃ x : obj, AddsSalt x) ∨ ¬ ThickensPerfectly ∨ (∃ x : obj, AddsSalt x ∧ ¬ ThickensPerfectly)
+
+-- If someone tastes the stew, then they stir it continuously.
+axiom R3 : ∀ x : obj, Tastes x → StirsContinuously x
+
+-- Either someone tastes the stew, or someone prepares a salad, or both happen simultaneously.
+axiom Secret : (∃ x : obj, Tastes x) ∨ (∃ x : obj, PreparesSalad x) ∨ (∃ x : obj, Tastes x ∧ PreparesSalad x)
+
+-- Conclusion to formalize: Given the stew is not savory, did someone prepare a salad?
+theorem goal : ¬ Savory → ∃ x : obj, PreparesSalad x :=
+by
+  intro hns
+  have noSalt : ¬ ∃ x : obj, AddsSalt x :=
+    fun ⟨x, hx⟩ => hns (R1 x hx)
+  have noSaltAndNotThick : ¬ ∃ x : obj, AddsSalt x ∧ ¬ ThickensPerfectly :=
+    fun ⟨x, hx⟩ => hns (R1 x hx.left)
+  have notThick : ¬ ThickensPerfectly :=
+    Or.elim Law1
+      (fun hA => False.elim (noSalt hA))
+      (fun h =>
+        Or.elim h
+          (fun hB => hB)
+          (fun hC => False.elim (noSaltAndNotThick hC)))
+  have noTaste : ¬ ∃ x : obj, Tastes x :=
+    fun ⟨x, hx⟩ =>
+      let hStir := R3 x hx
+      let hThick := R2 x hStir
+      notThick hThick
+  have noTasteAndSalad : ¬ ∃ x : obj, Tastes x ∧ PreparesSalad x :=
+    fun ⟨x, hx⟩ =>
+      noTaste ⟨x, hx.left⟩
+  have exSalad : ∃ x : obj, PreparesSalad x :=
+    Or.elim Secret
+      (fun hT => False.elim (noTaste hT))
+      (fun h =>
+        Or.elim h
+          (fun hS => hS)
+          (fun hBoth => False.elim (noTasteAndSalad hBoth)))
+  exact exSalad
+</lean>
+ANSWER: Yes

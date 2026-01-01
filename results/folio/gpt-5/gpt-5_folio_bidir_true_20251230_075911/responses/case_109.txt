@@ -1,0 +1,59 @@
+<lean>
+axiom obj : Type
+axiom Peter : obj
+
+axiom Spill : obj → Prop
+axiom Tidy : obj → Prop
+axiom Clean : obj → Prop
+axiom CFGO : obj → Prop  -- clumsy foodie who goes out frequently
+axiom ValueOrder : obj → Prop
+axiom FamilyPrioritizes : obj → Prop
+
+-- Context axioms
+axiom A1 : ∀ x : obj, Spill x → ¬ Tidy x
+axiom A2 : ∀ x : obj, CFGO x → Spill x
+axiom A3 : ∀ x : obj, Clean x → Tidy x
+axiom A4 : ∀ x : obj, ValueOrder x → Clean x
+axiom A5 : ∀ x : obj, FamilyPrioritizes x → ValueOrder x
+axiom A6 : (Spill Peter ∧ Clean Peter) ∨ (¬ Spill Peter ∧ ¬ Clean Peter)
+
+theorem statement :
+  (CFGO Peter ∧ FamilyPrioritizes Peter) ∨ (¬ CFGO Peter ∧ ¬ FamilyPrioritizes Peter) := by
+  -- Show (Spill Peter ∧ Clean Peter) is impossible
+  have hcontr : Spill Peter ∧ Clean Peter → False := by
+    intro hsc
+    have s : Spill Peter := hsc.left
+    have c : Clean Peter := hsc.right
+    have nt : ¬ Tidy Peter := A1 Peter s
+    have t : Tidy Peter := A3 Peter c
+    exact nt t
+  -- From the given disjunction, deduce ¬Spill Peter ∧ ¬Clean Peter
+  have hNotSNotC : ¬ Spill Peter ∧ ¬ Clean Peter := by
+    apply Or.elim A6
+    · intro hsc
+      exact False.elim (hcontr hsc)
+    · intro h
+      exact h
+  have nS : ¬ Spill Peter := hNotSNotC.left
+  have nC : ¬ Clean Peter := hNotSNotC.right
+
+  -- From ¬Spill and CFGO → Spill, get ¬CFGO
+  have nCfgo : ¬ CFGO Peter := by
+    intro hcfgo
+    have sp : Spill Peter := A2 Peter hcfgo
+    exact nS sp
+
+  -- FamilyPrioritizes → ValueOrder → Clean, so from ¬Clean get ¬FamilyPrioritizes
+  have Fp_implies_Clean : ∀ x : obj, FamilyPrioritizes x → Clean x := by
+    intro x hfp
+    have vo : ValueOrder x := A5 x hfp
+    exact A4 x vo
+  have nFp : ¬ FamilyPrioritizes Peter := by
+    intro hfp
+    have cl : Clean Peter := Fp_implies_Clean Peter hfp
+    exact nC cl
+
+  exact Or.inr ⟨nCfgo, nFp⟩
+</lean>
+
+ANSWER: True

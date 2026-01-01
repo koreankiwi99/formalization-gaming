@@ -1,0 +1,66 @@
+<lean>
+axiom obj : Type
+axiom Animal : obj → Prop
+axiom Dog : obj → Prop
+axiom Barks : obj → Prop
+axiom Jumps : obj → Prop
+axiom HasLegs : obj → Prop
+axiom Terricolous : obj → Prop
+axiom Likes : obj → obj → Prop
+axiom Jane : obj
+axiom KiKi : obj
+
+-- Premises
+axiom P1 : ∀ x : obj, Animal x ∧ Barks x → ¬ Likes Jane x
+axiom P2 : ∀ x : obj, Dog x → Animal x ∧ Barks x
+axiom P3 : ∀ x : obj, Animal x ∧ Jumps x → Likes Jane x
+axiom P4 : ∀ x : obj, Animal x ∧ HasLegs x → Jumps x
+axiom P5 : ∀ x : obj, Animal x ∧ Terricolous x → HasLegs x
+axiom P6 : Animal KiKi
+axiom P7 : (¬ Jumps KiKi ∧ ¬ HasLegs KiKi) → (Terricolous KiKi ∨ HasLegs KiKi)
+
+-- Derived: No animal both barks and jumps (from Jane's like/dislike premises)
+theorem no_bark_and_jump_for_animals :
+  ∀ x : obj, Animal x → ¬ (Barks x ∧ Jumps x) := by
+  intro x hxA
+  intro hx
+  have hb : Barks x := hx.left
+  have hj : Jumps x := hx.right
+  have hnot : ¬ Likes Jane x := P1 x ⟨hxA, hb⟩
+  have hyes : Likes Jane x := P3 x ⟨hxA, hj⟩
+  exact hnot hyes
+
+-- Specialized to KiKi
+theorem no_bark_and_jump_KiKi : ¬ (Barks KiKi ∧ Jumps KiKi) := by
+  have h := no_bark_and_jump_for_animals KiKi P6
+  exact h
+
+-- From the KiKi-specific conditional, KiKi cannot have both not jumping and not having legs
+theorem not_notJump_and_notLegs_KiKi :
+  ¬ (¬ Jumps KiKi ∧ ¬ HasLegs KiKi) := by
+  intro h
+  have t_or_l : Terricolous KiKi ∨ HasLegs KiKi := P7 h
+  have hL : HasLegs KiKi := by
+    cases t_or_l with
+    | inl ht =>
+      have : HasLegs KiKi := P5 KiKi ⟨P6, ht⟩
+      exact this
+    | inr hl =>
+      exact hl
+  have hJ : Jumps KiKi := P4 KiKi ⟨P6, hL⟩
+  have hnJ : ¬ Jumps KiKi := h.left
+  exact hnJ hJ
+
+-- Useful projections from "all dogs are animals that bark"
+theorem animal_of_dog (x : obj) : Dog x → Animal x := by
+  intro hx
+  have h := P2 x hx
+  exact h.left
+
+theorem barks_of_dog (x : obj) : Dog x → Barks x := by
+  intro hx
+  have h := P2 x hx
+  exact h.right
+</lean>
+
+ANSWER: Failure

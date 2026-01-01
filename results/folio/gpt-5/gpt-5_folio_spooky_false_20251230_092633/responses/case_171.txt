@@ -1,0 +1,51 @@
+<lean>
+axiom obj : Type
+
+-- Predicates
+axiom Deadly : obj → Prop
+axiom LowSurvival : obj → Prop
+axiom SevereCancer : obj → Prop
+axiom BileDuctCancer : obj → Prop
+axiom Cholangiocarcinoma : obj → Prop
+axiom MildFlu : obj → Prop
+
+-- Specific entity
+axiom ColorectalCancer : obj
+
+-- Premises
+axiom R1 : ∀ x : obj, Deadly x → LowSurvival x
+axiom R2 : ∀ x : obj, SevereCancer x → Deadly x
+axiom R3 : ∀ x : obj, BileDuctCancer x → SevereCancer x
+axiom R4 : ∀ x : obj, Cholangiocarcinoma x → BileDuctCancer x
+axiom R5 : ∀ x : obj, MildFlu x → LowSurvival x
+axiom R6 : ¬(BileDuctCancer ColorectalCancer ∧ LowSurvival ColorectalCancer)
+
+-- Target: negate the statement to evaluate
+-- Statement: (Cholangiocarcinoma CRC ∧ (MildFlu CRC ∨ BileDuctCancer CRC)) ∨ (Cholangiocarcinoma CRC ∧ MildFlu CRC ∧ BileDuctCancer CRC)
+theorem not_statement :
+  ¬ (
+    (Cholangiocarcinoma ColorectalCancer ∧ (MildFlu ColorectalCancer ∨ BileDuctCancer ColorectalCancer))
+    ∨
+    (Cholangiocarcinoma ColorectalCancer ∧ MildFlu ColorectalCancer ∧ BileDuctCancer ColorectalCancer)
+  ) := by
+  intro h
+  -- First, show ColorectalCancer cannot be a bile duct cancer (since that would force low survival, contradicting R6)
+  have notBDC : ¬ BileDuctCancer ColorectalCancer := by
+    intro hbdc
+    have hsev : SevereCancer ColorectalCancer := R3 ColorectalCancer hbdc
+    have hdead : Deadly ColorectalCancer := R2 ColorectalCancer hsev
+    have hlow : LowSurvival ColorectalCancer := R1 ColorectalCancer hdead
+    exact R6 ⟨hbdc, hlow⟩
+  -- Now, any of the disjuncts forces Cholangiocarcinoma, hence BileDuctCancer, contradiction.
+  cases h with
+  | inl h1 =>
+      have hchol : Cholangiocarcinoma ColorectalCancer := And.left h1
+      have hbdc : BileDuctCancer ColorectalCancer := R4 ColorectalCancer hchol
+      exact notBDC hbdc
+  | inr h2 =>
+      have hchol : Cholangiocarcinoma ColorectalCancer := And.left h2
+      have hbdc : BileDuctCancer ColorectalCancer := R4 ColorectalCancer hchol
+      exact notBDC hbdc
+</lean>
+
+ANSWER: False

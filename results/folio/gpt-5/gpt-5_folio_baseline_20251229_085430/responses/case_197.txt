@@ -1,0 +1,126 @@
+<lean>
+axiom obj : Type
+axiom KiKi : obj
+
+axiom Animal : obj → Prop
+axiom Dog : obj → Prop
+axiom Bark : obj → Prop
+axiom Jump : obj → Prop
+axiom Legs : obj → Prop
+axiom Terricolous : obj → Prop
+axiom LikesJane : obj → Prop
+
+-- Jane does not like any animals that bark.
+axiom A1 : ∀ x : obj, (Animal x ∧ Bark x) → ¬ LikesJane x
+-- All dogs are animals that bark.
+axiom A2 : ∀ x : obj, Dog x → (Animal x ∧ Bark x)
+-- Jane likes all animals that jump.
+axiom A3 : ∀ x : obj, (Animal x ∧ Jump x) → LikesJane x
+-- If an animal has legs, then it jumps.
+axiom A4 : ∀ x : obj, (Animal x ∧ Legs x) → Jump x
+-- If an animal is terricolous, then it has legs.
+axiom A5 : ∀ x : obj, (Animal x ∧ Terricolous x) → Legs x
+-- KiKi is an animal.
+axiom A6 : Animal KiKi
+-- If KiKi neither jumps nor has legs, then KiKi is terricolous or has legs.
+axiom A7 : (¬ Jump KiKi ∧ ¬ Legs KiKi) → (Terricolous KiKi ∨ Legs KiKi)
+
+open Classical
+
+theorem kiki_not_bark_and_not_dog : ¬ Bark KiKi ∧ ¬ Dog KiKi := by
+  -- First, show KiKi jumps.
+  have kiki_jumps : Jump KiKi := by
+    by_contra hNJ
+    by_cases hL : Legs KiKi
+    · -- If KiKi has legs, then as an animal KiKi jumps: contradiction.
+      have : Jump KiKi := A4 KiKi (And.intro A6 hL)
+      exact hNJ this
+    · -- If KiKi does not have legs, use the given implication to derive a contradiction.
+      have hdisj : Terricolous KiKi ∨ Legs KiKi := A7 (And.intro hNJ hL)
+      have hL' : Legs KiKi := by
+        cases hdisj with
+        | inl hT =>
+            exact A5 KiKi (And.intro A6 hT)
+        | inr hLeg =>
+            exact hLeg
+      exact hL hL'
+  -- From jumping and being an animal, Jane likes KiKi.
+  have kiki_liked : LikesJane KiKi := A3 KiKi (And.intro A6 kiki_jumps)
+  -- Therefore, KiKi does not bark (else Jane would both like and not like KiKi).
+  have kiki_not_bark : ¬ Bark KiKi := by
+    intro hBark
+    have hnotlike : ¬ LikesJane KiKi := A1 KiKi (And.intro A6 hBark)
+    exact hnotlike kiki_liked
+  -- From "dogs bark," KiKi is not a dog.
+  have kiki_not_dog : ¬ Dog KiKi := by
+    intro hDog
+    have hBark : Bark KiKi := (A2 KiKi hDog).right
+    exact kiki_not_bark hBark
+  exact And.intro kiki_not_bark kiki_not_dog
+</lean>
+
+ANSWER: True
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom obj : Type
+axiom KiKi : obj
+
+axiom Animal : obj → Prop
+axiom Dog : obj → Prop
+axiom Bark : obj → Prop
+axiom Jump : obj → Prop
+axiom Legs : obj → Prop
+axiom Terricolous : obj → Prop
+axiom LikesJane : obj → Prop
+
+-- Jane does not like any animals that bark.
+axiom A1 : ∀ x : obj, (Animal x ∧ Bark x) → ¬ LikesJane x
+-- All dogs are animals that bark.
+axiom A2 : ∀ x : obj, Dog x → (Animal x ∧ Bark x)
+-- Jane likes all animals that jump.
+axiom A3 : ∀ x : obj, (Animal x ∧ Jump x) → LikesJane x
+-- If an animal has legs, then it jumps.
+axiom A4 : ∀ x : obj, (Animal x ∧ Legs x) → Jump x
+-- If an animal is terricolous, then it has legs.
+axiom A5 : ∀ x : obj, (Animal x ∧ Terricolous x) → Legs x
+-- KiKi is an animal.
+axiom A6 : Animal KiKi
+-- If KiKi neither jumps nor has legs, then KiKi is terricolous or has legs.
+axiom A7 : (¬ Jump KiKi ∧ ¬ Legs KiKi) → (Terricolous KiKi ∨ Legs KiKi)
+
+theorem kiki_not_bark_and_not_dog : ¬ Bark KiKi ∧ ¬ Dog KiKi := by
+  classical
+  -- First, show KiKi jumps.
+  have kiki_jumps : Jump KiKi := by
+    by_cases hJ : Jump KiKi
+    · exact hJ
+    · by_cases hL : Legs KiKi
+      · have : Jump KiKi := A4 KiKi (And.intro A6 hL)
+        exact False.elim (hJ this)
+      ·
+        have hdisj : Terricolous KiKi ∨ Legs KiKi := A7 (And.intro hJ hL)
+        have hL' : Legs KiKi :=
+          Or.elim hdisj
+            (fun hT => A5 KiKi (And.intro A6 hT))
+            (fun hLeg => hLeg)
+        exact False.elim (hL hL')
+  -- From jumping and being an animal, Jane likes KiKi.
+  have kiki_liked : LikesJane KiKi := A3 KiKi (And.intro A6 kiki_jumps)
+  -- Therefore, KiKi does not bark.
+  have kiki_not_bark : ¬ Bark KiKi := by
+    intro hBark
+    have hnotlike : ¬ LikesJane KiKi := A1 KiKi (And.intro A6 hBark)
+    exact hnotlike kiki_liked
+  -- From "dogs are animals that bark," KiKi is not a dog.
+  have kiki_not_dog : ¬ Dog KiKi := by
+    intro hDog
+    have hBark : Bark KiKi := (A2 KiKi hDog).right
+    exact kiki_not_bark hBark
+  exact And.intro kiki_not_bark kiki_not_dog
+</lean>
+
+ANSWER: True

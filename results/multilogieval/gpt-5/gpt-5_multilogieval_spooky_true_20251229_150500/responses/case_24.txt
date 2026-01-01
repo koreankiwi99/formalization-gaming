@@ -1,0 +1,48 @@
+<lean>
+axiom obj : Type
+axiom Mary : obj
+
+axiom SnowOnGround : Prop
+axiom BelowFreezing : Prop
+axiom EnoughSnow : Prop
+axiom BuildsSnowman : obj → Prop
+axiom LovesWinter : obj → Prop
+
+-- If the temperature dropped below freezing, then there would be snow on the ground.
+axiom BF_implies_Snow : BelowFreezing → SnowOnGround
+
+-- If someone builds a snowman, then there is enough snow.
+axiom Build_implies_Enough : ∀ x : obj, BuildsSnowman x → EnoughSnow
+
+-- If someone loves winter, then they build snowmen.
+axiom Love_implies_Build : ∀ x : obj, LovesWinter x → BuildsSnowman x
+
+-- Either it was below freezing, or there was not enough snow, or it was below freezing and there was not enough snow.
+axiom Certainty : BelowFreezing ∨ ¬ EnoughSnow ∨ (BelowFreezing ∧ ¬ EnoughSnow)
+
+-- From no snow on the ground, we can derive that Mary does not love winter.
+theorem no_snow_implies_not_love_mary : ¬ SnowOnGround → ¬ LovesWinter Mary := by
+  intro hNoSnow
+  -- First, derive not below freezing.
+  have hNotBF : ¬ BelowFreezing := by
+    intro hBF
+    apply hNoSnow
+    exact BF_implies_Snow hBF
+  -- From the disjunction, derive not enough snow.
+  have hNotEN : ¬ EnoughSnow := by
+    cases Certainty with
+    | inl hBF =>
+      intro _
+      exact False.elim (hNotBF hBF)
+    | inr h =>
+      cases h with
+      | inl hNotEN => exact hNotEN
+      | inr hBoth => exact hBoth.right
+  -- If Mary loved winter, she'd build a snowman, implying enough snow, contradicting not enough snow.
+  intro hLove
+  have hBuild : BuildsSnowman Mary := Love_implies_Build Mary hLove
+  have hEN : EnoughSnow := Build_implies_Enough Mary hBuild
+  exact hNotEN hEN
+</lean>
+
+ANSWER: Failure

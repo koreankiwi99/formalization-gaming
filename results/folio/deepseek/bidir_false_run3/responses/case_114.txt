@@ -1,0 +1,85 @@
+The goal is to disprove the statement "Peter is shorter than a man in Michael's class" (i.e., ∃ m, InClass m ∧ Taller m Peter) using the given premises. After formalizing the context in Lean, we can derive that Peter is taller than every man in Michael's class due to transitivity (Taller Peter Michael and Taller Michael x for any x in the class implies Taller Peter x). However, to prove that no such man exists who is taller than Peter, we would need the asymmetry of the Taller relation (∀ x y, Taller x y → ¬Taller y x). The premises do not provide asymmetry or irreflexivity, and while the context implies "taller" is asymmetric (e.g., "taller than another man"), it is not explicitly stated. Without this, we cannot derive a contradiction from assuming ∃ m, InClass m ∧ Taller m Peter. Thus, the negation cannot be proven.
+
+<lean>
+axiom obj : Type
+
+axiom Man : obj → Prop
+axiom Taller : obj → obj → Prop
+axiom InClass : obj → Prop
+axiom CanBlock : obj → obj → Prop
+axiom JumpsWhenShooting : obj → Prop
+axiom GreatShooter : obj → Prop
+
+axiom R1 : ∀ x y, Man x → Man y → Taller x y → CanBlock x y
+axiom T2 : Man Michael ∧ ∀ x, InClass x → Taller Michael x
+axiom Trans : ∀ x y z, Taller x y → Taller y z → Taller x z
+axiom T4 : Man Peter ∧ Taller Peter Michael
+axiom T5 : ∀ x, ¬ JumpsWhenShooting x → CanBlock Michael x
+axiom T6 : ¬ CanBlock Michael Windy
+axiom T7 : ∀ x, JumpsWhenShooting x → GreatShooter x
+
+-- We aim to prove ¬∃ m, InClass m ∧ Taller m Peter
+theorem disprove_statement : ¬∃ m, InClass m ∧ Taller m Peter :=
+  fun ⟨m, hInClass, hTaller⟩ =>
+  let ⟨_, hPeterTallerMichael⟩ := T4
+  let ⟨_, hMichaelTaller⟩ := T2
+  have hTallerMichaelM : Taller Michael m := hMichaelTaller m hInClass
+  have hTallerPeterM : Taller Peter m := Trans Peter Michael m hPeterTallerMichael hTallerMichaelM
+  -- At this point, we have Taller Peter m and Taller m Peter.
+  -- To derive a contradiction, we need asymmetry (Taller m Peter → ¬Taller Peter m),
+  -- but no such axiom exists. Without it, we cannot proceed.
+  sorry -- Proof incomplete due to missing asymmetry
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors were due to:
+1. Using reserved keyword "Trans" - renamed to "TallerTrans"
+2. Missing declarations for Michael, Peter, and Windy as objects
+3. Incorrect handling of conjunction in axioms T2 and T4
+
+The corrected Lean code formalizes all premises. We attempt to disprove "Peter is shorter than a man in Michael's class" (∃ m, InClass m ∧ Taller m Peter). The proof shows:
+- Peter is taller than Michael (T4_taller)
+- Michael is taller than every class member (T2_taller)
+- By transitivity (TallerTrans), Peter is taller than any class member
+- Assuming ∃m with Taller m Peter leads to both Taller Peter m and Taller m Peter
+- Without asymmetry of Taller relation, no contradiction can be derived
+
+<lean>
+axiom obj : Type
+
+axiom Michael : obj
+axiom Peter : obj
+axiom Windy : obj
+
+axiom Man : obj → Prop
+axiom Taller : obj → obj → Prop
+axiom InClass : obj → Prop
+axiom CanBlock : obj → obj → Prop
+axiom JumpsWhenShooting : obj → Prop
+axiom GreatShooter : obj → Prop
+
+axiom R1 : ∀ x y, Man x → Man y → Taller x y → CanBlock x y
+axiom T2_man : Man Michael
+axiom T2_taller : ∀ x, InClass x → Taller Michael x
+axiom TallerTrans : ∀ x y z, Taller x y → Taller y z → Taller x z
+axiom T4_man : Man Peter
+axiom T4_taller : Taller Peter Michael
+axiom T5 : ∀ x, ¬ JumpsWhenShooting x → CanBlock Michael x
+axiom T6 : ¬ CanBlock Michael Windy
+axiom T7 : ∀ x, JumpsWhenShooting x → GreatShooter x
+
+theorem disprove_statement : ¬∃ m, InClass m ∧ Taller m Peter :=
+  fun ⟨m, hInClass, hTaller⟩ =>
+  have hTallerMichaelM : Taller Michael m := T2_taller m hInClass
+  have hTallerPeterM : Taller Peter m := TallerTrans Peter Michael m T4_taller hTallerMichaelM
+  -- Contradiction requires asymmetry (Taller m Peter → ¬Taller Peter m)
+  -- But no such axiom exists
+  sorry
+</lean>
+
+ANSWER: Failure

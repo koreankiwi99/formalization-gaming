@@ -1,0 +1,113 @@
+Below is the translation of the reasoning context into Lean, followed by the proof that the statement about Luke is true.
+
+<lean>
+axiom Person : Type
+axiom Luke : Person
+axiom BornMultiple : Person → Prop
+axiom HasSiblingsTogether : Person → Prop
+axiom ComplainAnnoying : Person → Prop
+axiom LiveAtHome : Person → Prop
+axiom LiveWithStrangers : Person → Prop
+axiom SpendTimeWithSiblings : Person → Prop
+
+axiom R1 : ∀ p, BornMultiple p → SpendTimeWithSiblings p
+axiom R2 : ∀ p, HasSiblingsTogether p → BornMultiple p
+axiom R3 : ∀ p, ComplainAnnoying p → HasSiblingsTogether p
+axiom R4 : ∀ p, LiveAtHome p → ¬ LiveWithStrangers p
+axiom R5 : ∀ p, SpendTimeWithSiblings p → LiveAtHome p
+axiom T_Luke : (BornMultiple Luke ∧ LiveWithStrangers Luke) ∨ (¬ BornMultiple Luke ∧ ¬ LiveWithStrangers Luke)
+
+theorem luke_statement : ¬ BornMultiple Luke ∧ ¬ ComplainAnnoying Luke := by
+  -- Prove being born multiple implies not living with strangers
+  have H1 : BornMultiple Luke → ¬ LiveWithStrangers Luke := fun h =>
+    R4 Luke (R5 Luke (R1 Luke h))
+  
+  -- Eliminate the first disjunct of T_Luke (leads to contradiction)
+  cases T_Luke
+  case inl h => 
+    have h_nostrangers := H1 h.left
+    contradiction
+  case inr h =>
+    -- Extract ¬BornMultiple from the second disjunct 
+    have no_born_multiple := h.left
+    
+    -- Prove complaint implies born multiple
+    have H2 : ComplainAnnoying Luke → BornMultiple Luke := fun hc =>
+      R2 Luke (R3 Luke hc)
+    
+    -- Use contraposition to show no_born_multiple implies ¬ComplainAnnoying
+    have no_complain : ¬ ComplainAnnoying Luke := 
+      fun hc => no_born_multiple (H2 hc)
+    
+    exact ⟨no_born_multiple, no_complain⟩
+</lean>
+
+ANSWER: True
+
+**Explanation:**  
+1. If Luke were born in a multiple birth, he would spend time with siblings (R1), live at home (R5), and therefore not live with strangers (R4).  
+2. Luke's disjunction: His first case (born multiple ∧ lives with strangers) contradicts the above chain. Thus, we must accept the second case (¬born multiple ∧ ¬lives with strangers).  
+3. Complaining about siblings requires having siblings born together (R3), which implies being born multiple (R2). Since Luke isn't born multiple, he cannot complain (by contraposition).  
+4. Therefore, Luke is both not born multiple and does not complain → **True**.
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The error occurred because `contradiction` failed to resolve the opposing facts in the first case. Here's the corrected Lean code with explicit contradiction resolution:
+
+<lean>
+axiom Person : Type
+axiom Luke : Person
+axiom BornMultiple : Person → Prop
+axiom HasSiblingsTogether : Person → Prop
+axiom ComplainAnnoying : Person → Prop
+axiom LiveAtHome : Person → Prop
+axiom LiveWithStrangers : Person → Prop
+axiom SpendTimeWithSiblings : Person → Prop
+
+axiom R1 : ∀ p, BornMultiple p → SpendTimeWithSiblings p
+axiom R2 : ∀ p, HasSiblingsTogether p → BornMultiple p
+axiom R3 : ∀ p, ComplainAnnoying p → HasSiblingsTogether p
+axiom R4 : ∀ p, LiveAtHome p → ¬ LiveWithStrangers p
+axiom R5 : ∀ p, SpendTimeWithSiblings p → LiveAtHome p
+axiom T_Luke : (BornMultiple Luke ∧ LiveWithStrangers Luke) ∨ (¬ BornMultiple Luke ∧ ¬ LiveWithStrangers Luke)
+
+theorem luke_statement : ¬ BornMultiple Luke ∧ ¬ ComplainAnnoying Luke := by
+  -- Prove that being born in multiple birth implies not living with strangers
+  have H1 : BornMultiple Luke → ¬ LiveWithStrangers Luke := 
+    fun h => R4 Luke (R5 Luke (R1 Luke h))
+  
+  cases T_Luke
+  case inl h =>  -- Luke is born multiple AND lives with strangers
+    -- Get both contradictions explicitly
+    have no_strangers := H1 h.left
+    exfalso  -- We'll prove False first
+    exact no_strangers h.right
+  case inr h =>  -- Luke is not born multiple AND doesn't live with strangers
+    have not_born_multiple : ¬ BornMultiple Luke := h.left
+    have not_complain : ¬ ComplainAnnoying Luke := by
+      intro assume_complain
+      have has_siblings := R3 Luke assume_complain
+      exact not_born_multiple (R2 Luke has_siblings)
+    exact ⟨not_born_multiple, not_complain⟩
+</lean>
+
+ANSWER: True
+
+**Proof explanation:**  
+1. **Born Multiple → ¬Live with Strangers**:  
+   - If Luke is born in a multiple birth (R1), he spends time with siblings  
+   - Spending time with siblings (R5) implies living at home  
+   - Living at home (R4) implies not living with strangers  
+
+2. **Luke's Disjunction**:  
+   - Case 1 (Born multiple ∧ Live with strangers): Leads to contradiction because H1 requires ¬live with strangers  
+   - Case 2 (¬Born multiple ∧ ¬Live with strangers): Must be true  
+
+3. **No Annoying Siblings Complaint**:  
+   - Complaining (R3) implies having siblings born together  
+   - Having siblings born together (R2) implies being born multiple  
+   - But we know ¬born multiple, so ¬complain  
+
+Therefore: ¬BornMultiple ∧ ¬ComplainAnnoying (True)

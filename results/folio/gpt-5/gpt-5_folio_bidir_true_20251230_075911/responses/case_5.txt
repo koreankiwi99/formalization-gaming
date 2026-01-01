@@ -1,0 +1,70 @@
+<lean>
+axiom obj : Type
+axiom James : obj
+
+axiom Employee : obj → Prop
+axiom Manager : obj → Prop
+axiom InOtherCountries : obj → Prop
+axiom LunchAtHome : obj → Prop
+axiom LunchInCompanyBuilding : obj → Prop
+axiom WorksRemotelyFromHome : obj → Prop
+axiom SchedulesMeetingsWithCustomers : obj → Prop
+axiom GoesToCompanyBuildingToday : obj → Prop
+axiom AppearsInCompanyToday : obj → Prop
+
+-- Context axioms:
+-- 1. All employees who schedule a meeting with their customers will go to the company building today.
+axiom A1 : ∀ x : obj, Employee x ∧ SchedulesMeetingsWithCustomers x → GoesToCompanyBuildingToday x
+-- 2. Everyone who has lunch in the company building schedules meetings with their customers.
+axiom A2 : ∀ x : obj, LunchInCompanyBuilding x → SchedulesMeetingsWithCustomers x
+-- 3. Employees have lunch either in the company building or at home.
+axiom A3 : ∀ x : obj, Employee x → (LunchInCompanyBuilding x ∨ LunchAtHome x)
+-- 4. If an employee has lunch at home, they are working remotely from home. (stated without the employee restriction in wording)
+axiom A4 : ∀ x : obj, LunchAtHome x → WorksRemotelyFromHome x
+-- 5. All employees who are in other countries work remotely from home.
+axiom A5 : ∀ x : obj, Employee x → InOtherCountries x → WorksRemotelyFromHome x
+-- 6. No managers work remotely from home.
+axiom A6 : ∀ x : obj, Manager x → ¬ WorksRemotelyFromHome x
+-- 7. James will appear in the company today iff he is a manager.
+axiom A7 : AppearsInCompanyToday James ↔ Manager James
+
+-- Some consequences we can prove (but they are weaker than the target statement):
+
+-- From "No managers work remotely" and "LunchAtHome → WorksRemotely", a manager cannot have lunch at home, nor work remotely.
+theorem manager_no_home_or_remote :
+  Manager James → ¬ (LunchAtHome James ∨ WorksRemotelyFromHome James) := by
+  intro m
+  intro h
+  cases h with
+  | inl lh =>
+      have wr : WorksRemotelyFromHome James := A4 James lh
+      have nwr : ¬ WorksRemotelyFromHome James := (A6 James) m
+      exact nwr wr
+  | inr wr =>
+      have nwr : ¬ WorksRemotelyFromHome James := (A6 James) m
+      exact nwr wr
+
+-- From "No managers work remotely", either having lunch at home (which implies remote) or working remotely implies James is not a manager.
+theorem home_or_remote_not_manager :
+  (LunchAtHome James ∨ WorksRemotelyFromHome James) → ¬ Manager James := by
+  intro h
+  intro m
+  cases h with
+  | inl lh =>
+      have wr : WorksRemotelyFromHome James := A4 James lh
+      have nwr : ¬ WorksRemotelyFromHome James := (A6 James) m
+      exact nwr wr
+  | inr wr =>
+      have nwr : ¬ WorksRemotelyFromHome James := (A6 James) m
+      exact nwr wr
+
+-- However, we cannot derive the full target statement:
+-- 1) (Manager James ∨ InOtherCountries James) → ¬ (LunchAtHome James ∨ WorksRemotelyFromHome James)
+--    fails because if InOtherCountries James holds (and even if James is an employee), then James works remotely from home,
+--    contradicting ¬(LunchAtHome ∨ WorksRemotelyFromHome).
+-- 2) (LunchAtHome James ∨ WorksRemotelyFromHome James) → (¬ Manager James ∧ ¬ InOtherCountries James)
+--    the ¬ Manager part is provable (see above), but we cannot derive ¬ InOtherCountries James from the given axioms.
+-- No theorem provided for the target statement because it is not derivable from the axioms.
+</lean>
+
+ANSWER: Failure

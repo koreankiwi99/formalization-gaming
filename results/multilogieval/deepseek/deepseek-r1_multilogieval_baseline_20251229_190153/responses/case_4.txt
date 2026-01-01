@@ -1,0 +1,81 @@
+The context provides a logical scenario about factors affecting sales. The key points are:
+
+1. Marketing investment (ads and promotions) leads to more customers, which in turn increases sales (MarketingInvested → CustomersIncreased, CustomersIncreased → SalesIncreased).
+2. Either marketing was focused on, production costs increased, or both (MarketingInvested ∨ ProductionCostIncreased).
+3. It's given that sales did not increase (¬SalesIncreased).
+
+From these, we can deduce:
+- The contrapositive of "CustomersIncreased → SalesIncreased" is "¬SalesIncreased → ¬CustomersIncreased". Thus, customers did not increase.
+- Similarly, "¬CustomersIncreased" and "MarketingInvested → CustomersIncreased" imply "¬MarketingInvested" by modus tollens.
+- With "¬MarketingInvested" and "MarketingInvested ∨ ProductionCostIncreased", we conclude ProductionCostIncreased must be true by disjunctive syllogism.
+
+<lean>
+constant MarketingInvested : Prop
+constant CustomersIncreased : Prop
+constant ProductionCostIncreased : Prop
+constant SalesIncreased : Prop
+
+axiom invest_customers : MarketingInvested → CustomersIncreased
+axiom customers_sales : CustomersIncreased → SalesIncreased
+axiom factor_disjunction : MarketingInvested ∨ ProductionCostIncreased
+axiom no_sales_increase : ¬SalesIncreased
+
+theorem production_increased : ProductionCostIncreased := by
+  -- Sales didn't increase → customers didn't increase (contrapositive of customers_sales)
+  have no_customers : ¬CustomersIncreased :=
+    fun h : CustomersIncreased => no_sales_increase (customers_sales h)
+  -- Customers didn't increase → marketing wasn't invested (contrapositive of invest_customers)
+  have no_marketing : ¬MarketingInvested :=
+    fun h : MarketingInvested => no_customers (invest_customers h)
+  -- Either marketing or production cost occurred; marketing didn't → production cost did
+  cases factor_disjunction with
+  | inl hm => exact False.elim (no_marketing hm)
+  | inr hp => exact hp
+</lean>
+
+ANSWER: Yes
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors occurred because the propositions were not explicitly typed as `Prop`. In Lean, constants default to `Type` if not specified, causing type mismatches. The corrected code declares all propositions with `: Prop` and uses tactics for the proof.
+
+<lean>
+axiom MarketingInvested : Prop
+axiom CustomersIncreased : Prop
+axiom ProductionCostIncreased : Prop
+axiom SalesIncreased : Prop
+
+axiom invest_customers : MarketingInvested → CustomersIncreased
+axiom customers_sales : CustomersIncreased → SalesIncreased
+axiom factor_disjunction : MarketingInvested ∨ ProductionCostIncreased
+axiom no_sales_increase : ¬SalesIncreased
+
+theorem production_increased : ProductionCostIncreased := by
+  -- Prove customers didn't increase from no sales increase
+  have no_customers : ¬CustomersIncreased := by
+    intro hCust
+    apply no_sales_increase
+    exact customers_sales hCust
+  -- Prove marketing wasn't invested from no customer increase
+  have no_marketing : ¬MarketingInvested := by
+    intro hMarket
+    apply no_customers
+    exact invest_customers hMarket
+  -- Case analysis on disjunction
+  cases factor_disjunction with
+  | inl hm => exact False.elim (no_marketing hm)
+  | inr hp => exact hp
+</lean>
+
+**Proof explanation:**  
+1. `no_customers` is derived via modus tollens: ¬SalesIncreased and CustomersIncreased → SalesIncreased imply ¬CustomersIncreased.  
+2. `no_marketing` similarly follows: ¬CustomersIncreased and MarketingInvested → CustomersIncreased imply ¬MarketingInvested.  
+3. The disjunction `factor_disjunction` is case-split:  
+   - If marketing occurred (`inl hm`), it contradicts `no_marketing`.  
+   - If production costs increased (`inr hp`), it directly proves the goal.  
+
+Since the proof constructs a valid derivation of `ProductionCostIncreased`, the answer is:
+
+ANSWER: Yes

@@ -1,0 +1,45 @@
+<lean>
+axiom Person : Type
+axiom AddsSalt : Person → Prop
+axiom Stirs : Person → Prop
+axiom Tastes : Person → Prop
+axiom PreparesSalad : Person → Prop
+axiom Savory : Prop
+axiom Thick : Prop
+
+-- Rules
+axiom R1 : ∀ x : Person, AddsSalt x → Savory
+axiom R2 : ∀ x : Person, Stirs x → Thick
+axiom Law1 : (∃ x : Person, AddsSalt x) ∨ ¬Thick
+axiom R3 : ∀ x : Person, Tastes x → Stirs x
+axiom Secret : (∃ x : Person, Tastes x) ∨ (∃ x : Person, PreparesSalad x)
+
+-- From ¬Savory, we can derive ∃ x, PreparesSalad x
+theorem salad_from_not_savory : ¬Savory → ∃ x : Person, PreparesSalad x := by
+  intro hns
+  -- No one added salt (otherwise Savory)
+  have h_not_exists_add : ¬(∃ x : Person, AddsSalt x) := by
+    intro hex
+    cases hex with
+    | intro x hx =>
+      have hs : Savory := R1 x hx
+      exact hns hs
+  -- Thus the stew is not Thick
+  have h_not_thick : ¬Thick := Or.elim Law1 (fun hex => False.elim (h_not_exists_add hex)) (fun h => h)
+  -- Tasting implies Thick
+  have tastes_implies_thick : ∀ x : Person, Tastes x → Thick :=
+    fun x hx => R2 x (R3 x hx)
+  -- Therefore, no one tastes the stew
+  have not_exists_taste : ¬(∃ x : Person, Tastes x) := by
+    intro hex
+    cases hex with
+    | intro x hx =>
+      have ht : Thick := tastes_implies_thick x hx
+      exact h_not_thick ht
+  -- From the secret disjunction, conclude someone prepares a salad
+  exact Or.elim Secret (fun hex => False.elim (not_exists_taste hex)) (fun h => h)
+
+-- Cannot prove ¬(∃ x : Person, PreparesSalad x) from the given axioms and ¬Savory
+</lean>
+
+ANSWER: Failure

@@ -1,0 +1,190 @@
+<lean>
+axiom City : Type
+axiom State : Type
+axiom InState : City → State → Prop
+
+axiom Billings : City
+axiom Montana : State
+axiom Butte : City
+axiom Helena : City
+axiom Missoula : City
+axiom WhiteSulphurSprings : City
+axiom StPierre : City
+axiom Bismarck : City
+
+-- Billings is in Montana
+axiom billings_in_montana : InState Billings Montana
+-- Butte, Helena, Missoula are in Montana
+axiom butte_in_montana : InState Butte Montana
+axiom helena_in_montana : InState Helena Montana
+axiom missoula_in_montana : InState Missoula Montana
+-- White Sulphur Springs is in the same state as Butte → hence in Montana (by uniqueness)
+axiom white_sulphur_butte_state : ∃ s, InState WhiteSulphurSprings s ∧ InState Butte s
+-- St Pierre is not in Montana
+axiom stpierre_not_in_montana : ¬ InState StPierre Montana
+
+-- Every city is in at least one state
+axiom city_in_some_state : ∀ c : City, ∃ s : State, InState c s
+-- Uniqueness condition: all given cities are in exactly one state (no exceptions in the context)
+axiom unique_state : ∀ c : City, ∀ s1 s2 : State, InState c s1 → InState c s2 → s1 = s2 → s1 = s2
+
+-- From uniqueness, White Sulphur Springs must be in Montana
+lemma white_sulphur_in_montana : InState WhiteSulphurSprings Montana := by
+  obtain ⟨s, hw, hb⟩ := white_sulphur_butte_state
+  have : s = Montana := unique_state Butte s Montana hb butte_in_montana
+  rw [this] at hw
+  exact hw
+
+-- St Pierre is in some state ≠ Montana
+lemma stpierre_state_diff : ∃ sp_state : State, InState StPierre sp_state ∧ sp_state ≠ Montana := by
+  obtain ⟨s, h⟩ := city_in_some_state StPierre
+  exists s
+  constructor
+  . exact h
+  . intro eq
+    rw [eq] at h
+    exact stpierre_not_in_montana h
+
+-- There is no information about Bismarck's state
+theorem not_provable : ¬ (¬ ∃ s : State, InState StPierre s ∧ InState Bismarck s) := by
+  intro h
+  -- We know Bismarck is in some state but cannot contradict it being same/different from StPierre
+  have ⟨bismarck_state, hB⟩ := city_in_some_state Bismarck
+  -- StPierre is in some state sp_state distinct from Montana
+  have ⟨sp_state, hS, ne⟩ := stpierre_state_diff
+  -- We don't know if bismarck_state = sp_state or not → no contradiction
+  -- Cannot proceed
+  apply h
+  sorry -- unprovable gap: Bismarck might or might not be in the same state as StPierre
+
+-- Since we cannot prove the negation, we indicate failure to prove the original statement false
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The initial attempt contained several errors in the Lean code. After careful analysis and correction, here's the revised implementation:
+
+<lean>
+axiom City : Type
+axiom State : Type
+axiom InState : City → State → Prop
+
+axiom Billings : City
+axiom Montana : State
+axiom Butte : City
+axiom Helena : City
+axiom Missoula : City
+axiom WhiteSulphurSprings : City
+axiom StPierre : City
+axiom Bismarck : City
+
+axiom billings_in_montana : InState Billings Montana
+axiom butte_in_montana : InState Butte Montana
+axiom helena_in_montana : InState Helena Montana
+axiom missoula_in_montana : InState Missoula Montana
+axiom white_sulphur_butte_state : ∃ s, InState WhiteSulphurSprings s ∧ InState Butte s
+axiom stpierre_not_in_montana : ¬ InState StPierre Montana
+axiom city_in_some_state : ∀ c : City, ∃ s : State, InState c s
+
+-- Corrected uniqueness axiom (functional dependency)
+axiom unique_state : ∀ (c : City) (s1 s2 : State), 
+    InState c s1 → InState c s2 → s1 = s2
+
+-- Prove White Sulphur Springs must be in Montana
+lemma white_sulphur_in_montana : InState WhiteSulphurSprings Montana := by
+  obtain ⟨s, h_ws, h_b⟩ := white_sulphur_butte_state
+  exact unique_state Butte s Montana h_b butte_in_montana ▸ h_ws
+
+-- Prove St. Pierre is in some non-Montana state
+lemma stpierre_in_other_state : ∃ sp_state, InState StPierre sp_state ∧ sp_state ≠ Montana := by
+  obtain ⟨s, h⟩ := city_in_some_state StPierre
+  exists s
+  constructor
+  · exact h
+  · intro eq
+    rw [eq] at h
+    exact stpierre_not_in_montana h
+
+-- Attempt to prove St. Pierre and Bismarck are NOT in same state
+theorem disprove_same_state : ¬ (∃ s, InState StPierre s ∧ InState Bismarck s) := by
+  intro h
+  obtain ⟨s, h_sp, h_bi⟩ := h
+  have ⟨sp_state, h_sp_state, ne⟩ := stpierre_in_other_state
+  have : s = sp_state := unique_state StPierre s sp_state h_sp h_sp_state
+  subst this
+  have bismarck_state := city_in_some_state Bismarck
+  -- Critical gap: No way to disprove s = bismarck's state
+  have contra : sp_state ≠ sp_state := ne (by rfl)
+  contradiction
+  -- Proof fails at this point
+</lean>
+
+ANSWER: Failure
+
+Explanation of why we get "Failure":
+1. We successfully formalized all premises, including the critical uniqueness constraint (each city is in exactly one state)
+2. We proved White Sulphur Springs must be in Montana via transitivity
+3. We proved St. Pierre is in some non-Montana state
+4. However, when attempting to prove St. Pierre and Bismarck cannot be in the same state:
+   - We know Bismarck must be in some arbitrary state
+   - We know St. Pierre is in some specific non-Montana state
+   - But there's no information linking Bismarck's possible state to St. Pierre's state
+   - Bismarck could be in the same non-Montana state as St. Pierre, or a different one
+5. The proof fails at the contradiction step since we cannot establish Bismarck can't be in St. Pierre's state
+
+The conclusion that St. Pierre and Bismarck are in same state remains neither provable nor disprovable from the premises.
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The compilation errors were due to issues in the proof tactics and lemma declarations. The corrected Lean code focuses on the core proof attempt without intermediate lemmas. Here's the error-free version:
+
+<lean>
+axiom City : Type
+axiom State : Type
+axiom InState : City → State → Prop
+
+axiom Billings : City
+axiom Montana : State
+axiom Butte : City
+axiom Helena : City
+axiom Missoula : City
+axiom WhiteSulphurSprings : City
+axiom StPierre : City
+axiom Bismarck : City
+
+axiom billings_in_montana : InState Billings Montana
+axiom butte_in_montana : InState Butte Montana
+axiom helena_in_montana : InState Helena Montana
+axiom missoula_in_montana : InState Missoula Montana
+axiom white_sulphur_butte_state : ∃ s, InState WhiteSulphurSprings s ∧ InState Butte s
+axiom stpierre_not_in_montana : ¬ InState StPierre Montana
+axiom city_in_some_state : ∀ c : City, ∃ s : State, InState c s
+
+-- Unique state axiom: Cities are in exactly one state
+axiom unique_state : ∀ (c : City) (s1 s2 : State), InState c s1 → InState c s2 → s1 = s2
+
+-- Attempt to disprove the statement
+theorem disprove_same_state : ¬ (∃ s, InState StPierre s ∧ InState Bismarck s) := by
+  intro h
+  obtain ⟨s, h_sp, h_bi⟩ := h  -- Assume both cities are in state s
+  -- We know St. Pierre is not in Montana from given axiom
+  have h_sp_not_montana := stpierre_not_in_montana
+  -- But we have no information about Bismarck's state
+  -- Cannot prove any contradiction between Bismarck and St. Pierre
+  sorry  -- Proof fails
+</lean>
+
+ANSWER: Failure
+
+Key reasons for failure:
+1. Despite properly formalizing all premises (including state uniqueness), no information constrains Bismarck's state
+2. St. Pierre must be in a non-Montana state, but Bismarck could be in any state (including St. Pierre's state)
+3. The uniqueness axiom doesn't provide grounds for contradiction without Bismarck-specific constraints
+
+The conclusion "St. Pierre and Bismarck are in the same state" remains unprovable as either true or false from the premises.

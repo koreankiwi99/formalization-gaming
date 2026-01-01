@@ -1,0 +1,55 @@
+We need to formalize the given context and query. The entities are represented as people, and we define relevant predicates. The context provides:
+1. All who can register to vote can participate.
+2. US citizens can register.
+3. Everyone has either US or Taiwanese citizenship.
+4. No Russian officials have Taiwanese citizenship.
+5. Vladimir has neither Taiwanese citizenship nor is a Gazprom manager.
+6. Ekaterina can register or is a Russian official.
+
+The query asks: Can Ekaterina participate or is she a Gazprom manager?
+
+We consider:
+- If Ekaterina can register, by (1) she can participate, satisfying the disjunction.
+- If she can't register, then by (6) she must be a Russian official. Then:
+  - By (4), she cannot have Taiwanese citizenship.
+  - By (3) and exclusion of Taiwanese, she must have US citizenship.
+  - By (2), she can register, contradicting our case. Thus, she must register.
+
+Therefore, regardless of disjunct (6), Ekaterina can always register. Hence, she can always participate, making the statement true.
+
+<lean>
+axiom Person : Type
+axiom Ekaterina : Person
+axiom Vladimir : Person
+
+axiom CanRegister : Person → Prop
+axiom CanParticipate : Person → Prop
+axiom USCitizen : Person → Prop
+axiom TaiwaneseCitizen : Person → Prop
+axiom RussianOfficial : Person → Prop
+axiom ManagerAtGazprom : Person → Prop
+
+axiom A1 : ∀ p : Person, CanRegister p → CanParticipate p
+axiom A2 : ∀ p : Person, USCitizen p → CanRegister p
+axiom A3 : ∀ p : Person, USCitizen p ∨ TaiwaneseCitizen p
+axiom A4 : ∀ p : Person, RussianOfficial p → ¬ TaiwaneseCitizen p
+axiom A5 : ¬ TaiwaneseCitizen Vladimir ∧ ¬ ManagerAtGazprom Vladimir
+axiom A6 : CanRegister Ekaterina ∨ RussianOfficial Ekaterina
+
+theorem target : CanParticipate Ekaterina ∨ ManagerAtGazprom Ekaterina := by
+  cases A6 with
+  | inl reg => 
+      left
+      exact A1 Ekaterina reg
+  | inr off => 
+      have no_taiwan : ¬ TaiwaneseCitizen Ekaterina := A4 Ekaterina off
+      cases A3 Ekaterina with
+      | inl us => 
+          have reg : CanRegister Ekaterina := A2 Ekaterina us
+          left
+          exact A1 Ekaterina reg
+      | inr tai => 
+          contradiction
+</lean>
+
+ANSWER: True

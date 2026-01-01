@@ -1,0 +1,53 @@
+<lean>
+axiom Person : Type
+axiom Mary : Person
+
+axiom Sale : Prop
+axiom StockUp : Person → Prop
+axiom MakeList : Person → Prop
+axiom PlanBuy : Person → Prop
+axiom PlanAhead : Person → Prop
+axiom Payday : Prop
+axiom PricesUp : Prop
+
+-- Premises
+axiom P1 : Sale → StockUp Mary
+axiom P2 : ∀ x : Person, MakeList x → PlanBuy x
+axiom P3 : Sale ∨ ¬PlanBuy Mary ∨ (Sale ∧ ¬PlanAhead Mary)
+axiom P4 : Payday → MakeList Mary
+axiom P5 : Payday ∨ PricesUp ∨ (Payday ∧ PricesUp)
+
+-- From the premises, we can actually derive: (¬StockUp Mary) → PricesUp
+theorem prices_up_from_not_stock : (¬StockUp Mary) → PricesUp :=
+  fun hNotStock =>
+    -- From P1, contrapositive gives ¬Sale
+    have hNotSale : ¬Sale := fun hS => hNotStock (P1 hS)
+    -- From P3 and ¬Sale, deduce ¬PlanBuy Mary
+    have hNotPlan : ¬PlanBuy Mary :=
+      by
+        cases P3 with
+        | inl hS => exact False.elim (hNotSale hS)
+        | inr rest =>
+          cases rest with
+          | inl hNP => exact hNP
+          | inr hAnd =>
+            have : False := hNotSale hAnd.left
+            exact this.elim
+    -- From P4 and P2, Payday → PlanBuy Mary
+    have hPay_implies_Plan : Payday → PlanBuy Mary := fun hPay => P2 Mary (P4 hPay)
+    -- Hence ¬Payday
+    have hNotPay : ¬Payday := fun hPay => hNotPlan (hPay_implies_Plan hPay)
+    -- Use P5 and ¬Payday to conclude PricesUp
+    show PricesUp from
+      by
+        cases P5 with
+        | inl hPay => exact False.elim (hNotPay hPay)
+        | inr rest =>
+          cases rest with
+          | inl hUp => exact hUp
+          | inr hAnd =>
+            have : False := hNotPay hAnd.left
+            exact this.elim
+</lean>
+
+ANSWER: Failure

@@ -1,0 +1,57 @@
+<lean>
+axiom obj : Type
+axiom Rabbit : obj → Prop
+axiom Turtle : obj → Prop
+axiom Squirrel : obj → Prop
+axiom Skittish : obj → Prop
+axiom Calm : obj → Prop
+axiom Cute : obj → Prop
+axiom Spotted : obj → Prop
+axiom Rockie : obj
+
+-- Premises
+axiom A1 : ∀ x : obj, (Rabbit x ∧ Spotted x) → Cute x
+axiom A2 : ∃ x : obj, Turtle x ∧ Spotted x
+axiom A3 : ∀ x : obj, Spotted x → (Rabbit x ∨ Squirrel x)
+axiom A4 : ∀ x : obj, Skittish x → ¬ Calm x
+axiom A5 : ∀ x : obj, (Squirrel x ∧ Spotted x) → Skittish x
+axiom A6 : Spotted Rockie ∧ Calm Rockie
+
+-- Derive that Rockie is not a squirrel (since Rockie is calm and spotted, and spotted squirrels are skittish hence not calm)
+theorem not_squirrel_Rockie : ¬ Squirrel Rockie := by
+  intro hSq
+  have hSpot : Spotted Rockie := And.left A6
+  have hCalm : Calm Rockie := And.right A6
+  have hSk : Skittish Rockie := by
+    have hAnd : Squirrel Rockie ∧ Spotted Rockie := And.intro hSq hSpot
+    exact A5 Rockie hAnd
+  have hNotCalm : ¬ Calm Rockie := A4 Rockie hSk
+  exact hNotCalm hCalm
+
+-- From "only spotted are rabbits or squirrels" and not_squirrel, deduce Rockie is a rabbit
+theorem rabbit_Rockie : Rabbit Rockie := by
+  have hSpot : Spotted Rockie := And.left A6
+  have hOr : Rabbit Rockie ∨ Squirrel Rockie := A3 Rockie hSpot
+  cases hOr with
+  | inl hr => exact hr
+  | inr hs => exact False.elim (not_squirrel_Rockie hs)
+
+-- Therefore Rockie is cute (rabbit and spotted implies cute)
+theorem cute_Rockie : Cute Rockie := by
+  have hSpot : Spotted Rockie := And.left A6
+  have hRab : Rabbit Rockie := rabbit_Rockie
+  exact A1 Rockie (And.intro hRab hSpot)
+
+-- Show that the target implication is refutable given the premises
+theorem not_target :
+  ¬ ((Cute Rockie ∧ Calm Rockie) → (Skittish Rockie ∧ Turtle Rockie)) := by
+  intro hImp
+  have hCalm : Calm Rockie := And.right A6
+  have hCute : Cute Rockie := cute_Rockie
+  have hCons : Skittish Rockie ∧ Turtle Rockie := hImp (And.intro hCute hCalm)
+  have hSk : Skittish Rockie := And.left hCons
+  have hNotCalm : ¬ Calm Rockie := A4 Rockie hSk
+  exact hNotCalm hCalm
+</lean>
+
+ANSWER: Failure

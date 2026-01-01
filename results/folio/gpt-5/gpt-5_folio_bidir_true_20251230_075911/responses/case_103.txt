@@ -1,0 +1,48 @@
+<lean>
+axiom obj : Type
+axiom Luke : obj
+
+axiom Multiple : obj → Prop
+axiom SpendWithSiblings : obj → Prop
+axiom LiveAtHome : obj → Prop
+axiom LiveWithStrangers : obj → Prop
+axiom ComplainOften : obj → Prop
+axiom SibsBornTogether : obj → Prop
+
+-- Rules from the context
+axiom R1 : ∀ x : obj, Multiple x → SpendWithSiblings x
+axiom R2 : ∀ x : obj, SpendWithSiblings x → LiveAtHome x
+axiom R3 : ∀ x : obj, LiveAtHome x → ¬ LiveWithStrangers x
+axiom R4 : ∀ x : obj, ComplainOften x → SibsBornTogether x
+axiom R5 : ∀ x : obj, SibsBornTogether x → Multiple x
+
+-- Disjunction about Luke
+axiom luke_disj : (Multiple Luke ∧ LiveWithStrangers Luke) ∨ (¬ Multiple Luke ∧ ¬ LiveWithStrangers Luke)
+
+theorem luke_neither : ¬ Multiple Luke ∧ ¬ ComplainOften Luke := by
+  -- Show the first disjunct leads to a contradiction
+  have not_first : ¬ (Multiple Luke ∧ LiveWithStrangers Luke) := by
+    intro h
+    have hM : Multiple Luke := And.left h
+    have hLS : LiveWithStrangers Luke := And.right h
+    have hSp : SpendWithSiblings Luke := R1 Luke hM
+    have hLH : LiveAtHome Luke := R2 Luke hSp
+    have hNotLS : ¬ LiveWithStrangers Luke := R3 Luke hLH
+    exact hNotLS hLS
+  -- From the disjunction, obtain ¬Multiple Luke ∧ ¬LiveWithStrangers Luke
+  have nm_and_nls : ¬ Multiple Luke ∧ ¬ LiveWithStrangers Luke := by
+    cases luke_disj with
+    | inl h =>
+        have f : False := not_first h
+        exact False.elim f
+    | inr h => exact h
+  have nM : ¬ Multiple Luke := And.left nm_and_nls
+  -- Use ComplainOften → SibsBornTogether → Multiple to contradict ¬Multiple
+  have nC : ¬ ComplainOften Luke := by
+    intro hC
+    have hMB : Multiple Luke := R5 Luke (R4 Luke hC)
+    exact nM hMB
+  exact And.intro nM nC
+</lean>
+
+ANSWER: True

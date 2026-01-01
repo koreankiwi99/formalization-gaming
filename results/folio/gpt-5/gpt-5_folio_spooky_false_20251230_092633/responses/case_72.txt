@@ -1,0 +1,73 @@
+<lean>
+axiom obj : Type
+
+axiom KO : obj
+
+axiom Stock : obj → Prop
+axiom Growth : obj → Prop
+axiom Bought : obj → Prop
+axiom Suitable : obj → Prop
+axiom Mature : obj → Prop
+axiom Volatile : obj → Prop
+
+-- Premises
+axiom A1 : ∀ x : obj, Growth x → Bought x
+axiom A2 : ∀ x : obj, Bought x → ¬Suitable x
+axiom A3 : ∃ x : obj, Stock x ∧ Growth x
+axiom A4 : ∀ x : obj, Mature x → Suitable x
+axiom KOmature : Mature KO
+axiom KOstock : Stock KO
+
+-- Derived facts about KO
+theorem KO_suitable : Suitable KO :=
+by
+  have hm : Mature KO := KOmature
+  exact A4 KO hm
+
+theorem KO_not_bought : ¬Bought KO :=
+by
+  intro hb
+  have hs : Suitable KO := KO_suitable
+  have hns : ¬Suitable KO := A2 KO hb
+  exact hns hs
+
+theorem KO_not_growth : ¬Growth KO :=
+by
+  intro hg
+  have hb : Bought KO := A1 KO hg
+  exact KO_not_bought hb
+
+-- The negation of the conclusion's consequent holds (since KO is a Stock)
+theorem not_Q : ¬(¬Stock KO ∧ ¬Volatile KO) :=
+by
+  intro h
+  have hns : ¬Stock KO := And.left h
+  have hs : Stock KO := KOstock
+  exact hns hs
+
+-- The original implication is actually true (vacuously, via explosion under the antecedent)
+theorem statement_true : (Growth KO ∨ Bought KO) → (¬Stock KO ∧ ¬Volatile KO) :=
+by
+  intro h
+  have hb : Bought KO :=
+    Or.elim h (fun hg => A1 KO hg) (fun hb => hb)
+  have hns : ¬Suitable KO := A2 KO hb
+  have hs : Suitable KO := KO_suitable
+  have contra : False := hns hs
+  exact False.elim contra
+
+-- Hence we cannot derive the negation of the statement:
+-- ¬((Growth KO ∨ Bought KO) → (¬Stock KO ∧ ¬Volatile KO))
+-- because its antecedent is refutable:
+theorem not_P : ¬(Growth KO ∨ Bought KO) :=
+by
+  intro h
+  cases h with
+  | inl hg =>
+      have hb : Bought KO := A1 KO hg
+      exact KO_not_bought hb
+  | inr hb =>
+      exact KO_not_bought hb
+</lean>
+
+ANSWER: Failure

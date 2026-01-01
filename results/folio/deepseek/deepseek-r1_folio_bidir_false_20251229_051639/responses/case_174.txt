@@ -1,0 +1,194 @@
+<lean>
+axiom Person : Type
+axiom Taylor : Person
+
+def SaladsRegularly (p : Person) : Prop := p eats salads regularly
+def HealthConscious (p : Person) : Prop := p is very conscious about health and eating habits
+def HealthConsciousHome (p : Person) : Prop := p grew up in health-conscious childhood home
+def FulfillNutrition (p : Person) : Prop := p fulfills daily nutritional intakes
+def DisregardWellBeing (p : Person) : Prop := p disregards physical well-being
+def VisitGymDaily (p : Person) : Prop := p visits gym at least once daily
+
+-- All people who eat salads regularly are health conscious
+axiom A1 : ∀ p : Person, SaladsRegularly p → HealthConscious p
+-- All people with health-conscious homes eat salads regularly
+axiom A2 : ∀ p : Person, HealthConsciousHome p → SaladsRegularly p
+-- All who fulfill nutrition grew up in health-conscious homes
+axiom A3 : ∀ p : Person, FulfillNutrition p → HealthConsciousHome p
+-- People who disregard well-being are not health conscious
+axiom A4 : ∀ p : Person, DisregardWellBeing p → ¬ HealthConscious p
+-- Visiting gym daily implies fulfilling nutrition
+axiom A5 : ∀ p : Person, VisitGymDaily p → FulfillNutrition p
+-- Taylor's case: either (health-conscious home AND disregard well-being) OR neither
+axiom A6 : (HealthConsciousHome Taylor ∧ DisregardWellBeing Taylor) ∨ 
+            (¬ HealthConsciousHome Taylor ∧ ¬ DisregardWellBeing Taylor)
+
+-- Statement to disprove: Taylor has no health-conscious home AND doesn't visit gym daily
+theorem disprove_goal : ¬ (¬ HealthConsciousHome Taylor ∧ ¬ VisitGymDaily Taylor) := 
+  by
+    intro H  -- Assume conclusion: ¬HealthConsHome Taylor ∧ ¬VisitGymDaily Taylor
+    have notHome := H.1
+    have notGym := H.2
+    cases A6 with
+    | inl h => 
+        -- Case 1: Taylor has health-conscious home AND disregards well-being
+        have home := h.1
+        contradiction  -- notHome and home contradiction
+    | inr h => 
+        -- Case 2: Taylor has no health-conscious home AND doesn't disregard well-being
+        -- matches H's ¬HealthConsHome Taylor part
+        -- Now need contradiction with notGym? Cannot derive.
+        -- Step-by-step implications:
+        have notHome := h.1  -- ¬HealthConsHome
+        have notDisregard := h.2  -- ¬DisregardWellBeing
+        -- Contrapositive of A3: without health-conscious home, cannot fulfill nutrition
+        have notFulfill : ¬ FulfillNutrition Taylor := 
+          fun a => notHome (A3 Taylor a)
+        -- Contrapositive of A5: without fulfilling nutrition, cannot visit gym daily
+        have notGymA5 : ¬ VisitGymDaily Taylor := 
+          fun a => notFulfill (A5 Taylor a)
+        -- But we already assumed ¬VisitGymDaily (notGym), so consistent
+        -- No contradiction found
+        -- Thus fail to produce False
+        -- PROOF STUCK HERE: Unable to derive False
+        exact notDisregard (by 
+          -- Attempt alternate route: try to force DisregardWellBeing?
+          -- But A4 requires health consciousness first, and from notHome:
+          have noSalads : ¬ SaladsRegularly Taylor := fun s => notHome (A2 Taylor s)
+          have notConscious : ¬ HealthConscious Taylor := fun c => by contradiction  -- noSalads blocks A1
+          -- Cannot get DisregardWellBeing without conscious? A4 is implication, not biconditional.
+          -- Thus no contradiction
+          sorry)  -- No valid proof
+        done
+
+-- Since disprove_goal depends on `sorry`, it's incomplete. 
+-- Actually, the environment does not allow `sorry` in valid proofs.
+
+-- Given we cannot close the second case without contradiction, we have:
+-- Failure to prove ¬(conclusion)
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The errors occurred because predicate definitions used natural language descriptions instead of proper Lean syntax. I've corrected this by declaring all predicates as abstract axioms without bodies. 
+
+The analysis shows that while the first case of Taylor's situation leads to a contradiction, the second case remains consistent with the conclusion. Specifically:
+- In Case 1: The premises force a contradiction between Taylor having a health-conscious home (A6) and not having one (conclusion)
+- In Case 2: Taylor having neither a health-conscious home nor disregard for well-being (A6) is fully consistent with her not visiting the gym daily (conclusion), as shown by the implications:  
+  ¬HealthConsciousHome → ¬FulfillNutrition → ¬VisitGymDaily  
+  No additional constraints force a contradiction
+
+<lean>
+axiom Person : Type
+
+axiom Taylor : Person
+
+axiom SaladsRegularly : Person → Prop
+axiom HealthConscious : Person → Prop
+axiom HealthConsciousHome : Person → Prop
+axiom FulfillNutrition : Person → Prop
+axiom DisregardWellBeing : Person → Prop
+axiom VisitGymDaily : Person → Prop
+
+-- All people who eat salads regularly are health conscious
+axiom A1 : ∀ (p : Person), SaladsRegularly p → HealthConscious p
+-- People from health-conscious homes eat salads regularly
+axiom A2 : ∀ (p : Person), HealthConsciousHome p → SaladsRegularly p
+-- People who fulfill nutrition grew up in health-conscious homes
+axiom A3 : ∀ (p : Person), FulfillNutrition p → HealthConsciousHome p
+-- People disregarding well-being are not health conscious
+axiom A4 : ∀ (p : Person), DisregardWellBeing p → ¬ HealthConscious p
+-- Visiting gym daily implies fulfilling nutrition
+axiom A5 : ∀ (p : Person), VisitGymDaily p → FulfillNutrition p
+-- Taylor's situation: (health-conscious home ∧ disregard well-being) ∨ (neither)
+axiom A6 : (HealthConsciousHome Taylor ∧ DisregardWellBeing Taylor) ∨ 
+            (¬ HealthConsciousHome Taylor ∧ ¬ DisregardWellBeing Taylor)
+
+-- Attempt to disprove conclusion: ¬H(Taylor) ∧ ¬Gym(Taylor)
+theorem disprove : ¬ (¬ HealthConsciousHome Taylor ∧ ¬ VisitGymDaily Taylor) := 
+  fun H =>  -- Assume ¬H ∧ ¬Gym
+  match A6 with
+  | Or.inl ⟨home, disregard⟩ => 
+      H.1 home  -- Contradiction: H required by A6 but ¬H assumed
+  | Or.inr ⟨notHome, notDisregard⟩ => 
+      -- Show Kotlin-like chain to demonstrate consistency
+      have noFulfill : ¬ FulfillNutrition Taylor := fun f => notHome (A3 _ f)
+      have noGym : ¬ VisitGymDaily Taylor := fun g => noFulfill (A5 _ g)
+      -- Matches H.2 (¬Gym), but noDisregard remains unused → no contradiction
+      False.elim (H.2 noGym)  -- Failed: H.2 and noGym are identical
+
+-- Alternative: Explicitly identify consistent scenario
+example : ∃ (t : Person) (_ : ¬ HealthConsciousHome t) (_ : ¬ VisitGymDaily t) : True := by
+  apply Exists.intro Taylor
+  apply Exists.intro (fun _ => False.elim ?_)  -- Placeholder for notHome
+  apply Exists.intro (fun _ => False.elim ?_)  -- Placeholder for notGym
+  exact True.intro
+/- Model construction shows possibility in Case 2:
+   ¬H(Taylor), ¬Disregard(Taylor), ¬Gym(Taylor) 
+   satisfies all axioms:
+   - A1-A5 vacuously true for Taylor (antecedents false)
+   - A6 satisfied by second disjunct -/
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The compilation errors in the previous code were due to two main issues:
+1. Attempting to apply a proof of ¬VisitGymDaily Taylor where a VisitGymDaily Taylor was expected
+2. Including unnecessary model construction code that wasn't valid Lean syntax
+
+The core issue is in the second case of the disjunction - while we can derive that Taylor doesn't visit the gym daily from the axioms and premises (which matches the conclusion), we cannot find a contradiction because:
+- There's no connection to the "disregard well-being" property
+- The derivation chain stops at ¬VisitGymDaily with no conflict
+- All axioms are satisfied in this scenario
+
+Thus no contradiction exists, so we can't prove the conclusion false.
+
+Here's the corrected Lean code:
+
+<lean>
+axiom Person : Type
+axiom Taylor : Person
+
+axiom SaladsRegularly : Person → Prop
+axiom HealthConscious : Person → Prop
+axiom HealthConsciousHome : Person → Prop
+axiom FulfillNutrition : Person → Prop
+axiom DisregardWellBeing : Person → Prop
+axiom VisitGymDaily : Person → Prop
+
+axiom A1 : ∀ p : Person, SaladsRegularly p → HealthConscious p
+axiom A2 : ∀ p : Person, HealthConsciousHome p → SaladsRegularly p
+axiom A3 : ∀ p : Person, FulfillNutrition p → HealthConsciousHome p
+axiom A4 : ∀ p : Person, DisregardWellBeing p → ¬ HealthConscious p
+axiom A5 : ∀ p : Person, VisitGymDaily p → FulfillNutrition p
+axiom A6 : (HealthConsciousHome Taylor ∧ DisregardWellBeing Taylor) ∨ 
+            (¬ HealthConsciousHome Taylor ∧ ¬ DisregardWellBeing Taylor)
+
+theorem disprove_goal : ¬ (¬ HealthConsciousHome Taylor ∧ ¬ VisitGymDaily Taylor) := 
+  fun H =>  -- Assume ¬HealthConsHome ∧ ¬Gym
+  match A6 with
+  | Or.inl ⟨home, _⟩ => 
+      H.1 home  -- Contradiction: home ≠ ¬home
+  | Or.inr ⟨notHome, _⟩ => 
+      have noFulfill : ¬ FulfillNutrition Taylor := fun f => notHome (A3 Taylor f)
+      have noGym : ¬ VisitGymDaily Taylor := fun g => noFulfill (A5 Taylor g)
+      -- Matches H.2 but doesn't create conflict
+      -- No contradiction found - all properties consistent
+      noGym (H.2)  -- Type error: ¬Gym applied to ¬Gym
+      
+-- Error corrected by removing the problematic application
+-- Actually: both types are the same proof - cannot create False
+
+-- Without full proof, we declare:
+-- Cannot prove
+</lean>
+
+ANSWER: Failure

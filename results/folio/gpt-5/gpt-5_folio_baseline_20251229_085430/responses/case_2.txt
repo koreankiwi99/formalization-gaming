@@ -1,0 +1,59 @@
+<lean>
+axiom obj : Type
+axiom Bonnie : obj
+
+-- Predicates
+axiom InClub : obj → Prop
+axiom PerformsOften : obj → Prop
+axiom AttendsEngaged : obj → Prop
+axiom InactiveDisinterested : obj → Prop
+axiom Chaperones : obj → Prop
+axiom Student : obj → Prop
+axiom YoungChildOrTeen : obj → Prop
+axiom WishesFurtherAcad : obj → Prop
+
+-- Axioms from the context
+axiom A1 : ∀ x : obj, InClub x ∧ PerformsOften x → AttendsEngaged x
+axiom A2 : ∀ x : obj, InClub x → (PerformsOften x ∨ InactiveDisinterested x)
+axiom A3 : ∀ x : obj, InClub x ∧ Chaperones x → ¬ Student x
+axiom A4 : ∀ x : obj, InClub x ∧ InactiveDisinterested x → Chaperones x
+axiom A5 : ∀ x : obj, InClub x ∧ YoungChildOrTeen x ∧ WishesFurtherAcad x → Student x
+axiom A6 : InClub Bonnie
+axiom A7 : (AttendsEngaged Bonnie ∧ Student Bonnie) ∨ ¬ (AttendsEngaged Bonnie ∧ ¬ Student Bonnie)
+
+-- Target statement (to be shown false):
+-- If Bonnie either chaperones high school dances or, if not, she performs often,
+-- then she is both (a young child or teen who wishes to further academics) and inactive/disinterested.
+def Antecedent : Prop :=
+  (Chaperones Bonnie) ∨ ((¬ Chaperones Bonnie) → PerformsOften Bonnie)
+
+def Consequent : Prop :=
+  (YoungChildOrTeen Bonnie ∧ WishesFurtherAcad Bonnie) ∧ InactiveDisinterested Bonnie
+
+theorem statement_false : ¬ (Antecedent → Consequent) := by
+  intro hImp
+  -- From club membership, Bonnie either performs often or is inactive/disinterested
+  have hClub : InClub Bonnie := A6
+  have hPO_or_I : PerformsOften Bonnie ∨ InactiveDisinterested Bonnie := A2 Bonnie hClub
+  -- Build the antecedent from the disjunction above
+  have hAnt : Antecedent := by
+    cases hPO_or_I with
+    | inl hPO =>
+      apply Or.inr
+      intro _
+      exact hPO
+    | inr hI =>
+      have hCh : Chaperones Bonnie := A4 Bonnie ⟨hClub, hI⟩
+      exact Or.inl hCh
+  -- Apply the implication to get the consequent
+  have hCons : Consequent := hImp hAnt
+  -- From the consequent, derive Student and ¬Student, contradiction
+  have hYW : YoungChildOrTeen Bonnie ∧ WishesFurtherAcad Bonnie := And.left hCons
+  have hI : InactiveDisinterested Bonnie := And.right hCons
+  have hStud : Student Bonnie := A5 Bonnie ⟨hClub, hYW.left, hYW.right⟩
+  have hCh : Chaperones Bonnie := A4 Bonnie ⟨hClub, hI⟩
+  have hNotStud : ¬ Student Bonnie := A3 Bonnie ⟨hClub, hCh⟩
+  exact hNotStud hStud
+</lean>
+
+ANSWER: False

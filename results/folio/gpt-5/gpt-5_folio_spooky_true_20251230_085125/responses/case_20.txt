@@ -1,0 +1,62 @@
+<lean>
+axiom obj : Type
+
+axiom Rockie : obj
+
+axiom Rabbit : obj → Prop
+axiom Squirrel : obj → Prop
+axiom Turtle : obj → Prop
+axiom Spotted : obj → Prop
+axiom Cute : obj → Prop
+axiom Skittish : obj → Prop
+axiom Calm : obj → Prop
+
+-- Premises
+axiom A1 : ∀ x : obj, Rabbit x ∧ Spotted x → Cute x
+axiom A2 : ∃ x : obj, Turtle x ∧ Spotted x
+axiom A3 : ∀ x : obj, Spotted x → Rabbit x ∨ Squirrel x
+axiom A4 : ∀ x : obj, Skittish x → ¬ Calm x
+axiom A5 : ∀ x : obj, Squirrel x ∧ Spotted x → Skittish x
+axiom A6 : Spotted Rockie ∧ Calm Rockie
+
+-- Useful consequences of the premises
+theorem not_squirrel_Rockie : ¬ Squirrel Rockie :=
+  fun hs =>
+    let hSpot := A6.left
+    let hSk : Skittish Rockie := A5 Rockie (And.intro hs hSpot)
+    let hNotCalm : ¬ Calm Rockie := A4 Rockie hSk
+    hNotCalm A6.right
+
+theorem rabbit_Rockie : Rabbit Rockie := by
+  have hSpot : Spotted Rockie := A6.left
+  have hOr : Rabbit Rockie ∨ Squirrel Rockie := A3 Rockie hSpot
+  have hNotS : ¬ Squirrel Rockie := not_squirrel_Rockie
+  cases hOr with
+  | inl hR => exact hR
+  | inr hS => exact False.elim (hNotS hS)
+
+theorem cute_Rockie : Cute Rockie :=
+  A1 Rockie (And.intro rabbit_Rockie A6.left)
+
+theorem calm_Rockie : Calm Rockie := A6.right
+
+theorem antecedent_true : Cute Rockie ∧ Calm Rockie :=
+  And.intro cute_Rockie calm_Rockie
+
+theorem not_skittish_Rockie : ¬ Skittish Rockie :=
+  fun hSk =>
+    let hNotCalm := A4 Rockie hSk
+    hNotCalm calm_Rockie
+
+theorem not_consequent : ¬ (Skittish Rockie ∧ Turtle Rockie) :=
+  fun h => not_skittish_Rockie h.left
+
+-- Therefore, the target implication cannot hold
+theorem target_not_provable :
+  ¬ ((Cute Rockie ∧ Calm Rockie) → (Skittish Rockie ∧ Turtle Rockie)) :=
+  fun hImp =>
+    let hQ := hImp antecedent_true
+    not_consequent hQ
+</lean>
+
+ANSWER: Failure

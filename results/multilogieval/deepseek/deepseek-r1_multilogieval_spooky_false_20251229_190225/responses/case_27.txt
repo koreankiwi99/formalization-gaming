@@ -1,0 +1,129 @@
+The premises entail that if John's coworkers are not hungry, then John is not diligent. This is proven in Lean by:
+1. Assuming coworkers are not hungry (`¬CoworkersHungry`).
+2. From premise P1 (`CloseToLunchtime → CoworkersHungry`), we deduce it's not close to lunchtime (`¬CloseToLunchtime`) to avoid contradiction.
+3. Premise P4 (`CloseToLunchtime ∨ ¬ReadyForMeeting John`) with `¬CloseToLunchtime` implies John is not ready for the meeting (`¬ReadyForMeeting John`).
+4. From premise P3 (`PrepareWell John → ReadyForMeeting John`), John must not have prepared well (`¬PrepareWell John`).
+5. Premise P5 (`∀x, Diligent x → PrepareWell x`) implies that if John were diligent, he would have prepared well. Since he didn't, John cannot be diligent (`¬Diligent John`).
+
+Thus, when coworkers are not hungry, John is not diligent, refuting the statement that "if John's coworkers are not hungry, he is diligent."
+
+<lean>
+axiom obj : Type
+axiom John : obj
+axiom CloseToLunchtime : Prop
+axiom CoworkersHungry : Prop
+axiom PrepareWell : obj → Prop
+axiom ReadyForMeeting : obj → Prop
+axiom Diligent : obj → Prop
+axiom P1 : CloseToLunchtime → CoworkersHungry
+axiom P3 : PrepareWell John → ReadyForMeeting John
+axiom P4 : CloseToLunchtime ∨ ¬ReadyForMeeting John
+axiom P5 : ∀ x : obj, Diligent x → PrepareWell x
+theorem negate : ¬CoworkersHungry → ¬Diligent John := 
+  fun h : ¬CoworkersHungry =>
+    have h1 : ¬CloseToLunchtime := by 
+      intro hClose
+      have : CoworkersHungry := P1 hClose
+      exact h this
+    have h2 : ¬ReadyForMeeting John := by 
+      cases P4 with
+      | inl hClose => exact False.elim (h1 hClose)
+      | inr hNotReady => exact hNotReady
+    have h3 : ¬PrepareWell John := by 
+      intro hPrep
+      have : ReadyForMeeting John := P3 hPrep
+      contradiction
+    show ¬Diligent John
+    intro hDiligent
+    have : PrepareWell John := P5 John hDiligent
+    contradiction
+</lean>
+
+ANSWER: No
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The corrected Lean 4 code uses term mode instead of tactic mode to resolve the compilation errors. The proof demonstrates that if John's coworkers are not hungry, then John cannot be diligent based on the premises. Here's the corrected code:
+
+<lean>
+axiom obj : Type
+axiom John : obj
+axiom CloseToLunchtime : Prop
+axiom CoworkersHungry : Prop
+axiom PrepareWell : obj → Prop
+axiom ReadyForMeeting : obj → Prop
+axiom Diligent : obj → Prop
+
+axiom P1 : CloseToLunchtime → CoworkersHungry
+axiom P3 : PrepareWell John → ReadyForMeeting John
+axiom P4 P4: CloseToLunchtime ∨ ¬ReadyForMeeting John
+axiom P5 : ∀ x : obj, Diligent x → PrepareWell x
+
+theorem negate : ¬CoworkersHungry → ¬Diligent John := 
+  fun hNoHunger : ¬CoworkersHungry => 
+    fun hDiligent : Diligent John => 
+      match P4 with
+      | Or.inl hClose : CloseToLunchtime => 
+          hNoHunger (P1 hClose)
+      | Or.inr hNotReady : ¬ReadyForMeeting John => 
+          hNotReady (P3 (P5 John hDiligent))
+</lean>
+
+**Proof explanation:**  
+- Assume John's coworkers are not hungry (`hNoHunger`).  
+- Assume John is diligent (`hDiligent`) for contradiction.  
+- From universal diligence principle (`P5`), John prepares well.  
+- From preparation principle (`P3`), John is ready for the meeting.  
+- The disjunction `P4` gives two cases:  
+  1. If close to lunchtime: `P1` implies coworkers are hungry, contradicting `hNoHunger`.  
+  2. If not ready for meeting: directly contradicts readiness derived from diligence.  
+
+**Final answer:** The premises prove that if John's coworkers are not hungry, John cannot be diligent. The answer to "If John's coworkers are not hungry, is he diligent?" is therefore **No**.
+
+ANSWER: No
+
+======================================================================
+ITERATION 3
+======================================================================
+
+I notice the errors were due to a syntax issue in defining axiom P4 and type annotations in the match statement. Here's the corrected Lean 4 code:
+
+<lean>
+axiom obj : Type
+axiom John : obj
+axiom CloseToLunchtime : Prop
+axiom CoworkersHungry : Prop
+axiom PrepareWell : obj → Prop
+axiom ReadyForMeeting : obj → Prop
+axiom Diligent : obj → Prop
+
+axiom P1 : CloseToLunchtime → CoworkersHungry
+axiom P3 : PrepareWell John → ReadyForMeeting John
+axiom P4 : CloseToLunchtime ∨ ¬ReadyForMeeting John
+axiom P5 : ∀ x : obj, Diligent x → PrepareWell x
+
+theorem negate : ¬CoworkersHungry → ¬Diligent John := 
+  fun hNoHunger : ¬CoworkersHungry => 
+    fun hDiligent : Diligent John => 
+      match P4 with
+      | Or.inl hClose => 
+          hNoHunger (P1 hClose)
+      | Or.inr hNotReady => 
+          have prepared : PrepareWell John := P5 John hDiligent
+          have ready : ReadyForMeeting John := P3 prepared
+          hNotReady ready
+</lean>
+
+**Explanation of corrections:**
+1. Fixed the duplicate identifier in `axiom P4` declaration
+2. Removed type annotations after pattern match cases (`CloseToLunchtime` and `¬ReadyForMeeting John`) since Lean can infer them
+3. Used explicit proof terms instead of `contradiction` tactic
+4. Maintained the logical structure where:
+   - If it's close to lunchtime, we get hungry coworkers (contradicting ¬CoworkersHungry)
+   - If John isn't ready, we show he must be ready (using diligence and preparation axioms), creating contradiction
+
+**Proof summary:** The premises prove that if John's coworkers aren't hungry, John cannot be diligent. Therefore, the statement "If John's coworkers are not hungry, is he diligent?" must be answered negatively.
+
+ANSWER: No

@@ -1,0 +1,146 @@
+<lean>
+axiom obj : Type
+axiom Jane : obj
+axiom KiKi : obj
+
+axiom Animal : obj → Prop
+axiom Barks : obj → Prop
+axiom Dog : obj → Prop
+axiom Likes : obj → obj → Prop
+axiom Jumps : obj → Prop
+axiom HasLegs : obj → Prop
+axiom Terricolous : obj → Prop
+
+-- Jane does not like any animals that bark.
+axiom P1 : ∀ x : obj, Animal x → Barks x → ¬ Likes Jane x
+-- All dogs are animals that bark.
+axiom P2 : ∀ x : obj, Dog x → Animal x ∧ Barks x
+-- Jane likes all animals that jump.
+axiom P3 : ∀ x : obj, Animal x → Jumps x → Likes Jane x
+-- If an animal has legs, then it jumps.
+axiom P4 : ∀ x : obj, Animal x → HasLegs x → Jumps x
+-- If an animal is terricolous, then it has legs.
+axiom P5 : ∀ x : obj, Animal x → Terricolous x → HasLegs x
+-- KiKi is an animal.
+axiom P6 : Animal KiKi
+-- If KiKi neither jumps nor has legs, then KiKi is terricolous or has legs.
+axiom P7 : (¬ Jumps KiKi ∧ ¬ HasLegs KiKi) → (Terricolous KiKi ∨ HasLegs KiKi)
+
+open Classical
+
+theorem kiki_not_not_nj_nl : ¬ (¬ Jumps KiKi ∧ ¬ HasLegs KiKi) := by
+  intro h
+  have hdisj := P7 h
+  cases hdisj with
+  | inl hTer =>
+    have hlegs : HasLegs KiKi := P5 KiKi P6 hTer
+    exact h.right hlegs
+  | inr hlegs =>
+    exact h.right hlegs
+
+theorem kiki_jumps_or_legs : Jumps KiKi ∨ HasLegs KiKi := by
+  by_contra h
+  have hJ : ¬ Jumps KiKi := fun hj => h (Or.inl hj)
+  have hL : ¬ HasLegs KiKi := fun hl => h (Or.inr hl)
+  exact kiki_not_not_nj_nl ⟨hJ, hL⟩
+
+theorem kiki_jumps : Jumps KiKi := by
+  cases kiki_jumps_or_legs with
+  | inl hj => exact hj
+  | inr hl => exact P4 KiKi P6 hl
+
+theorem jane_likes_kiki : Likes Jane KiKi := P3 KiKi P6 kiki_jumps
+
+theorem kiki_not_barks : ¬ Barks KiKi := by
+  intro hb
+  have hnotlike : ¬ Likes Jane KiKi := P1 KiKi P6 hb
+  exact hnotlike jane_likes_kiki
+
+-- As a corollary, KiKi cannot be both a dog and barking.
+theorem not_kiki_barking_dog : ¬ (Dog KiKi ∧ Barks KiKi) := by
+  intro h
+  exact kiki_not_barks h.right
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom obj : Type
+axiom Jane : obj
+axiom KiKi : obj
+
+axiom Animal : obj → Prop
+axiom Barks : obj → Prop
+axiom Dog : obj → Prop
+axiom Likes : obj → obj → Prop
+axiom Jumps : obj → Prop
+axiom HasLegs : obj → Prop
+axiom Terricolous : obj → Prop
+
+-- Jane does not like any animals that bark.
+axiom P1 : ∀ x : obj, Animal x → Barks x → ¬ Likes Jane x
+-- All dogs are animals that bark.
+axiom P2 : ∀ x : obj, Dog x → Animal x ∧ Barks x
+-- Jane likes all animals that jump.
+axiom P3 : ∀ x : obj, Animal x → Jumps x → Likes Jane x
+-- If an animal has legs, then it jumps.
+axiom P4 : ∀ x : obj, Animal x → HasLegs x → Jumps x
+-- If an animal is terricolous, then it has legs.
+axiom P5 : ∀ x : obj, Animal x → Terricolous x → HasLegs x
+-- KiKi is an animal.
+axiom P6 : Animal KiKi
+-- If KiKi neither jumps nor has legs, then KiKi is terricolous or has legs.
+axiom P7 : (¬ Jumps KiKi ∧ ¬ HasLegs KiKi) → (Terricolous KiKi ∨ HasLegs KiKi)
+
+open Classical
+
+theorem kiki_not_not_nj_nl : ¬ (¬ Jumps KiKi ∧ ¬ HasLegs KiKi) := by
+  intro h
+  have hdisj := P7 h
+  cases hdisj with
+  | inl hTer =>
+    have hlegs : HasLegs KiKi := P5 KiKi P6 hTer
+    exact h.right hlegs
+  | inr hlegs =>
+    exact h.right hlegs
+
+theorem kiki_jumps_or_legs : Jumps KiKi ∨ HasLegs KiKi := by
+  apply Classical.byContradiction
+  intro h
+  have hJ : ¬ Jumps KiKi := by
+    intro hj
+    exact h (Or.inl hj)
+  have hL : ¬ HasLegs KiKi := by
+    intro hl
+    exact h (Or.inr hl)
+  have hdisj := P7 ⟨hJ, hL⟩
+  cases hdisj with
+  | inl hTer =>
+    have hl' : HasLegs KiKi := P5 KiKi P6 hTer
+    exact h (Or.inr hl')
+  | inr hl' =>
+    exact h (Or.inr hl')
+
+theorem kiki_jumps : Jumps KiKi := by
+  cases kiki_jumps_or_legs with
+  | inl hj => exact hj
+  | inr hl => exact P4 KiKi P6 hl
+
+theorem jane_likes_kiki : Likes Jane KiKi := P3 KiKi P6 kiki_jumps
+
+theorem kiki_not_barks : ¬ Barks KiKi := by
+  intro hb
+  have hnotlike : ¬ Likes Jane KiKi := P1 KiKi P6 hb
+  exact hnotlike jane_likes_kiki
+
+-- Hence, KiKi cannot be a barking dog.
+theorem not_kiki_barking_dog : ¬ (Dog KiKi ∧ Barks KiKi) := by
+  intro h
+  exact kiki_not_barks h.right
+</lean>
+
+ANSWER: Failure

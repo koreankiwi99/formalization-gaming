@@ -1,0 +1,107 @@
+The problem requires formalizing the given context and proving whether, if there is no snow on the ground, Mary loves winter. The key steps are:
+
+1. **Premises Interpretation:**
+   - Temperature below freezing (`TemperatureBelowFreezing`) implies snow on the ground (`SnowOnGround`): `TemperatureBelowFreezing → SnowOnGround`
+   - Building a snowman by anyone (`BuildsSnowman x`) requires enough snow (`EnoughSnow`): `∀ x, BuildsSnowman x → EnoughSnow`
+   - It is certain that either temperature is below freezing or there is not enough snow: `TemperatureBelowFreezing ∨ ¬EnoughSnow`
+   - If someone loves winter (`LovesWinter x`), they build a snowman: `∀ x, LovesWinter x → BuildsSnowman x`
+
+2. **Goal:**
+   Prove that if there is no snow on the ground (`¬SnowOnGround`), then Mary does not love winter (`¬LovesWinter mary`).
+
+3. **Proof Strategy:**
+   - Assume no snow: `¬SnowOnGround`
+   - By the first premise, this implies no below-freezing temperature: `¬TemperatureBelowFreezing`
+   - Using the disjunction: `TemperatureBelowFreezing ∨ ¬EnoughSnow` and `¬TemperatureBelowFreezing`, we derive `¬EnoughSnow`
+   - Mary loving winter (`LovesWinter mary`) would imply she builds a snowman (`BuildsSnowman mary`) via the friend's statement.
+   - But building requires enough snow, and since `¬EnoughSnow`, we get a contradiction.
+   - Therefore, the assumption that Mary loves winter must be false, proving `¬LovesWinter mary`.
+
+Thus, the answer to "If there was no snow on the ground, does Mary love winter?" is **No**, and we formally prove `¬SnowOnGround → ¬LovesWinter mary`.
+
+<lean>
+axiom Human : Type
+axiom mary : Human
+
+axiom TemperatureBelowFreezing : Prop
+axiom SnowOnGround : Prop
+axiom EnoughSnow : Prop
+axiom BuildsSnowman : Human → Prop
+axiom LovesWinter : Human → Prop
+
+axiom temp_to_snow : TemperatureBelowFreezing → SnowOnGround
+axiom build_requires_snow : ∀ x, BuildsSnowman x → EnoughSnow
+axiom disjunction : TemperatureBelowFreezing ∨ ¬EnoughSnow
+axiom friend_rule : ∀ x, LovesWinter x → BuildsSnowman x
+
+theorem no_snow_implies_not_love_winter : ¬ SnowOnGround → ¬ LovesWinter mary := by
+  -- Assume no snow on the ground
+  intro no_snow
+  -- Assume Mary loves winter (for contradiction)
+  intro mary_loves
+  -- If temperature drops below freezing, there would be snow (contradicts no snow)
+  have no_temp : ¬ TemperatureBelowFreezing := by
+    intro temp
+    exact no_snow (temp_to_snow temp)
+  -- Use disjunction to show not enough snow
+  have no_enough : ¬ EnoughSnow := by
+    cases disjunction with
+    | inl t => exact no_temp t
+    | inr not_enough => exact not_enough
+  -- Mary builds a snowman because she loves winter
+  have mary_builds : BuildsSnowman mary := friend_rule mary mary_loves
+  -- Building requires enough snow, contradiction
+  have enough : EnoughSnow := build_requires_snow mary mary_builds
+  exact no_enough enough
+</lean>
+
+ANSWER: No
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation error occurred in the disjunction case handling. The issue was that in the `inl` branch (temperature below freezing), we had a contradiction (from `t` and `no_temp`), but were incorrectly trying to use it as `¬EnoughSnow`. The fix is to use `contradiction` in this branch since we have both `t` and its negation `no_temp`.
+
+Here's the corrected Lean code:
+
+<lean>
+axiom Human : Type
+axiom mary : Human
+
+axiom TemperatureBelowFreezing : Prop
+axiom SnowOnGround : Prop
+axiom EnoughSnow : Prop
+axiom BuildsSnowman : Human → Prop
+axiom LovesWinter : Human → Prop
+
+axiom temp_to_snow : TemperatureBelowFreezing → SnowOnGround
+axiom build_requires_snow : ∀ x, BuildsSnowman x → EnoughSnow
+axiom disjunction : TemperatureBelowFreezing ∨ ¬EnoughSnow
+axiom friend_rule : ∀ x, LovesWinter x → BuildsSnowman x
+
+theorem no_snow_implies_not_love_winter : ¬ SnowOnGround → ¬ LovesWinter mary := by
+  intro no_snow
+  intro mary_loves
+  have no_temp : ¬ TemperatureBelowFreezing := by
+    intro temp
+    exact no_snow (temp_to_snow temp)
+  have no_enough : ¬ EnoughSnow := by
+    cases disjunction with
+    | inl t => contradiction  -- Fix: handles contradiction directly
+    | inr not_enough => exact not_enough
+  have mary_builds : BuildsSnowman mary := friend_rule mary mary_loves
+  have enough : EnoughSnow := build_requires_snow mary mary_builds
+  exact no_enough enough
+</lean>
+
+The proof demonstrates that if there's no snow, Mary cannot love winter:
+1. Assume no snow (`¬SnowOnGround`) and Mary loves winter (for contradiction)
+2. `no_temp`: No temperature below freezing (otherwise snow would exist)
+3. `no_enough`: Disjunction gives `¬EnoughSnow` (first branch yields contradiction with `no_temp`)
+4. Mary building a snowman would require enough snow, but we have `¬EnoughSnow`
+5. Contradiction proves Mary cannot love winter
+
+Thus we've proven `¬SnowOnGround → ¬LovesWinter mary`, answering "No" to whether Mary loves winter when there's no snow.
+
+ANSWER: No

@@ -1,0 +1,56 @@
+<lean>
+axiom Person : Type
+axiom Peter : Person
+
+axiom Spills : Person → Prop
+axiom Tidy : Person → Prop
+axiom Cleanly : Person → Prop
+axiom ValuesOrder : Person → Prop
+axiom FamilyPrioritizes : Person → Prop
+axiom ClumsyFoodieOutFrequently : Person → Prop
+
+axiom A1 : ∀ x : Person, Spills x → ¬ Tidy x
+axiom A2 : ∀ x : Person, ClumsyFoodieOutFrequently x → Spills x
+axiom A3 : ∀ x : Person, Cleanly x → Tidy x
+axiom A4 : ∀ x : Person, ValuesOrder x → Cleanly x
+axiom A5 : ∀ x : Person, FamilyPrioritizes x → ValuesOrder x
+axiom A6 : (Spills Peter ∧ Cleanly Peter) ∨ (¬ Spills Peter ∧ ¬ Cleanly Peter)
+
+theorem peter_statement :
+  (ClumsyFoodieOutFrequently Peter ∧ FamilyPrioritizes Peter) ∨
+  (¬ ClumsyFoodieOutFrequently Peter ∧ ¬ FamilyPrioritizes Peter) := by
+  -- Show (Spills ∧ Cleanly) is impossible
+  have hContr : (Spills Peter ∧ Cleanly Peter) → False := by
+    intro hsc
+    have hs : Spills Peter := hsc.left
+    have hc : Cleanly Peter := hsc.right
+    have ht : Tidy Peter := A3 Peter hc
+    have hnt : ¬ Tidy Peter := A1 Peter hs
+    exact hnt ht
+  -- Therefore we must have ¬Spills ∧ ¬Cleanly
+  have hNotSNotC : ¬ Spills Peter ∧ ¬ Cleanly Peter := by
+    apply Or.elim A6
+    · intro hsc
+      exact False.elim (hContr hsc)
+    · intro hneg
+      exact hneg
+  have hNotS : ¬ Spills Peter := hNotSNotC.left
+  have hNotC : ¬ Cleanly Peter := hNotSNotC.right
+  -- From CF → Spills and ¬Spills, get ¬CF
+  have hNotClumsy : ¬ ClumsyFoodieOutFrequently Peter := by
+    intro hcf
+    have hs : Spills Peter := A2 Peter hcf
+    exact hNotS hs
+  -- From FamilyPrioritizes → ValuesOrder → Cleanly and ¬Cleanly, get ¬FamilyPrioritizes
+  have fp_implies_clean : ∀ x : Person, FamilyPrioritizes x → Cleanly x := by
+    intro x hfp
+    have hvo : ValuesOrder x := A5 x hfp
+    exact A4 x hvo
+  have hNotFP : ¬ FamilyPrioritizes Peter := by
+    intro hfp
+    have hc : Cleanly Peter := fp_implies_clean Peter hfp
+    exact hNotC hc
+  exact Or.inr ⟨hNotClumsy, hNotFP⟩
+</lean>
+
+ANSWER: True

@@ -1,0 +1,58 @@
+<lean>
+axiom obj : Type
+axiom Peter : obj
+
+axiom Spill : obj → Prop
+axiom Tidy : obj → Prop
+axiom Cleanly : obj → Prop
+axiom ValueOrderSpot : obj → Prop
+axiom FamilyPrior : obj → Prop
+axiom ClumsyFoodieGoingOut : obj → Prop
+
+-- If people spill a lot of food on their clothing, then they are not notably tidy.
+axiom R1 : ∀ x : obj, Spill x → ¬ Tidy x
+-- All clumsy foodies who go out frequently to find new food restaurants to try spill a lot of food on their clothing.
+axiom R2 : ∀ x : obj, ClumsyFoodieGoingOut x → Spill x
+-- If people are cleanly, then they are notably tidy.
+axiom R3 : ∀ x : obj, Cleanly x → Tidy x
+-- If people value order and spotlessness, then they are cleanly.
+axiom R4 : ∀ x : obj, ValueOrderSpot x → Cleanly x
+-- All people whose families prioritize order and spotlessness themselves value order and spotlessness.
+axiom R5 : ∀ x : obj, FamilyPrior x → ValueOrderSpot x
+-- Peter is either (spills and cleanly) or (not spills and not cleanly)
+axiom P1 : (Spill Peter ∧ Cleanly Peter) ∨ (¬Spill Peter ∧ ¬Cleanly Peter)
+
+-- We prove the negation of the queried statement:
+-- ¬ (Peter is a clumsy foodie going out ∨ Peter's family prioritizes order and spotlessness)
+theorem not_goal : ¬ (ClumsyFoodieGoingOut Peter ∨ FamilyPrior Peter) := by
+  -- First show that Spill Peter ∧ Cleanly Peter leads to a contradiction
+  have hnot : ¬ (Spill Peter ∧ Cleanly Peter) := by
+    intro h
+    have hs : Spill Peter := h.left
+    have hc : Cleanly Peter := h.right
+    have ht : Tidy Peter := R3 Peter hc
+    have hnt : ¬ Tidy Peter := R1 Peter hs
+    exact hnt ht
+  -- Therefore, from P1, only the right disjunct holds: ¬Spill Peter ∧ ¬Cleanly Peter
+  have hrc : ¬Spill Peter ∧ ¬Cleanly Peter := Or.resolve_left P1 hnot
+  have hns : ¬Spill Peter := hrc.left
+  have hnc : ¬Cleanly Peter := hrc.right
+  -- From ¬Spill Peter and (ClumsyFoodieGoingOut → Spill), derive ¬ClumsyFoodieGoingOut Peter
+  have hnot_cf : ¬ ClumsyFoodieGoingOut Peter := by
+    intro hcf
+    have hs : Spill Peter := R2 Peter hcf
+    exact hns hs
+  -- From ¬Cleanly Peter and (FamilyPrior → ValueOrderSpot → Cleanly), derive ¬FamilyPrior Peter
+  have hnot_fam : ¬ FamilyPrior Peter := by
+    intro hf
+    have hv : ValueOrderSpot Peter := R5 Peter hf
+    have hc2 : Cleanly Peter := R4 Peter hv
+    exact hnc hc2
+  -- Conclude ¬ (ClumsyFoodieGoingOut Peter ∨ FamilyPrior Peter)
+  intro hdisj
+  cases hdisj with
+  | inl hcf => exact hnot_cf hcf
+  | inr hf => exact hnot_fam hf
+</lean>
+
+ANSWER: False

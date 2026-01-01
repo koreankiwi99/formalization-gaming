@@ -1,0 +1,48 @@
+<lean>
+axiom Person : Type
+axiom Ekaterina : Person
+axiom Vladimir : Person
+
+axiom CanRegister : Person → Prop
+axiom CanParticipate : Person → Prop
+axiom USCitizen : Person → Prop
+axiom TaiwaneseCitizen : Person → Prop
+axiom RussianOfficial : Person → Prop
+axiom ManagerGazprom : Person → Prop
+
+-- Everyone who can register can participate
+axiom A1 : ∀ p : Person, CanRegister p → CanParticipate p
+-- US citizenship implies can register
+axiom A2 : ∀ p : Person, USCitizen p → CanRegister p
+-- Every person has either US or Taiwanese citizenship
+axiom A3 : ∀ p : Person, USCitizen p ∨ TaiwaneseCitizen p
+-- Russian officials do not hold Taiwanese citizenship
+axiom A4 : ∀ p : Person, RussianOfficial p → ¬ TaiwaneseCitizen p
+-- Vladimir's status
+axiom A5 : ¬ TaiwaneseCitizen Vladimir ∧ ¬ ManagerGazprom Vladimir
+-- Ekaterina's status
+axiom A6 : CanRegister Ekaterina ∨ RussianOfficial Ekaterina
+
+theorem target : CanParticipate Ekaterina ∨ ManagerGazprom Vladimir := by
+  -- Since Vladimir is not a manager (A5), we only need to prove CanParticipate Ekaterina
+  have vladimir_not_manager : ¬ ManagerGazprom Vladimir := A5.right
+  -- Case analysis on Ekaterina's status (A6)
+  cases A6 with
+  | inl reg_ekaterina =>
+    -- If she can register, then she can participate (A1)
+    exact Or.inl (A1 Ekaterina reg_ekaterina)
+  | inr official_ekaterina =>
+    -- If she is a Russian official, then she doesn't have Taiwanese citizenship (A4)
+    have no_taiwanese : ¬ TaiwaneseCitizen Ekaterina := A4 Ekaterina official_ekaterina
+    -- By citizenship axiom (A3), she must have US citizenship
+    have us_ekaterina : USCitizen Ekaterina := by
+      cases A3 Ekaterina with
+      | inl us => exact us
+      | inr taiwan => contradiction  -- Contradicts no_taiwanese
+    -- US citizenship implies she can register (A2)
+    have reg_ekaterina : CanRegister Ekaterina := A2 Ekaterina us_ekaterina
+    -- Then she can participate (A1)
+    exact Or.inl (A1 Ekaterina reg_ekaterina)
+</lean>
+
+ANSWER: True

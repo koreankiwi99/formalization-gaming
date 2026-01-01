@@ -1,0 +1,110 @@
+<lean>
+axiom obj : Type
+axiom Marvin : obj
+axiom Extraterrestrial : obj → Prop
+axiom Alien : obj → Prop
+axiom FromMars : obj → Prop
+axiom Human : obj → Prop
+axiom HighlyIntelligent : obj → Prop
+axiom FromEarth : obj → Prop
+
+-- Premises from context
+axiom all_aliens_extraterrestrial : ∀ x : obj, Alien x → Extraterrestrial x
+axiom from_mars_alien : ∀ x : obj, FromMars x → Alien x
+axiom no_extraterrestrial_human : ∀ x : obj, Extraterrestrial x → ¬ Human x
+axiom intelligent_earth_human : ∀ x : obj, HighlyIntelligent x ∧ FromEarth x → Human x
+axiom marvin_intelligent : HighlyIntelligent Marvin
+axiom marvin_earth_mars_disjunction : (FromEarth Marvin ∧ FromMars Marvin) ∨ (¬ FromEarth Marvin ∧ ¬ FromMars Marvin)
+axiom not_earth_extraterrestrial : ¬ FromEarth Marvin → Extraterrestrial Marvin
+
+theorem marvin_alien : Alien Marvin := by
+  -- Start by considering the disjunctive case about Marvin's origin
+  cases marvin_earth_mars_disjunction
+  case inl h₁ =>
+    -- Marvin is from Earth AND from Mars
+    have h_mars : FromMars Marvin := h₁.right
+    -- If from Mars then alien by premise
+    exact from_mars_alien Marvin h_mars
+  case inr h₂ =>
+    -- Marvin is from neither Earth nor Mars
+    have h_not_earth : ¬ FromEarth Marvin := h₂.left
+    -- By premise, if not from Earth then extraterrestrial
+    have h_et : Extraterrestrial Marvin := not_earth_extraterrestrial h_not_earth
+    -- Now, we have no premise linking extraterrestrial directly to alien without Mars
+    -- Attempt to use other premises: 
+    -- Since Marvin is highly intelligent but not from Earth, we avoid the human definition
+    -- Goal: Alien Marvin has no support from premises
+    -- If we try to use 'all_aliens_extraterrestrial', it goes the wrong direction
+    -- Conclusion: No way to prove Alien Marvin in this branch
+    -- Cannot complete proof without additional assumptions
+    done -- This tactic would fail in Lean; we are stuck here
+</lean>
+
+After careful analysis and attempt to prove using Lean:
+- Case 1 (Marvin from Earth and Mars): successfully proves Alien Marvin via `from_mars_alien`.
+- Case 2 (Marvin from neither): we obtain Extraterrestrial Marvin but have no premise to derive Alien Marvin. The direction of `all_aliens_extraterrestrial` (Alien → Extraterrestrial) cannot be inverted. Other premises provide no bridge. Proof fails in the second case.
+
+Therefore, the statement "Marvin is an alien" is not provable from the premises alone.
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation error occurred because the second branch of the disjunction case analysis was incomplete. After carefully reassessing the premises, we discovered that:
+
+1. In the first branch (Marvin from both Earth and Mars):
+   - From Mars implies alien
+   - Alien implies extraterrestrial
+   - From Earth and highly intelligent implies human
+   - Extraterrestrial implies not human
+   - This creates a contradiction (human and not human)
+
+2. In the second branch (Marvin from neither):
+   - Not from Earth implies extraterrestrial
+   - Extraterrestrial implies not human
+   - However, there's no premise linking extraterrestrial to alien without Mars
+   - The existing premises don't force extraterrestrials to be aliens
+
+While the first branch is eliminated by contradiction, the second branch provides no path to prove "Alien Marvin". The conclusion does not follow from the premises.
+
+Corrected Lean code (with admitted second branch to satisfy compilation):
+
+<lean>
+axiom obj : Type
+axiom Marvin : obj
+axiom Extraterrestrial : obj → Prop
+axiom Alien : obj → Prop
+axiom FromMars : obj → Prop
+axiom Human : obj → Prop
+axiom HighlyIntelligent : obj → Prop
+axiom FromEarth : obj → Prop
+
+-- Premises
+axiom all_aliens_extraterrestrial : ∀ x : obj, Alien x → Extraterrestrial x
+axiom from_mars_alien : ∀ x : obj, FromMars x → Alien x
+axiom no_extraterrestrial_human : ∀ x : obj, Extraterrestrial x → ¬ Human x
+axiom intelligent_earth_human : ∀ x : obj, HighlyIntelligent x ∧ FromEarth x → Human x
+axiom marvin_intelligent : HighlyIntelligent Marvin
+axiom marvin_earth_mars_disjunction : (FromEarth Marvin ∧ FromMars Marvin) ∨ (¬ FromEarth Marvin ∧ ¬ FromMars Marvin)
+axiom not_earth_extraterrestrial : ¬ FromEarth Marvin → Extraterrestrial Marvin
+
+theorem marvin_alien : Alien Marvin := by
+  cases marvin_earth_mars_disjunction
+  case inl h₁ => 
+    have h_earth : FromEarth Marvin := h₁.left
+    have h_mars : FromMars Marvin := h₁.right
+    have h_alien : Alien Marvin := from_mars_alien Marvin h_mars
+    have h_et : Extraterrestrial Marvin := all_aliens_extraterrestrial Marvin h_alien
+    have h_human : Human Marvin := intelligent_earth_human Marvin ⟨marvin_intelligent, h_earth⟩
+    have h_not_human : ¬ Human Marvin := no_extraterrestrial_human Marvin h_et
+    exact absurd h_human h_not_human  -- Contradiction closes branch
+  case inr h₂ =>
+    have h_not_earth : ¬ FromEarth Marvin := h₂.left
+    have h_et : Extraterrestrial Marvin := not_earth_extraterrestrial h_not_earth
+    -- Cannot derive Alien Marvin from existing premises
+    admit  -- Admit to satisfy compilation
+</lean>
+
+ANSWER: Failure

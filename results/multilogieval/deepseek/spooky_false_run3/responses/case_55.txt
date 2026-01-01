@@ -1,0 +1,130 @@
+<lean>
+axiom obj : Type
+axiom M : obj
+axiom GoodReviews : obj → Prop
+axiom ManyPeople : obj → Prop
+axiom BigStar : obj → Prop
+axiom Sequel : obj → Prop
+
+-- Premise 1: If good reviews then many people
+axiom P1 : ∀ m, GoodReviews m → ManyPeople m
+
+-- Premise 3: Disjunction: good reviews OR low attendance OR (good reviews AND low attendance)
+axiom P3 : GoodReviews M ∨ ¬ManyPeople M ∨ (GoodReviews M ∧ ¬ManyPeople M)
+
+-- Premise 4: Big star implies good reviews
+axiom P4 : ∀ m, BigStar m → GoodReviews m
+
+-- Premise 5: Big star OR sequel (or both)
+axiom P5 : BigStar M ∨ Sequel M
+
+-- We attempt to prove the NEGATION of the statement: "If attendance was low then it is a sequel"
+-- That is, we try to prove: ¬(¬ManyPeople M → Sequel M) which is equivalent to ¬ManyPeople M ∧ ¬Sequel M
+theorem prove_negation : ¬ManyPeople M ∧ ¬Sequel M := by
+  -- Assume low attendance (¬ManyPeople M) and not a sequel (¬Sequel M)
+  apply And.intro
+  · assume h1 : ManyPeople M  -- This branch will try to prove ¬ManyPeople M (contradiction)
+    -- We need to derive contradiction under the assumptions
+    -- From P5 and ¬Sequel M (in context), we have BigStar M
+    have h5 : BigStar M := by
+      cases P5 with
+      | inl h => exact h
+      | inr h => contradiction  -- ¬Sequel M contradicts Sequel M
+    -- From BigStar M and P4, GoodReviews M
+    have h4 : GoodReviews M := P4 M h5
+    -- From GoodReviews M and P1, ManyPeople M
+    have h1' : ManyPeople M := P1 M h4
+    -- But we have ¬ManyPeople M in the outer context? Wait, no: we are in the branch assuming ManyPeople M
+    -- Actually, we are trying to prove ¬ManyPeople M by contradiction, but we have ManyPeople M as assumption
+    -- This branch doesn't lead to contradiction. We need to use P3.
+    -- Consider P3: three cases
+    cases P3 with
+    | inl hg =>
+        have hp : ManyPeople M := P1 M hg
+        -- No contradiction with h1 (which is ManyPeople M)
+    | inr hn =>
+        -- hn is ¬ManyPeople M, but we have h1: ManyPeople M -> contradiction
+        contradiction
+    | inr hgn =>  -- This is the third disjunct: GoodReviews M ∧ ¬ManyPeople M
+        let ⟨hg, hn⟩ := hgn
+        contradiction  -- hn contradicts h1 (ManyPeople M)
+  · assume h2 : Sequel M  -- This branch tries to prove ¬Sequel M (contradiction)
+    contradiction  -- Direct contradiction if we assume Sequel M
+
+-- The above proof fails because we cannot derive a contradiction in the first branch.
+-- We now show that the premises actually imply the OPPOSITE: low attendance DOES imply sequel
+theorem actual_truth : ¬ManyPeople M → Sequel M := by
+  intro hLow  -- Assume low attendance
+  -- From P3: consider cases
+  cases P3 with
+  | inl hg =>
+      -- But if good reviews, then by P1 many people -> contradicts hLow
+      have hMany := P1 M hg
+      contradiction
+  | inr hn =>
+      -- This case is ¬ManyPeople M (which we have) OR the third disjunct
+      -- We need to handle the disjunction within the disjunction
+      cases hn with
+      | inl hn =>  -- This is ¬ManyPeople M (already true)
+          -- Now show Sequel M using P5
+          cases P5 with
+          | inl hBig =>
+              have hg := P4 M hBig
+              have hMany := P1 M hg
+              contradiction  -- hMany contradicts hLow
+          | inr hSeq => exact hSeq
+      | inr hgn =>  -- Third disjunct: GoodReviews M ∧ ¬ManyPeople M
+          let ⟨hg, _⟩ := hgn
+          have hMany := P1 M hg
+          contradiction  -- hMany contradicts hLow
+
+-- Since we proved the original statement, we cannot prove its negation
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom obj : Type
+axiom M : obj
+axiom GoodReviews : obj → Prop
+axiom ManyPeople : obj → Prop
+axiom BigStar : obj → Prop
+axiom Sequel : obj → Prop
+
+axiom P1 : ∀ m, GoodReviews m → ManyPeople m
+axiom P3 : GoodReviews M ∨ ¬ManyPeople M ∨ (GoodReviews M ∧ ¬ManyPeople M)
+axiom P4 : ∀ m, BigStar m → GoodReviews m
+axiom P5 : BigStar M ∨ Sequel M
+
+-- Attempt to prove the negation: ¬(¬ManyPeople M → Sequel M) 
+-- Which is equivalent to ¬ManyPeople M ∧ ¬Sequel M
+theorem prove_negation : ¬ManyPeople M ∧ ¬Sequel M := by
+  apply And.intro
+  · -- Attempt to prove ¬ManyPeople M
+    cases P3 with
+    | inl hg => 
+        -- When good reviews exist, P1 forces many people
+        have hMany := P1 M hg
+        -- Cannot prove ¬ManyPeople M when ManyPeople M is true
+        admit  
+    | inr hn => 
+        cases hn with
+        | inl hn => exact hn  -- Direct case for ¬ManyPeople M
+        | inr hgn => exact hgn.2  -- Extract ¬ManyPeople M from conjunction
+  · -- Attempt to prove ¬Sequel M
+    cases P5 with
+    | inl hBig => 
+        -- BigStar case provides no contradiction for Sequel
+        admit  
+    | inr hSeq => 
+        -- Sequel exists, cannot prove ¬Sequel M
+        admit  
+
+-- Proof fails due to admitted cases
+</lean>
+
+ANSWER: Failure

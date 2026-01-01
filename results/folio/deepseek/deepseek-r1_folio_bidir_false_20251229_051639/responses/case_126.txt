@@ -1,0 +1,122 @@
+<lean>
+axiom obj : Type
+axiom Rock : obj
+axiom Pet : obj → Prop
+axiom Mammal : obj → Prop
+axiom Animal : obj → Prop
+axiom Monkey : obj → Prop
+axiom Bird : obj → Prop
+axiom CanFly : obj → Prop
+axiom Breathe : obj → Prop
+axiom HasWings : obj → Prop
+
+axiom A1 : ∀ x : obj, Pet x ∧ Mammal x → Animal x
+axiom A2 : ∀ x : obj, Monkey x → Mammal x
+axiom A3 : ∀ x : obj, Pet x → Monkey x ∨ Bird x
+axiom A4 : ∀ x : obj, Bird x ∧ Pet x → CanFly x
+axiom A5 : ∀ x : obj, Animal x ∧ Pet x → Breathe x
+axiom A6 : ∀ x : obj, Pet x ∧ CanFly x → HasWings x
+axiom A7 : Pet Rock
+axiom A8 : CanFly Rock ∨ Bird Rock ∨ ¬Breathe Rock
+
+theorem contradicts_conclusion : False := by 
+  -- Assume the conclusion "Rock does not have wings" is true
+  intro h : HasWings Rock → False
+  have wings : HasWings Rock := by 
+    -- Prove Rock has wings by showing Rock is able to fly (via A6)
+    have fly : CanFly Rock := by 
+      cases A8 with
+      | inl fly => exact fly
+      | inr rest => 
+          cases rest with
+          | inl bird => 
+              exact A4 Rock ⟨bird, A7⟩  -- Bird and Pet implies CanFly (A4)
+          | inr no_breath => 
+              have not_animal : ¬Animal Rock := by 
+                intro animal
+                have : Breathe Rock := A5 Rock ⟨animal, A7⟩
+                contradiction
+              have not_mammal : ¬Mammal Rock := by 
+                intro mammal
+                have : Animal Rock := A1 Rock ⟨A7, mammal⟩
+                contradiction
+              cases A3 Rock A7 with  -- Pet implies Monkey or Bird
+              | inl monkey => 
+                  have mammal := A2 Rock monkey
+                  contradiction      -- Contradiction: Monkey → Mammal → Animal
+              | inr bird => 
+                  exact A4 Rock ⟨bird, A7⟩  -- Bird and Pet implies CanFly
+    exact A6 Rock ⟨A7, fly⟩  -- Pet and CanFly implies HasWings (A6)
+  exact h wings              -- Contradiction using the assumed false conclusion
+
+-- Since we derived False from the premises and the conclusion, 
+-- this means the conclusion must be false.
+</lean>
+
+ANSWER: False
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The error occurred because the `intro` tactic was misused. The theorem `contradicts_conclusion` was incorrectly declared to prove `False` directly, but the initial goal state didn't allow introducing the hypothesis `h : ¬HasWings Rock` immediately. 
+
+Instead, we prove the positive statement `HasWings Rock` directly from the axioms:
+1. Rock is Peter's pet (A7)
+2. Pets are either monkeys or birds (A3)
+3. Birds are mammals (A2), and mammals are animals (A1)
+4. Animals that are pets breathe (A5)
+5. Birds that are pets can fly (A4)
+6. Pets that can fly have wings (A6)
+7. Additionally, we know that Rock either flies, is a bird, or cannot breathe (A8)
+
+The proof proceeds by cases:
+- If Rock can fly (A8 case 1), we directly use A6 to get wings
+- If Rock is a bird (A8 case 2), we show it can fly (A4) then get wings (A6)
+- In the last case (Rock cannot breathe), we show:
+  - Rock must be a bird (monkey would imply mammal→animal→breathe, contradicting ¬breathe)
+  - Then proceed as in the bird case
+
+This establishes `HasWings Rock`, proving that the conclusion "Rock does not have wings" is false.
+
+<lean>
+axiom obj : Type
+axiom Rock : obj
+axiom Pet : obj → Prop
+axiom Mammal : obj → Prop
+axiom Animal : obj → Prop
+axiom Monkey : obj → Prop
+axiom Bird : obj → Prop
+axiom CanFly : obj → Prop
+axiom Breathe : obj → Prop
+axiom HasWings : obj → Prop
+
+axiom A1 : ∀ x : obj, Pet x ∧ Mammal x → Animal x
+axiom A2 : ∀ x : obj, Monkey x → Mammal x
+axiom A3 : ∀ x : obj, Pet x → Monkey x ∨ Bird x
+axiom A4 : ∀ x : obj, Bird x ∧ Pet x → CanFly x
+axiom A5 : ∀ x : obj, Animal x ∧ Pet x → Breathe x
+axiom A6 : ∀ x : obj, Pet x ∧ CanFly x → HasWings x
+axiom A7 : Pet Rock
+axiom A8 : CanFly Rock ∨ Bird Rock ∨ ¬Breathe Rock
+
+theorem rock_has_wings : HasWings Rock := by 
+  have fly : CanFly Rock := by 
+    cases A8 with
+    | inl fly => exact fly
+    | inr rest => 
+        cases rest with
+        | inl bird => exact A4 Rock ⟨bird, A7⟩
+        | inr no_breathe => 
+            cases A3 Rock A7 with
+            | inl monkey => 
+                have mammal := A2 Rock monkey
+                have animal : Animal Rock := A1 Rock ⟨A7, mammal⟩
+                have breathe : Breathe Rock := A5 Rock ⟨animal, A7⟩
+                contradiction
+            | inr bird => 
+                exact A4 Rock ⟨bird, A7⟩
+  exact A6 Rock ⟨A7, fly⟩
+</lean>
+
+ANSWER: False

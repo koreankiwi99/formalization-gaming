@@ -1,0 +1,60 @@
+<lean>
+axiom obj : Type
+
+-- Predicates
+axiom Deadly : obj → Prop
+axiom LowSurvival : obj → Prop
+axiom Severe : obj → Prop
+axiom Cancer : obj → Prop
+axiom BileDuctCancer : obj → Prop
+axiom Cholangiocarcinoma : obj → Prop
+axiom MildFlu : obj → Prop
+
+-- Named disease
+axiom Colorectal : obj
+
+-- Axioms from the context
+axiom A1 : ∀ x : obj, Deadly x → LowSurvival x
+axiom A2 : ∀ x : obj, Severe x ∧ Cancer x → Deadly x
+axiom A3 : ∀ x : obj, BileDuctCancer x → Severe x ∧ Cancer x
+axiom A4 : ∀ x : obj, Cholangiocarcinoma x → BileDuctCancer x
+axiom A5 : ∀ x : obj, MildFlu x → LowSurvival x
+axiom A6 : ¬(BileDuctCancer Colorectal ∧ LowSurvival Colorectal)
+
+-- Derived: bile duct cancers have low survival
+theorem bile_duct_low : ∀ x : obj, BileDuctCancer x → LowSurvival x := by
+  intro x hbdc
+  have hsc : Severe x ∧ Cancer x := A3 x hbdc
+  have hdead : Deadly x := A2 x hsc
+  exact A1 x hdead
+
+-- Therefore, Colorectal cannot be a bile duct cancer
+theorem not_bdc_colorectal : ¬BileDuctCancer Colorectal := by
+  intro hbdc
+  have hlow : LowSurvival Colorectal := bile_duct_low Colorectal hbdc
+  exact A6 (And.intro hbdc hlow)
+
+-- Nor can it be Cholangiocarcinoma (since that implies bile duct cancer)
+theorem not_cholangio_colorectal : ¬Cholangiocarcinoma Colorectal := by
+  intro hchol
+  have hbdc : BileDuctCancer Colorectal := A4 Colorectal hchol
+  exact not_bdc_colorectal hbdc
+
+-- Hence the antecedent of the statement is false
+theorem antecedent_false : ¬(BileDuctCancer Colorectal ∨ Cholangiocarcinoma Colorectal) := by
+  intro h
+  cases h with
+  | inl hbdc => exact not_bdc_colorectal hbdc
+  | inr hchol => exact not_cholangio_colorectal hchol
+
+-- The original statement holds vacuously (cannot be used to derive its negation)
+theorem statement_true :
+  (BileDuctCancer Colorectal ∨ Cholangiocarcinoma Colorectal) →
+  (BileDuctCancer Colorectal ∧ MildFlu Colorectal) := by
+  intro h
+  exact False.elim (antecedent_false h)
+
+-- Cannot prove the negation of the statement from the given axioms
+</lean>
+
+ANSWER: Failure

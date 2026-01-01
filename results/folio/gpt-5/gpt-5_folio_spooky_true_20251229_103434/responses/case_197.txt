@@ -1,0 +1,57 @@
+<lean>
+axiom obj : Type
+
+axiom Jane : obj
+axiom KiKi : obj
+
+axiom Animal : obj → Prop
+axiom Bark : obj → Prop
+axiom Dog : obj → Prop
+axiom Jump : obj → Prop
+axiom Legs : obj → Prop
+axiom Terricolous : obj → Prop
+axiom Likes : obj → obj → Prop
+
+-- Jane does not like any animals that bark.
+axiom A1 : ∀ x : obj, Animal x → Bark x → ¬ Likes Jane x
+-- All dogs are animals that bark.
+axiom A2 : ∀ x : obj, Dog x → Animal x ∧ Bark x
+-- Jane likes all animals that jump.
+axiom A3 : ∀ x : obj, Animal x → Jump x → Likes Jane x
+-- If an animal has legs, then it jumps.
+axiom A4 : ∀ x : obj, Animal x → Legs x → Jump x
+-- If an animal is terricolous, then it has legs.
+axiom A5 : ∀ x : obj, Animal x → Terricolous x → Legs x
+-- KiKi is an animal.
+axiom A6 : Animal KiKi
+-- If KiKi neither jumps nor has legs, then KiKi is terricolous or has legs.
+axiom A7 : (¬ Jump KiKi ∧ ¬ Legs KiKi) → (Terricolous KiKi ∨ Legs KiKi)
+
+theorem kiki_not_bark_and_not_dog : ¬ Bark KiKi ∧ ¬ Dog KiKi := by
+  have hA : Animal KiKi := A6
+  -- First, show KiKi does not bark.
+  have nbark : ¬ Bark KiKi := by
+    intro hbark
+    -- From barking, Jane does not like KiKi.
+    have hnotlike : ¬ Likes Jane KiKi := A1 KiKi hA hbark
+    -- From A3, if KiKi jumps then Jane likes KiKi; thus ¬like implies ¬jump.
+    have hj_to_like : Jump KiKi → Likes Jane KiKi := A3 KiKi hA
+    have hnotjump : ¬ Jump KiKi := fun hj => hnotlike (hj_to_like hj)
+    -- From A4, legs imply jump; thus ¬jump implies ¬legs.
+    have hnotlegs : ¬ Legs KiKi := fun hl => hnotjump (A4 KiKi hA hl)
+    -- Apply A7 to derive a contradiction.
+    have t_or_l : Terricolous KiKi ∨ Legs KiKi := A7 ⟨hnotjump, hnotlegs⟩
+    have hlegs : Legs KiKi := by
+      cases t_or_l with
+      | inl ht => exact A5 KiKi hA ht
+      | inr hl => exact hl
+    exact hnotlegs hlegs
+  -- Next, show KiKi is not a dog (since all dogs bark).
+  have ndog : ¬ Dog KiKi := by
+    intro hdog
+    have hbark : Bark KiKi := (A2 KiKi hdog).right
+    exact nbark hbark
+  exact And.intro nbark ndog
+</lean>
+
+ANSWER: True

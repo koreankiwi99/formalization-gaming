@@ -1,0 +1,62 @@
+<lean>
+axiom obj : Type
+
+-- Entities
+axiom Bonnie : obj
+
+-- Predicates
+axiom Club : obj → Prop
+axiom PerformsOften : obj → Prop
+axiom AttendsEngaged : obj → Prop
+axiom Inactive : obj → Prop
+axiom Chaperone : obj → Prop
+axiom Student : obj → Prop
+axiom YoungOrTeen : obj → Prop
+axiom Wishes : obj → Prop
+
+-- Premises from the textual context
+-- 1. Club x ∧ PerformsOften x → AttendsEngaged x (curried for convenience)
+axiom P1 : ∀ x : obj, Club x → PerformsOften x → AttendsEngaged x
+-- 2. Club x → (PerformsOften x ∨ Inactive x)
+axiom P2 : ∀ x : obj, Club x → (PerformsOften x ∨ Inactive x)
+-- 3. Club x ∧ Chaperone x → ¬Student x (curried)
+axiom P3 : ∀ x : obj, Club x → Chaperone x → ¬Student x
+-- 4. Club x ∧ Inactive x → Chaperone x (curried)
+axiom P4 : ∀ x : obj, Club x → Inactive x → Chaperone x
+-- 5. Club x ∧ YoungOrTeen x ∧ Wishes x → Student x (curried)
+axiom P5 : ∀ x : obj, Club x → YoungOrTeen x → Wishes x → Student x
+-- 6. Bonnie is in the club, and a dichotomy about her attendance/engagement and student status
+axiom Bonnie_in_club : Club Bonnie
+axiom Bonnie_dichotomy : (AttendsEngaged Bonnie ∧ Student Bonnie) ∨ (¬AttendsEngaged Bonnie ∧ ¬Student Bonnie)
+
+-- Target: negate the statement to evaluate
+-- Statement: If (Chaperone Bonnie ∨ (¬Chaperone Bonnie → PerformsOften Bonnie)) then
+--            ((YoungOrTeen Bonnie ∧ Wishes Bonnie) ∧ Inactive Bonnie).
+-- We prove its negation.
+theorem negate_statement :
+  ¬((Chaperone Bonnie ∨ (¬Chaperone Bonnie → PerformsOften Bonnie))
+    → ((YoungOrTeen Bonnie ∧ Wishes Bonnie) ∧ Inactive Bonnie)) := by
+  intro hImp
+  -- Show antecedent holds
+  have hClub : Club Bonnie := Bonnie_in_club
+  have hPOorIn : PerformsOften Bonnie ∨ Inactive Bonnie := P2 Bonnie hClub
+  have hAnte : Chaperone Bonnie ∨ (¬Chaperone Bonnie → PerformsOften Bonnie) := by
+    cases hPOorIn with
+    | inl hPerf =>
+        exact Or.inr (fun _ => hPerf)
+    | inr hInact =>
+        exact Or.inl (P4 Bonnie hClub hInact)
+  -- From the implication, obtain the consequent Q
+  have hQ : (YoungOrTeen Bonnie ∧ Wishes Bonnie) ∧ Inactive Bonnie := hImp hAnte
+  -- Derive contradiction from Q and the premises
+  have hInact : Inactive Bonnie := And.right hQ
+  have hYW : YoungOrTeen Bonnie ∧ Wishes Bonnie := And.left hQ
+  have hYoung : YoungOrTeen Bonnie := And.left hYW
+  have hWishes : Wishes Bonnie := And.right hYW
+  have hStu : Student Bonnie := P5 Bonnie hClub hYoung hWishes
+  have hChap : Chaperone Bonnie := P4 Bonnie hClub hInact
+  have hNotStu : ¬Student Bonnie := P3 Bonnie hClub hChap
+  exact hNotStu hStu
+</lean>
+
+ANSWER: False

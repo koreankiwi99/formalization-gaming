@@ -1,0 +1,57 @@
+<lean>
+axiom Person : Type
+axiom InClub : Person → Prop
+axiom PerformOften : Person → Prop
+axiom AttendEngaged : Person → Prop
+axiom InactiveDisinterested : Person → Prop
+axiom Chaperone : Person → Prop
+axiom Student : Person → Prop
+axiom YoungChild : Person → Prop
+axiom Teenager : Person → Prop
+axiom WishesAcademic : Person → Prop
+axiom Bonnie : Person
+
+axiom A1 : ∀ x : Person, InClub x ∧ PerformOften x → AttendEngaged x
+axiom A2 : ∀ x : Person, InClub x → (PerformOften x ∨ InactiveDisinterested x)
+axiom A3 : ∀ x : Person, InClub x ∧ Chaperone x → ¬ Student x
+axiom A4 : ∀ x : Person, InClub x ∧ InactiveDisinterested x → Chaperone x
+axiom A5 : ∀ x : Person, InClub x ∧ ((YoungChild x) ∨ (Teenager x)) ∧ WishesAcademic x → Student x
+axiom Bonnie_in : InClub Bonnie
+axiom Bonnie_dich : (AttendEngaged Bonnie ∧ Student Bonnie) ∨ (¬ AttendEngaged Bonnie ∧ ¬ Student Bonnie)
+
+theorem bonnie_statement :
+  ( (((YoungChild Bonnie) ∨ (Teenager Bonnie)) ∧ WishesAcademic Bonnie ∧ Chaperone Bonnie)
+    ∨ ¬(((YoungChild Bonnie) ∨ (Teenager Bonnie)) ∧ WishesAcademic Bonnie) ) →
+  (Student Bonnie ∨ InactiveDisinterested Bonnie) :=
+by
+  intro h
+  cases h with
+  | inl hleft =>
+      -- hleft : (YorT) ∧ (Wishes ∧ Chaperone)
+      have hYorT : (YoungChild Bonnie ∨ Teenager Bonnie) := And.left hleft
+      have hWish : WishesAcademic Bonnie := And.left (And.right hleft)
+      have hpack : InClub Bonnie ∧ ((YoungChild Bonnie) ∨ (Teenager Bonnie)) ∧ WishesAcademic Bonnie :=
+        And.intro Bonnie_in (And.intro hYorT hWish)
+      have hstu : Student Bonnie := A5 Bonnie hpack
+      exact Or.inl hstu
+  | inr _ =>
+      -- Use club disjunction
+      have hdisj : PerformOften Bonnie ∨ InactiveDisinterested Bonnie := A2 Bonnie Bonnie_in
+      cases hdisj with
+      | inr hinact =>
+          exact Or.inr hinact
+      | inl hperf =>
+          have haev : AttendEngaged Bonnie := A1 Bonnie (And.intro Bonnie_in hperf)
+          -- From Bonnie_dich and haev, deduce Student Bonnie
+          have hstu : Student Bonnie :=
+            by
+              cases Bonnie_dich with
+              | inl hp =>
+                  exact hp.right
+              | inr hn =>
+                  have contra : False := hn.left haev
+                  exact False.elim contra
+          exact Or.inl hstu
+</lean>
+
+ANSWER: True

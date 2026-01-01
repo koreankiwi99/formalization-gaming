@@ -1,0 +1,75 @@
+The reasoning involves translating the natural language context into Lean 4 predicates and axioms, then attempting to prove the given statement about Bonnie. The key predicates defined are:
+- `InClub`: membership in the club
+- `PerformsOften`: performs in talent shows often
+- `AttendsEngaged`: attends and is engaged with school events
+- `InactiveDisinterested`: inactive and disinterested community member
+- `Chaperones`: chaperones high school dances
+- `IsStudent`: is a student who attends the school
+- `YoungChildOrTeen`: young child or teenager
+- `WishFurther`: wishes to further academic career
+
+The premises are translated into axioms, and the conclusion is formalized as:
+```
+((YoungChildOrTeen Bonnie ∧ WishFurther Bonnie ∧ Chaperones Bonnie) ∨ (¬ YoungChildOrTeen Bonnie ∧ ¬ WishFurther Bonnie)) → 
+(IsStudent Bonnie ∨ InactiveDisinterested Bonnie)
+```
+The proof attempt:
+1. **Case 1 (YoungChildOrTeen, WishFurther, Chaperones)**:
+   - `P5` implies `IsStudent Bonnie`
+   - `P3` implies `¬IsStudent Bonnie` (contradiction)
+   - Contradiction proves the consequent via explosion
+   
+2. **Case 2 (¬YoungChildOrTeen, ¬WishFurther)**:
+   - `P2` gives `PerformsOften Bonnie ∨ InactiveDisinterested Bonnie`
+   - Subcase 2.1 (InactiveDisinterested): Consequent holds
+   - Subcase 2.2 (PerformsOften):
+     - `P1` yields `AttendsEngaged Bonnie`
+     - No axioms force `IsStudent` or `InactiveDisinterested`
+     - Stuck: Cannot prove `IsStudent Bonnie ∨ InactiveDisinterested Bonnie`
+
+The proof fails in Subcase 2.2 due to insufficient premises linking performance to student status or inactivity. Thus, the statement is unprovable.
+
+<lean>
+axiom Person : Type
+axiom Bonnie : Person
+axiom InClub : Person → Prop
+axiom PerformsOften : Person → Prop
+axiom AttendsEngaged : Person → Prop
+axiom InactiveDisinterested : Person → Prop
+axiom Chaperones : Person → Prop
+axiom IsStudent : Person → Prop
+axiom YoungChildOrTeen : Person → Prop
+axiom WishFurther : Person → Prop
+
+axiom P1 : ∀ p, InClub p → PerformsOften p → AttendsEngaged p
+axiom P2 : ∀ p, InClub p → PerformsOften p ∨ InactiveDisinterested p
+axiom P3 : ∀ p, InClub p → Chaperones p → ¬ IsStudent p
+axiom P4 : ∀ p, InClub p → InactiveDisinterested p → Chaperones p
+axiom P5 : ∀ p, InClub p → YoungChildOrTeen p → WishFurther p → IsStudent p
+axiom P6 : InClub Bonnie ∧ ( (AttendsEngaged Bonnie ∧ IsStudent Bonnie) ∨ ¬ (AttendsEngaged Bonnie ∧ IsStudent Bonnie) )
+
+theorem conclusion : 
+  ((YoungChildOrTeen Bonnie ∧ WishFurther Bonnie ∧ Chaperones Bonnie) ∨ (¬ YoungChildOrTeen Bonnie ∧ ¬ WishFurther Bonnie)) → 
+  (IsStudent Bonnie ∨ InactiveDisinterested Bonnie) :=
+fun h => 
+  Or.elim h
+    (fun h1 => 
+      let ⟨young, wish, chaperone⟩ := h1
+      have student : IsStudent Bonnie := P5 Bonnie (P6.left) young wish
+      have notStudent : ¬ IsStudent Bonnie := P3 Bonnie (P6.left) chaperone
+      False.elim (notStudent student)
+    )
+    (fun h2 => 
+      let ⟨notYoung, notWish⟩ := h2
+      have disj := P2 Bonnie P6.left
+      Or.elim disj
+        (fun perf => 
+          have : AttendsEngaged Bonnie := P1 Bonnie P6.left perf
+          -- No way to prove IsStudent Bonnie ∨ InactiveDisinterested Bonnie from current premises
+          sorry
+        )
+        (fun inactive => Or.inr inactive)
+    )
+</lean>
+
+ANSWER: Failure

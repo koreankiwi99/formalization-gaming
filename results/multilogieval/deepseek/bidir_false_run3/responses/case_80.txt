@@ -1,0 +1,155 @@
+The goal is to prove that if the kids did not go for a swim, then the players do not have smiles (to answer "No" to the question). However, the premises lead to the opposite conclusion: when the kids do not swim, the players must have smiles. Therefore, it is impossible to prove the negation.
+
+<lean>
+axiom R : Prop   -- it rains today
+axiom O : Prop   -- swimming pool is open
+axiom swim : Prop -- kids go for a swim
+axiom game : Prop -- softball team has their game
+axiom enjoy : Prop -- players enjoy catching and batting
+axiom smiles : Prop -- players have smiles
+
+axiom A1 : ¬R → game
+axiom A2 : O → swim
+axiom A3 : ¬R ∨ O
+axiom A4 : game → enjoy
+axiom A5 : enjoy → smiles
+
+-- Attempt to prove: ¬swim → ¬smiles (to support answer "No")
+theorem prove_negation : ¬swim → ¬smiles :=
+fun h_no_swim : ¬swim =>
+  -- From A2 (O → swim) and ¬swim, derive ¬O
+  have h_no_O : ¬O := fun h_O : O => h_no_swim (A2 h_O)
+  -- From A3 (¬R ∨ O) and ¬O, derive ¬R
+  have h_no_R : ¬R := by
+    cases A3 with
+    | inl h_negR => exact h_negR
+    | inr h_O => contradiction
+  -- From ¬R and A1, derive game
+  have h_game : game := A1 h_no_R
+  -- From game and A4, derive enjoy
+  have h_enjoy : enjoy := A4 h_game
+  -- From enjoy and A5, derive smiles
+  have h_smiles : smiles := A5 h_enjoy
+  -- We need ¬smiles, but we have smiles → contradiction
+  show ¬smiles from ?hole
+
+-- The proof fails at ?hole because we have h_smiles (smiles) but need ¬smiles.
+-- In fact, we can prove the opposite: ¬swim → smiles
+theorem counter : ¬swim → smiles :=
+fun h_no_swim : ¬swim =>
+  have h_no_O : ¬O := fun h_O => h_no_swim (A2 h_O)
+  have h_no_R : ¬R := by
+    cases A3 with
+    | inl h => exact h
+    | inr h => exact absurd h h_no_O
+  A5 (A4 (A1 h_no_R))
+
+-- Since we proved ¬swim → smiles, we cannot prove ¬swim → ¬smiles.
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+After analyzing the compilation errors, I recognize the issue: the proof of `prove_negation` contains an unresolved hole because we derive `smiles` but need to prove `¬smiles`, which is impossible without additional contradictory premises. Here's the corrected Lean code:
+
+<lean>
+axiom R : Prop   -- it rains today
+axiom O : Prop   -- swimming pool is open
+axiom swim : Prop -- kids go for a swim
+axiom game : Prop -- softball team has their game
+axiom enjoy : Prop -- players enjoy catching and batting
+axiom smiles : Prop -- players have smiles
+
+axiom A1 : ¬R → game
+axiom A2 : O → swim
+axiom A3 : ¬R ∨ O
+axiom A4 : game → enjoy
+axiom A5 : enjoy → smiles
+
+-- Prove that ¬swim implies smiles
+theorem positive : ¬swim → smiles :=
+  fun h_no_swim : ¬swim =>
+  have h_no_O : ¬O := fun h_O : O => h_no_swim (A2 h_O)
+  have h_no_R : ¬R := by
+    cases A3 with
+    | inl h_negR => exact h_negR
+    | inr h_O => exact absurd h_O h_no_O
+  A5 (A4 (A1 h_no_R))
+
+-- Attempt to prove negation (¬swim → ¬smiles) fails
+theorem prove_negation : ¬swim → ¬smiles :=
+  fun h_no_swim : ¬swim =>
+  have h_smiles : smiles := positive h_no_swim
+  -- Cannot derive ¬smiles when we have smiles
+  -- Proof fails here since no contradiction exists
+  False.elim (h_smiles (by assumption)) -- This line will cause error but demonstrates the failure
+</lean>
+
+**Compilation Note:** The `prove_negation` theorem intentionally contains an error (`by assumption` doesn't resolve to `¬smiles`) to demonstrate the proof failure. In reality, the term `h_smiles` is a proof of `smiles`, not `¬smiles`, making the negation unprovable.
+
+**Analysis:**  
+- We successfully prove `positive : ¬swim → smiles`, meaning if kids don't swim, players smile.  
+- Attempting to prove the negation (`¬swim → ¬smiles`) fails because it contradicts `positive`.  
+- No axioms provide a contradiction when `smiles` is true.  
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+After analyzing the errors, I realize the key issue is that we can prove the *opposite* of the desired negation. Specifically, from the premises, we can prove that if the kids did not swim, then the players *did* have smiles. This makes it impossible to prove the negation (that players did not have smiles when kids didn't swim).
+
+Here's the corrected Lean code:
+
+<lean>
+axiom R : Prop   -- it rains today
+axiom O : Prop   -- swimming pool is open
+axiom swim : Prop -- kids go for a swim
+axiom game : Prop -- softball team has their game
+axiom enjoy : Prop -- players enjoy catching and batting
+axiom smiles : Prop -- players have smiles
+
+axiom A1 : ¬R → game
+axiom A2 : O → swim
+axiom A3 : ¬R ∨ O
+axiom A4 : game → enjoy
+axiom A5 : enjoy → smiles
+
+-- First prove that ¬swim implies smiles
+theorem positive : ¬swim → smiles :=
+  fun h_no_swim : ¬swim =>
+  have h_no_O : ¬O := fun h_O : O => h_no_swim (A2 h_O)
+  have h_no_R : ¬R := by
+    cases A3 with
+    | inl h_negR => exact h_negR
+    | inr h_O => contradiction  -- O and ¬O contradiction
+  A5 (A4 (A1 h_no_R))
+
+-- Attempt to prove negation: ¬swim → ¬smiles
+theorem prove_negation : ¬swim → ¬smiles :=
+  fun h_no_swim : ¬swim =>
+  -- We can prove smiles from ¬swim
+  have h_smiles : smiles := positive h_no_swim
+  -- But we need to prove ¬smiles (smiles → False)
+  -- No axioms make smiles false, so we must fail
+  fun h_smiles' : smiles => ?hole  -- Unfillable hole
+</lean>
+
+**Explanation:**  
+1. The `positive` theorem proves `¬swim → smiles` using:
+   - `¬swim` implies `¬O` (from A2: O → swim)
+   - `¬O` and `¬R ∨ O` imply `¬R` (case analysis with contradiction)
+   - `¬R` implies `game` (A1), then `enjoy` (A4), then `smiles` (A5)
+
+2. In `prove_negation`:
+   - We derive `smiles` from `¬swim` via `positive`
+   - But we need to prove `¬smiles` (equivalent to `smiles → False`)
+   - There are no premises that make `smiles` false, so the hole `?hole` cannot be filled
+
+**Conclusion:** The negation (players do NOT have smiles when kids don't swim) is unprovable because we've proven the opposite. Thus, we return "Failure".
+
+ANSWER: Failure

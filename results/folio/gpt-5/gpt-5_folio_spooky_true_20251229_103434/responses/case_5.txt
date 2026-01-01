@@ -1,0 +1,73 @@
+<lean>
+axiom obj : Type
+
+-- Entities and predicates
+axiom Employee : obj → Prop
+axiom SchedulesMeeting : obj → Prop
+axiom GoToBuildingToday : obj → Prop
+axiom LunchInBuilding : obj → Prop
+axiom LunchAtHome : obj → Prop
+axiom RemoteFromHome : obj → Prop
+axiom InOtherCountries : obj → Prop
+axiom Manager : obj → Prop
+axiom AppearsInCompanyToday : obj → Prop
+
+axiom James : obj
+
+-- Premises
+-- 1. All employees who schedule a meeting with their customers will go to the company building today.
+axiom P1 : ∀ x : obj, Employee x ∧ SchedulesMeeting x → GoToBuildingToday x
+
+-- 2. Everyone who has lunch in the company building schedules meetings with their customers.
+axiom P2 : ∀ x : obj, LunchInBuilding x → SchedulesMeeting x
+
+-- 3. Employees have lunch either in the company building or at home.
+axiom P3 : ∀ x : obj, Employee x → (LunchInBuilding x ∨ LunchAtHome x)
+
+-- 4. If an employee has lunch at home, they are working remotely from home.
+axiom P4 : ∀ x : obj, Employee x ∧ LunchAtHome x → RemoteFromHome x
+
+-- 5. All employees who are in other countries work remotely from home.
+axiom P5 : ∀ x : obj, Employee x ∧ InOtherCountries x → RemoteFromHome x
+
+-- 6. No managers work remotely from home.
+axiom P6 : ∀ x : obj, Manager x → ¬ RemoteFromHome x
+
+-- 7. James will appear in the company today iff he is a manager.
+axiom P7 : AppearsInCompanyToday James ↔ Manager James
+
+-- Some derivable consequences (showing partial progress toward the target statement)
+
+-- From "No managers work remotely from home", we can derive that if someone works remotely from home,
+-- then they are not a manager.
+theorem remote_implies_not_manager (x : obj) : RemoteFromHome x → ¬ Manager x :=
+fun rh m => P6 x m rh
+
+-- Specializing to James:
+theorem james_remote_implies_not_manager : RemoteFromHome James → ¬ Manager James :=
+remote_implies_not_manager James
+
+-- If James is an employee and has lunch at home or works remotely, then he is not a manager.
+theorem james_lunch_or_remote_implies_not_manager_given_employee
+  (hE : Employee James) :
+  (LunchAtHome James ∨ RemoteFromHome James) → ¬ Manager James :=
+by
+  intro h
+  intro hM
+  cases h with
+  | inl hL =>
+      have hR : RemoteFromHome James := P4 James ⟨hE, hL⟩
+      exact (P6 James hM) hR
+  | inr hR =>
+      exact (P6 James hM) hR
+
+-- If James is an employee and in other countries, then he is not a manager (since that implies remote).
+theorem james_other_countries_implies_not_manager_given_employee
+  (hE : Employee James) (hOC : InOtherCountries James) : ¬ Manager James :=
+by
+  intro hM
+  have hR : RemoteFromHome James := P5 James ⟨hE, hOC⟩
+  exact (P6 James hM) hR
+</lean>
+
+ANSWER: Failure

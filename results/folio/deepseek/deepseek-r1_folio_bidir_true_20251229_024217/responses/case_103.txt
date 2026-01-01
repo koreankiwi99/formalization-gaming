@@ -1,0 +1,62 @@
+The reasoning involves translating the given context and Luke's situation into logical predicates and axioms, then proving the statement that Luke is neither born in a multiple birth nor complains often about annoying siblings.
+
+- **Premise 1**: Born in a multiple birth → Spends time with siblings (A1)
+- **Premise 2**: Spends time with siblings → Lives at home (A5)
+- **Premise 3**: Lives at home → Does not live with strangers (A4)
+- **Premise 4**: Complains about siblings → Has siblings born together (A3)
+- **Premise 5**: Has siblings born together → Born in a multiple birth (A2)
+- **Luke's Case**: (Born multiple ∧ Lives with strangers) ∨ (¬Born multiple ∧ ¬Lives with strangers)
+
+**Proof**:
+1. Combining premises 1–3: If born in a multiple birth, then lives at home (contrapositively: lives with strangers → not born in multiple birth).
+2. Luke's case: The first subcase (Born multiple ∧ Lives with strangers) contradicts the above chain (since lives with strangers implies ¬born multiple).
+3. Thus, only the second subcase holds: Luke is not born in a multiple birth and does not live with strangers.
+4. Now, if Luke complains about siblings (Premise 4), he must have siblings born together (Premise 5), implying he was born in a multiple birth. But this contradicts step 3.
+5. Hence, Luke cannot complain about siblings.
+
+Therefore, the statement is **provable** (True).
+
+<lean>
+axiom Person : Type
+axiom Luke : Person
+
+axiom BornMultiple : Person → Prop
+axiom SpendTimeSiblings : Person → Prop
+axiom HasSiblingsBornTogether : Person → Prop
+axiom ComplainAnnoyingSiblings : Person → Prop
+axiom LivesAtHome : Person → Prop
+axiom LivesWithStrangers : Person → Prop
+
+-- Premises
+axiom A1 : ∀ p, BornMultiple p → SpendTimeSiblings p
+axiom A2 : ∀ p, HasSiblingsBornTogether p → BornMultiple p
+axiom A3 : ∀ p, ComplainAnnoyingSiblings p → HasSiblingsBornTogether p
+axiom A4 : ∀ p, LivesAtHome p → ¬ LivesWithStrangers p
+axiom A5 : ∀ p, SpendTimeSiblings p → LivesAtHome p
+axiom Luke_case : (BornMultiple Luke ∧ LivesWithStrangers Luke) ∨ (¬ BornMultiple Luke ∧ ¬ LivesWithStrangers Luke)
+
+-- Lemma: BornMultiple implies not LivesWithStrangers
+theorem lemma1 : ∀ p, BornMultiple p → ¬ LivesWithStrangers p := 
+  fun p h_mult =>
+  have h_time : SpendTimeSiblings p := A1 p h_mult
+  have h_home : LivesAtHome p := A5 p h_time
+  A4 p h_home
+
+-- Resolve Luke's case (case1 fails by contradiction)
+theorem luke_not_multiple : ¬ BornMultiple Luke := by
+  cases Luke_case with
+  | inl h => exact absurd h.right (lemma1 Luke h.left)
+  | inr h => exact h.left
+
+theorem luke_not_complain : ¬ ComplainAnnoyingSiblings Luke :=
+  fun h_complain =>
+  have h_siblings : HasSiblingsBornTogether Luke := A3 Luke h_complain
+  have h_mult : BornMultiple Luke := A2 Luke h_siblings
+  luke_not_multiple h_mult
+
+-- Final goal
+theorem target : ¬ BornMultiple Luke ∧ ¬ ComplainAnnoyingSiblings Luke := 
+  And.intro luke_not_multiple luke_not_complain
+</lean>
+
+ANSWER: True

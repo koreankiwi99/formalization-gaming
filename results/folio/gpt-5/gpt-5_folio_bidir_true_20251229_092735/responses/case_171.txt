@@ -1,0 +1,57 @@
+<lean>
+axiom obj : Type
+
+-- Entities and predicates
+axiom ColorectalCancer : obj
+axiom DeadlyDisease : obj → Prop
+axiom LowSurvival : obj → Prop
+axiom SevereCancer : obj → Prop
+axiom BileDuctCancer : obj → Prop
+axiom Cholangiocarcinoma : obj → Prop
+axiom MildFlu : obj → Prop
+
+-- Axioms from the context
+axiom A1 : ∀ x : obj, DeadlyDisease x → LowSurvival x
+axiom A2 : ∀ x : obj, SevereCancer x → DeadlyDisease x
+axiom A3 : ∀ x : obj, BileDuctCancer x → SevereCancer x
+axiom A4 : ∀ x : obj, Cholangiocarcinoma x → BileDuctCancer x
+axiom A5 : ∀ x : obj, MildFlu x → LowSurvival x
+axiom NB : ¬ (BileDuctCancer ColorectalCancer ∧ LowSurvival ColorectalCancer)
+
+-- Useful derived lemma: bile duct cancer implies low survival
+theorem bdc_implies_ls : ∀ x : obj, BileDuctCancer x → LowSurvival x := by
+  intro x hbdc
+  have hsev : SevereCancer x := A3 x hbdc
+  have hdead : DeadlyDisease x := A2 x hsev
+  exact A1 x hdead
+
+-- From "not both (BDC and LowSurvival)" and BDC → LowSurvival, we get ¬ BDC(ColorectalCancer)
+theorem not_bdc_cc : ¬ BileDuctCancer ColorectalCancer := by
+  intro hbdc
+  have hls : LowSurvival ColorectalCancer := bdc_implies_ls ColorectalCancer hbdc
+  exact NB (And.intro hbdc hls)
+
+-- Since Cholangiocarcinoma → BileDuctCancer, we also get ¬ Cholangiocarcinoma(ColorectalCancer)
+theorem not_chol_cc : ¬ Cholangiocarcinoma ColorectalCancer := by
+  intro hchol
+  have hbdc : BileDuctCancer ColorectalCancer := A4 ColorectalCancer hchol
+  exact not_bdc_cc hbdc
+
+-- The queried conclusion
+def Conclusion : Prop :=
+  (Cholangiocarcinoma ColorectalCancer ∧ (MildFlu ColorectalCancer ∨ BileDuctCancer ColorectalCancer)) ∨
+  (Cholangiocarcinoma ColorectalCancer ∧ MildFlu ColorectalCancer ∧ BileDuctCancer ColorectalCancer)
+
+-- We can actually refute the conclusion from the premises
+theorem not_Conclusion : ¬ Conclusion := by
+  intro h
+  have hnc : ¬ Cholangiocarcinoma ColorectalCancer := not_chol_cc
+  cases h with
+  | inl h1 => exact hnc h1.left
+  | inr h2 => exact hnc h2.left
+
+-- Therefore, the stated conclusion does not follow from the premises.
+-- Cannot prove Conclusion from given axioms (indeed, its negation is derivable).
+</lean>
+
+ANSWER: Failure

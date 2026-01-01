@@ -1,0 +1,71 @@
+The premises provide information about films, their ratings, and classifications. Specifically, they establish:
+- If a film is appropriate for all ages, children can watch it without parental guidance.
+- Films with excessive erotic and violent content cannot be watched by children without parental guidance.
+- General Audience (GA) rated films are appropriate for all ages.
+- Family-friendly animated films are rated GA.
+- Films in the Frozen series are family-friendly animated films.
+- "Hachi: A Dog's Tale" is either a family-friendly animated film or appropriate for all ages.
+
+The conclusion is a disjunction stating that "Hachi: A Dog's Tale" either (1) has excessive content and is in the Frozen series, or (2) has no excessive content and is not in the Frozen series.
+
+Analysis reveals:
+- From the premises, we can prove that "Hachi" **does not have excessive content**. This is because if it were family-friendly animated (or all-ages), it would be appropriate for all ages (via GA-rating), allowing children to watch without guidance. However, excessive content contradicts this, yielding a contradiction.
+- However, there is **no information about whether "Hachi" belongs to the Frozen series**. The premises state that Frozen films are family-friendly, but not that all family-friendly films are in Frozen. "Hachi" could be family-friendly (or all-ages) without being in Frozen.
+
+Thus:
+- We know ¬ExcessiveContent(Hachi).
+- We do not know InFrozenSeries(Hachi) or ¬InFrozenSeries(Hachi).
+- The disjunction reduces to proving ¬InFrozenSeries(Hachi) (since the first disjunct is false due to no excessive content). This cannot be proven.
+
+Lean formalization confirms this: While we prove `noExcessive` (Hachi has no excessive content), the conclusion requires knowledge of Frozen-series membership, which is missing. Attempted case-splitting on `InFrozenSeries Hachi` fails when assuming membership is true (as premises remain consistent).
+
+Therefore, the conclusion cannot be proven from the premises.
+
+<lean>
+axiom obj : Type
+axiom Hachi : obj
+axiom AllAges : obj → Prop
+axiom CanWatchWithoutParents : obj → Prop
+axiom ExcessiveContent : obj → Prop
+axiom RatedGA : obj → Prop
+axiom FamilyFriendlyAnimated : obj → Prop
+axiom InFrozenSeries : obj → Prop
+
+axiom P1 : ∀ f, AllAges f → CanWatchWithoutParents f
+axiom P2 : ∀ f, ExcessiveContent f → ¬ CanWatchWithoutParents f
+axiom P3 : ∀ f, RatedGA f → AllAges f
+axiom P4 : ∀ f, FamilyFriendlyAnimated f → RatedGA f
+axiom P5 : ∀ f, InFrozenSeries f → FamilyFriendlyAnimated f
+axiom P7 : FamilyFriendlyAnimated Hachi ∨ AllAges Hachi
+
+-- Prove Hachi cannot have excessive content
+theorem noExcessive : ¬ ExcessiveContent Hachi := by 
+  intro hEx
+  cases P7 with
+  | inl hFam => 
+      have hGA := P4 _ hFam
+      have hAges := P3 _ hGA
+      have hWatch := P1 _ hAges
+      exact P2 _ hEx hWatch
+  | inr hAll => 
+      have hWatch := P1 _ hAll
+      exact P2 _ hEx hWatch
+
+-- Target statement unprovable
+-- (ExcessiveContent Hachi ∧ InFrozenSeries Hachi) ∨ (¬ExcessiveContent Hachi ∧ ¬InFrozenSeries Hachi)
+-- Attempt:
+theorem target : (ExcessiveContent Hachi ∧ InFrozenSeries Hachi) ∨ (¬ExcessiveContent Hachi ∧ ¬InFrozenSeries Hachi) := by
+  have no_ex := noExcessive
+  -- Equivalent to proving ¬InFrozenSeries Hachi (since first disjunct impossible)
+  -- But no premise provides evidence for ¬InFrozenSeries Hachi.
+  -- Classical case-splitting fails:
+  cases Classical.em (InFrozenSeries Hachi) with
+  | inl frozen => 
+      -- Left with impossible goal: must prove False from consistent premises
+      admit -- (Blocked: No contradiction arises when assuming frozen=true)
+  | inr not_frozen => 
+      apply Or.inr
+      exact ⟨no_ex, not_frozen⟩
+</lean>
+
+ANSWER: Failure

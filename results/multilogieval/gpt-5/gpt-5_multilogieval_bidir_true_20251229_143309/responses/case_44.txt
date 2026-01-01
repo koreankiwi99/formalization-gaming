@@ -1,0 +1,45 @@
+<lean>
+axiom obj : Type
+axiom Mark : obj
+
+axiom PlantGarden : obj → Prop
+axiom NeedWater : obj → Prop
+axiom NeedCare : obj → Prop
+axiom Watered : obj → Prop
+axiom Fail : obj → Prop
+
+axiom Drought : Prop
+axiom Ban : Prop
+
+-- If someone plants a garden, they will need to water and care for the plants.
+axiom R1 : ∀ x : obj, PlantGarden x → (NeedWater x ∧ NeedCare x)
+-- If there is a drought, there will be a ban on watering gardens.
+axiom R2 : Drought → Ban
+-- Either Mark plants a garden, or there is a drought (or both).
+axiom R3 : PlantGarden Mark ∨ Drought
+-- If there is a watering ban, the plants (Mark's garden) will not get enough water.
+axiom R4 : Ban → ¬ Watered Mark
+-- If the plants don't get watered, the garden will fail to thrive.
+axiom R5 : ∀ x : obj, ¬ Watered x → Fail x
+
+-- Mark did not need to care for garden plants.
+axiom Tnot : ¬ NeedCare Mark
+
+theorem mark_garden_fail : Fail Mark := by
+  -- From "if plant then need care" and "not need care", deduce "did not plant"
+  have h_not_plant : ¬ PlantGarden Mark := by
+    intro hp
+    have hcare : NeedCare Mark := (R1 Mark hp).right
+    exact Tnot hcare
+  -- From (Plant Mark ∨ Drought) and ¬Plant Mark, deduce Drought
+  have h_drought : Drought := by
+    cases R3 with
+    | inl hp => exact False.elim (h_not_plant hp)
+    | inr hd => exact hd
+  -- Chain to ban, then not watered, then fail to thrive
+  have h_ban : Ban := R2 h_drought
+  have h_not_watered : ¬ Watered Mark := R4 h_ban
+  exact R5 Mark h_not_watered
+</lean>
+
+ANSWER: Yes

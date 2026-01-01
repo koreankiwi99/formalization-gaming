@@ -1,0 +1,52 @@
+The reasoning involves translating the given premises into Lean 4 axioms and proving the conclusion "Sir Digby’s nemesis does not win." Key steps include:
+1. Sir Digby is a good guy (from movie named after him).
+2. Sir Digby fights his nemesis, so by opposition, nemesis is bad.
+3. Both are in the movie (Sir Digby by naming, nemesis by fight inclusion).
+4. In superhero movies, good guys win fights against bad guys.
+5. Thus, Sir Digby wins, so by mutual exclusivity, nemesis does not win.
+
+<lean>
+axiom Character : Type
+axiom Movie : Type
+axiom digby_movie : Movie
+axiom digby : Character
+axiom nemesis : Character
+
+axiom SuperheroMovie : Movie → Prop
+axiom NamedAfter : Movie → Character → Prop
+axiom GoodGuy : Character → Prop
+def BadGuy (c : Character) : Prop := ¬ GoodGuy c
+axiom Fights : Character → Character → Prop
+axiom FightInMovie : Character → Character → Movie → Prop
+axiom WinsInFight : Character → Character → Prop
+axiom InMovie : Character → Movie → Prop
+
+axiom T1 : SuperheroMovie digby_movie
+axiom T2 : ∀ M g b, SuperheroMovie M → InMovie g M → InMovie b M → GoodGuy g → BadGuy b → FightInMovie g b M → WinsInFight g b
+axiom T3 : ∀ A B, Fights A B → (GoodGuy A ∧ BadGuy B) ∨ (BadGuy A ∧ GoodGuy B)
+axiom T4 : Fights digby nemesis
+axiom T5 : ∀ M c, SuperheroMovie M → NamedAfter M c → GoodGuy c
+axiom T6 : NamedAfter digby_movie digby
+axiom T7 : ∀ A B, WinsInFight A B → ¬ WinsInFight B A
+axiom T8 : ∀ M c, SuperheroMovie M → NamedAfter M c → InMovie c M
+axiom FightInMovieImpliesIn : ∀ M c1 c2, FightInMovie c1 c2 M → InMovie c1 M ∧ InMovie c2 M
+axiom FightInMovieDigby : FightInMovie digby nemesis digby_movie
+
+theorem nemesis_not_win : ¬ WinsInFight nemesis digby := by
+  have good_digby : GoodGuy digby := T5 digby_movie digby T1 T6
+  have digby_in_movie : InMovie digby digby_movie := T8 digby_movie digby T1 T6
+  have fight_opposite := T3 digby nemesis T4
+  cases fight_opposite with
+  | inl h => 
+    have bad_nemesis : BadGuy nemesis := h.right
+    have both_in := FightInMovieImpliesIn digby_movie digby nemesis FightInMovieDigby
+    have nemesis_in_movie := both_in.right
+    have digby_wins : WinsInFight digby nemesis := 
+      T2 digby_movie digby nemesis T1 digby_in_movie nemesis_in_movie good_digby bad_nemesis FightInMovieDigby
+    exact T7 digby nemesis digby_wins
+  | inr h => 
+    have bad_digby : BadGuy digby := h.left
+    contradiction
+</lean>
+
+ANSWER: True

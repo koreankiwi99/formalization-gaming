@@ -1,0 +1,55 @@
+<lean>
+axiom obj : Type
+axiom Rock : obj
+
+axiom Pet : obj → Prop
+axiom Mammal : obj → Prop
+axiom Animal : obj → Prop
+axiom Monkey : obj → Prop
+axiom Bird : obj → Prop
+axiom CanFly : obj → Prop
+axiom CanBreathe : obj → Prop
+axiom HasWings : obj → Prop
+
+-- All of Peter's pets that are mammals are also animals.
+axiom A1 : ∀ x : obj, Pet x ∧ Mammal x → Animal x
+-- All monkeys are mammals.
+axiom A2 : ∀ x : obj, Monkey x → Mammal x
+-- Peter's pets are all either monkeys or birds.
+axiom A3 : ∀ x : obj, Pet x → Monkey x ∨ Bird x
+-- Peter's birds can fly.
+axiom A4 : ∀ x : obj, Pet x ∧ Bird x → CanFly x
+-- All animals that are Peter's pets can breathe.
+axiom A5 : ∀ x : obj, Animal x ∧ Pet x → CanBreathe x
+-- If Peter's pet can fly, then it has wings.
+axiom A6 : ∀ x : obj, Pet x ∧ CanFly x → HasWings x
+-- Rock is Peter's pet.
+axiom A7 : Pet Rock
+-- Rock can fly, or Rock is a bird, or Rock cannot breathe.
+axiom A8 : CanFly Rock ∨ Bird Rock ∨ ¬ CanBreathe Rock
+
+theorem rock_has_wings : HasWings Rock := by
+  have hPet : Pet Rock := A7
+  have wings_from_fly : CanFly Rock → HasWings Rock := fun hfly => A6 Rock ⟨hPet, hfly⟩
+  have fly_from_bird : Bird Rock → CanFly Rock := fun hbird => A4 Rock ⟨hPet, hbird⟩
+  cases A8 with
+  | inl hFly =>
+      exact wings_from_fly hFly
+  | inr h2 =>
+      cases h2 with
+      | inl hBird =>
+          exact wings_from_fly (fly_from_bird hBird)
+      | inr hNotBreathe =>
+          have hMB : Monkey Rock ∨ Bird Rock := A3 Rock hPet
+          cases hMB with
+          | inl hMonk =>
+              have hMamm : Mammal Rock := A2 Rock hMonk
+              have hAnim : Animal Rock := A1 Rock ⟨hPet, hMamm⟩
+              have hBreathe : CanBreathe Rock := A5 Rock ⟨hAnim, hPet⟩
+              have contra : False := hNotBreathe hBreathe
+              exact False.elim contra
+          | inr hBird2 =>
+              exact wings_from_fly (fly_from_bird hBird2)
+</lean>
+
+ANSWER: True

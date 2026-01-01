@@ -1,0 +1,60 @@
+<lean>
+axiom Person : Type
+axiom James : Person
+
+axiom ForecastRain : Prop
+axiom Umbrella : Person → Prop
+
+axiom BigGame : Prop
+axiom FriendsTogether : Prop
+axiom HighViewership : Prop
+axiom PlayOut : Prop
+
+-- If the forecast predicts rain, then people will bring an umbrella.
+axiom P1 : ∀ x : Person, ForecastRain → Umbrella x
+-- If there is a big game on TV, then friends will get together to watch it.
+axiom P2 : BigGame → FriendsTogether
+-- Either rain is forecasted, or friends did not get together, or both rain is forecasted and friends did not get together.
+axiom P3 : ForecastRain ∨ ¬ FriendsTogether ∨ (ForecastRain ∧ ¬ FriendsTogether)
+-- If the TV viewership is high, then there is a big game on TV.
+axiom P4 : HighViewership → BigGame
+-- Either the TV viewership is high, or they all decide to go play out, or both.
+axiom P5 : HighViewership ∨ PlayOut ∨ (HighViewership ∧ PlayOut)
+
+theorem james_no_umbrella_implies_play :
+  ¬ Umbrella James → PlayOut := by
+  intro hNoUmb
+  -- From ¬(Umbrella James) and (ForecastRain → Umbrella James), deduce ¬ForecastRain
+  have hNotRain : ¬ ForecastRain := by
+    intro hRain
+    have : Umbrella James := P1 James hRain
+    exact hNoUmb this
+  -- From the disjunction and ¬ForecastRain, deduce ¬FriendsTogether
+  have hNotTogether : ¬ FriendsTogether := by
+    cases P3 with
+    | inl hRain =>
+        exact False.elim (hNotRain hRain)
+    | inr h =>
+        cases h with
+        | inl hNotTogether => exact hNotTogether
+        | inr hBoth => exact hBoth.right
+  -- From BigGame → FriendsTogether and ¬FriendsTogether, deduce ¬BigGame
+  have hNotBig : ¬ BigGame := by
+    intro hBig
+    exact hNotTogether (P2 hBig)
+  -- From HighViewership → BigGame and ¬BigGame, deduce ¬HighViewership
+  have hNotHigh : ¬ HighViewership := by
+    intro hHigh
+    exact hNotBig (P4 hHigh)
+  -- From (HighViewership ∨ PlayOut ∨ (HighViewership ∧ PlayOut)) and ¬HighViewership, deduce PlayOut
+  have hPlay : PlayOut := by
+    cases P5 with
+    | inl hHigh => exact False.elim (hNotHigh hHigh)
+    | inr hrest =>
+        cases hrest with
+        | inl hP => exact hP
+        | inr hBoth => exact hBoth.right
+  exact hPlay
+</lean>
+
+ANSWER: Yes

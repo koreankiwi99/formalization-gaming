@@ -1,0 +1,46 @@
+<lean>
+axiom Person : Type
+
+-- Constants
+axiom Ekaterina : Person
+axiom Vladimir : Person
+
+-- Predicates
+axiom CanParticipateIn2024Election : Person → Prop
+axiom CanRegisterToVoteInUS : Person → Prop
+axiom HasUSCitizenship : Person → Prop
+axiom HasTaiwaneseCitizenship : Person → Prop
+axiom IsRussianFederationOfficial : Person → Prop
+axiom IsManagerAtGazprom : Person → Prop
+
+-- Axioms from context
+axiom A1 : ∀ p : Person, CanRegisterToVoteInUS p → CanParticipateIn2024Election p
+axiom A2 : ∀ p : Person, HasUSCitizenship p → CanRegisterToVoteInUS p
+axiom A3 : ∀ p : Person, HasUSCitizenship p ∨ HasTaiwaneseCitizenship p
+axiom A4 : ∀ p : Person, IsRussianFederationOfficial p → ¬ HasTaiwaneseCitizenship p
+axiom A5 : ¬ HasTaiwaneseCitizenship Vladimir ∧ ¬ IsManagerAtGazprom Vladimir
+axiom A6 : CanRegisterToVoteInUS Ekaterina ∨ IsRussianFederationOfficial Ekaterina
+
+-- Theorem to prove: Ekaterina can participate OR Vladimir is a Gazprom manager
+theorem target : 
+    CanParticipateIn2024Election Ekaterina ∨ IsManagerAtGazprom Vladimir :=
+  have vladimir_not_manager : ¬ IsManagerAtGazprom Vladimir := A5.2
+  Or.elim A6
+    (fun hreg : CanRegisterToVoteInUS Ekaterina => 
+      Or.inl (A1 Ekaterina hreg))  -- Ekaterina can participate
+    (fun hrus : IsRussianFederationOfficial Ekaterina => 
+      have no_taiwan : ¬ HasTaiwaneseCitizenship Ekaterina := A4 Ekaterina hrus
+      have usa_or_taiwan : HasUSCitizenship Ekaterina ∨ HasTaiwaneseCitizenship Ekaterina := A3 Ekaterina
+      Or.elim usa_or_taiwan
+        (fun usa : HasUSCitizenship Ekaterina => 
+          Or.inl (A1 Ekaterina (A2 Ekaterina usa)))  -- Ekaterina can participate
+        (fun taiwan : HasTaiwaneseCitizenship Ekaterina => 
+          absurd taiwan no_taiwan))  -- Contradiction
+</lean>
+
+ANSWER: True
+
+The proof establishes that Ekaterina can always participate in the election:
+- If she can register to vote (first case of A6), she can participate by A1.
+- If she's a Russian official (second case of A6), she cannot have Taiwanese citizenship (A4), so must have US citizenship (A3). Then she can register (A2) and participate (A1).
+Vladimir not being a Gazprom manager (A5) is irrelevant since the first disjunct is always true.

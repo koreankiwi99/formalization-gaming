@@ -1,0 +1,70 @@
+<lean>
+axiom obj : Type
+
+-- Individuals
+axiom Bonnie : obj
+
+-- Predicates
+axiom InClub : obj → Prop
+axiom PerformOften : obj → Prop
+axiom AttendEngaged : obj → Prop
+axiom Inactive : obj → Prop
+axiom Chaperone : obj → Prop
+axiom Student : obj → Prop
+axiom YoungChild : obj → Prop
+axiom Teenager : obj → Prop
+axiom WishesAcademic : obj → Prop
+
+-- Axioms from the context
+axiom A1 : ∀ x : obj, InClub x ∧ PerformOften x → AttendEngaged x
+axiom A2 : ∀ x : obj, InClub x → PerformOften x ∨ Inactive x
+axiom A3 : ∀ x : obj, InClub x ∧ Chaperone x → ¬ Student x
+axiom A4 : ∀ x : obj, InClub x ∧ Inactive x → Chaperone x
+axiom A5 : ∀ x : obj, InClub x ∧ (YoungChild x ∨ Teenager x) ∧ WishesAcademic x → Student x
+
+-- Facts about Bonnie
+axiom BClub : InClub Bonnie
+axiom BExtra : (AttendEngaged Bonnie ∧ Student Bonnie) ∨ ¬ (AttendEngaged Bonnie ∧ ¬ Student Bonnie)
+
+-- Target theorem
+theorem bonnie_conclusion :
+  (((YoungChild Bonnie ∨ Teenager Bonnie) ∧ WishesAcademic Bonnie ∧ Chaperone Bonnie)
+    ∨ ¬ ((YoungChild Bonnie ∨ Teenager Bonnie) ∧ WishesAcademic Bonnie))
+  → (Student Bonnie ∨ Inactive Bonnie) := by
+  intro h
+  have hClub : InClub Bonnie := BClub
+  cases h with
+  | inl hleft =>
+      -- hleft : (YoungChild ∨ Teenager) ∧ (WishesAcademic ∧ Chaperone)
+      have hYOT : YoungChild Bonnie ∨ Teenager Bonnie := And.left hleft
+      have hWish : WishesAcademic Bonnie := And.left (And.right hleft)
+      have hChap : Chaperone Bonnie := And.right (And.right hleft)
+      have hStu : Student Bonnie :=
+        A5 Bonnie (And.intro hClub (And.intro hYOT hWish))
+      have hNot : ¬ Student Bonnie :=
+        A3 Bonnie (And.intro hClub hChap)
+      have contra : False := hNot hStu
+      exact False.elim contra
+  | inr _ =>
+      -- From club membership, either performs often or is inactive
+      have hdisj : PerformOften Bonnie ∨ Inactive Bonnie := A2 Bonnie hClub
+      cases hdisj with
+      | inl hPerf =>
+          have hAtt : AttendEngaged Bonnie :=
+            A1 Bonnie (And.intro hClub hPerf)
+          classical
+          by_cases hS : Student Bonnie
+          · exact Or.inl hS
+          · have hNS : ¬ Student Bonnie := hS
+            cases BExtra with
+            | inl hAS =>
+                have : False := hNS hAS.right
+                exact False.elim this
+            | inr hneg =>
+                have : False := hneg (And.intro hAtt hNS)
+                exact False.elim this
+      | inr hInact =>
+          exact Or.inr hInact
+</lean>
+
+ANSWER: True

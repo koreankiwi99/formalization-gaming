@@ -1,0 +1,143 @@
+<lean>
+axiom obj : Type
+
+-- Entities
+axiom Bonnie : obj
+
+-- Predicates
+axiom InClub : obj → Prop
+axiom PerformOften : obj → Prop
+axiom AttendEngaged : obj → Prop
+axiom Inactive : obj → Prop
+axiom Chaperone : obj → Prop
+axiom Student : obj → Prop
+axiom YoungChild : obj → Prop
+axiom Teenager : obj → Prop
+axiom Wishes : obj → Prop
+
+-- Premises from the context
+-- 1. Club members who perform often attend and are very engaged with school events.
+axiom R1 : ∀ x : obj, InClub x → PerformOften x → AttendEngaged x
+-- 2. Club members either perform often or are inactive and disinterested.
+axiom R2 : ∀ x : obj, InClub x → (PerformOften x ∨ Inactive x)
+-- 3. Club members who chaperone dances are not students.
+axiom R3 : ∀ x : obj, InClub x → Chaperone x → ¬Student x
+-- 4. Club members who are inactive chaperone dances.
+axiom R4 : ∀ x : obj, InClub x → Inactive x → Chaperone x
+-- 5. Young children or teenagers in the club who wish to further academics are students.
+axiom R5 : ∀ x : obj, InClub x → Wishes x → (YoungChild x ∨ Teenager x) → Student x
+
+-- Bonnie-specific facts
+axiom B1 : InClub Bonnie
+-- Bonnie either (attends&engaged and is a student) or (does not attend&engage and is not a student)
+axiom B2 : (AttendEngaged Bonnie ∧ Student Bonnie) ∨ (¬AttendEngaged Bonnie ∧ ¬Student Bonnie)
+
+-- The statement to evaluate (we show it is actually provable, so its negation is not provable)
+theorem statement_holds :
+  (((YoungChild Bonnie ∨ Teenager Bonnie) ∧ Wishes Bonnie ∧ Chaperone Bonnie) ∨
+   ¬((YoungChild Bonnie ∨ Teenager Bonnie) ∧ Wishes Bonnie))
+  → (Student Bonnie ∨ Inactive Bonnie) := by
+  intro h
+  cases h with
+  | inl hleft =>
+    -- From young-or-teen, wishes, and in club, Bonnie is a student
+    have hytw : (YoungChild Bonnie ∨ Teenager Bonnie) ∧ Wishes Bonnie := And.left hleft
+    have hyt : (YoungChild Bonnie ∨ Teenager Bonnie) := And.left hytw
+    have hw : Wishes Bonnie := And.right hytw
+    have hs : Student Bonnie := R5 Bonnie B1 hw hyt
+    exact Or.inl hs
+  | inr _ =>
+    -- Use the club disjunction: perform often or inactive
+    have hpi : PerformOften Bonnie ∨ Inactive Bonnie := R2 Bonnie B1
+    cases hpi with
+    | inl hperf =>
+      have hatt : AttendEngaged Bonnie := R1 Bonnie B1 hperf
+      -- From Bonnie's equivalence-like fact B2 and hatt, deduce Student
+      have hs : Student Bonnie := by
+        cases B2 with
+        | inl hAS =>
+          exact And.right hAS
+        | inr hNotAS =>
+          have contra : False := (And.left hNotAS) hatt
+          exact False.elim contra
+      exact Or.inl hs
+    | inr hinact =>
+      exact Or.inr hinact
+
+-- Cannot prove the negation of the statement; the statement is derivable from the premises.
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom obj : Type
+
+-- Entities
+axiom Bonnie : obj
+
+-- Predicates
+axiom InClub : obj → Prop
+axiom PerformOften : obj → Prop
+axiom AttendEngaged : obj → Prop
+axiom Inactive : obj → Prop
+axiom Chaperone : obj → Prop
+axiom Student : obj → Prop
+axiom YoungChild : obj → Prop
+axiom Teenager : obj → Prop
+axiom Wishes : obj → Prop
+
+-- Premises from the context
+-- 1. Club members who perform often attend and are very engaged with school events.
+axiom R1 : ∀ x : obj, InClub x → PerformOften x → AttendEngaged x
+-- 2. Club members either perform often or are inactive and disinterested.
+axiom R2 : ∀ x : obj, InClub x → (PerformOften x ∨ Inactive x)
+-- 3. Club members who chaperone dances are not students.
+axiom R3 : ∀ x : obj, InClub x → Chaperone x → ¬Student x
+-- 4. Club members who are inactive chaperone dances.
+axiom R4 : ∀ x : obj, InClub x → Inactive x → Chaperone x
+-- 5. Young children or teenagers in the club who wish to further academics are students.
+axiom R5 : ∀ x : obj, InClub x → Wishes x → (YoungChild x ∨ Teenager x) → Student x
+
+-- Bonnie-specific facts
+axiom B1 : InClub Bonnie
+-- Bonnie either (attends&engaged and is a student) or (does not attend&engage and is not a student)
+axiom B2 : (AttendEngaged Bonnie ∧ Student Bonnie) ∨ (¬AttendEngaged Bonnie ∧ ¬Student Bonnie)
+
+-- The statement to evaluate (it is derivable from the premises)
+theorem statement_holds :
+  (((YoungChild Bonnie ∨ Teenager Bonnie) ∧ Wishes Bonnie ∧ Chaperone Bonnie) ∨
+   ¬((YoungChild Bonnie ∨ Teenager Bonnie) ∧ Wishes Bonnie))
+  → (Student Bonnie ∨ Inactive Bonnie) := by
+  intro h
+  cases h with
+  | inl hleft =>
+    -- Parse A ∧ B ∧ C as A ∧ (B ∧ C)
+    have hA : (YoungChild Bonnie ∨ Teenager Bonnie) := And.left hleft
+    have hBC : Wishes Bonnie ∧ Chaperone Bonnie := And.right hleft
+    have hB : Wishes Bonnie := And.left hBC
+    have hs : Student Bonnie := R5 Bonnie B1 hB hA
+    exact Or.inl hs
+  | inr _ =>
+    -- Use the club disjunction: perform often or inactive
+    have hpi : PerformOften Bonnie ∨ Inactive Bonnie := R2 Bonnie B1
+    cases hpi with
+    | inl hperf =>
+      have hatt : AttendEngaged Bonnie := R1 Bonnie B1 hperf
+      -- From B2 and hatt, deduce Student
+      have hs : Student Bonnie := by
+        cases B2 with
+        | inl hAS =>
+          exact And.right hAS
+        | inr hNotAS =>
+          have contra : False := (And.left hNotAS) hatt
+          exact False.elim contra
+      exact Or.inl hs
+    | inr hinact =>
+      exact Or.inr hinact
+</lean>
+
+ANSWER: Failure

@@ -1,0 +1,70 @@
+<lean>
+axiom obj : Type
+
+axiom Man : obj → Prop
+axiom InMClass : obj → Prop
+axiom Taller : obj → obj → Prop
+axiom CanBlock : obj → obj → Prop
+axiom Jumps : obj → Prop
+axiom Shooter : obj → Prop
+axiom Great : obj → Prop
+
+axiom Michael : obj
+axiom Peter : obj
+axiom Windy : obj
+
+-- If a man is taller than another man, the taller one can block the other's shooting.
+axiom R1 : ∀ x y : obj, Man x → Man y → Taller x y → CanBlock x y
+
+-- Michael is a man who is taller than everyone else in his class.
+axiom Michael_is_man : Man Michael
+axiom Michael_taller_class : ∀ z : obj, InMClass z ∧ z ≠ Michael → Taller Michael z
+
+-- Transitivity of taller
+axiom taller_trans : ∀ x y z : obj, Taller x y → Taller y z → Taller x z
+
+-- Peter is a man who is taller than Michael.
+axiom Peter_is_man : Man Peter
+axiom Peter_taller_than_Michael : Taller Peter Michael
+
+-- Michael can block any shooting from a person as long as the person does not jump when shooting.
+axiom Michael_blocks_if_not_jump : ∀ p : obj, ¬Jumps p → CanBlock Michael p
+
+-- Michael cannot block Windy's shooting.
+axiom not_Michael_blocks_Windy : ¬CanBlock Michael Windy
+
+-- Every shooter who can jump when shooting is a great shooter.
+axiom great_shooter : ∀ x : obj, Shooter x ∧ Jumps x → Great x
+
+-- Natural property of "taller than": irreflexivity
+axiom taller_irrefl : ∀ x : obj, ¬Taller x x
+
+-- Statement to evaluate (negation proved): Peter is NOT shorter than a man in Michael's class.
+-- That is, there does not exist a man in Michael's class who is taller than Peter.
+theorem peter_not_shorter_than_classman :
+  ¬(∃ m : obj, Man m ∧ InMClass m ∧ Taller m Peter) := by
+  intro h
+  cases h with
+  | intro m hm =>
+    have hIn_T : InMClass m ∧ Taller m Peter := And.right hm
+    have hIn : InMClass m := And.left hIn_T
+    have hmPeter : Taller m Peter := And.right hIn_T
+    -- From m > Peter and Peter > Michael, get m > Michael
+    have hmMichael : Taller m Michael :=
+      taller_trans m Peter Michael hmPeter Peter_taller_than_Michael
+    -- Hence m ≠ Michael (otherwise we'd get Michael > Michael)
+    have hneq : m ≠ Michael := by
+      intro heq
+      have : Taller Michael Michael := by
+        simpa [heq] using hmMichael
+      exact (taller_irrefl Michael) this
+    -- Michael is taller than every other member of his class (including m since m ≠ Michael)
+    have hMichaelm : Taller Michael m :=
+      Michael_taller_class m (And.intro hIn hneq)
+    -- Compose to get Michael > Michael, contradiction
+    have : Taller Michael Michael :=
+      taller_trans Michael m Michael hMichaelm hmMichael
+    exact (taller_irrefl Michael) this
+</lean>
+
+ANSWER: False

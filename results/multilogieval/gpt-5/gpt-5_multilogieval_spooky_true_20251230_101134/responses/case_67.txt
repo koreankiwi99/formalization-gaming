@@ -1,0 +1,94 @@
+<lean>
+axiom obj : Type
+axiom Sam : obj
+
+axiom KitchenHot : Prop
+axiom StoveOn : Prop
+
+axiom Hungry : obj → Prop
+axiom MakePancakes : obj → Prop
+axiom UseStove : obj → Prop
+axiom AteDinner : obj → Prop
+
+-- If the stove is on, the kitchen gets hot.
+axiom R_on_hot : StoveOn → KitchenHot
+-- If someone makes pancakes, they use the stove.
+axiom R_pancakes_use : ∀ x : obj, MakePancakes x → UseStove x
+-- Either the stove was on, or Sam did not use the stove.
+axiom D_on_or_notuse : StoveOn ∨ ¬UseStove Sam
+-- If someone is hungry, they make pancakes.
+axiom R_hungry_pancakes : ∀ x : obj, Hungry x → MakePancakes x
+-- If Sam did not eat dinner last night, he was hungry this morning.
+axiom R_noDinner_hungry : ¬AteDinner Sam → Hungry Sam
+
+open classical
+
+theorem sam_ate_of_not_hot : ¬KitchenHot → AteDinner Sam := by
+  intro hNotHot
+  -- From not hot and (On → Hot), deduce the stove was not on.
+  have hNotOn : ¬StoveOn := fun hOn => hNotHot (R_on_hot hOn)
+  -- From (On ∨ ¬Use Sam) and ¬On, deduce ¬Use Sam.
+  have hNotUse : ¬UseStove Sam := by
+    cases D_on_or_notuse with
+    | inl hOn => exact False.elim (hNotOn hOn)
+    | inr h => exact h
+  -- Prove AteDinner Sam by contradiction.
+  by_contra hNoDinner
+  have hHungry : Hungry Sam := R_noDinner_hungry hNoDinner
+  have hPancakes : MakePancakes Sam := R_hungry_pancakes Sam hHungry
+  have hUse : UseStove Sam := R_pancakes_use Sam hPancakes
+  exact hNotUse hUse
+</lean>
+
+ANSWER: Yes
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom obj : Type
+axiom Sam : obj
+
+axiom KitchenHot : Prop
+axiom StoveOn : Prop
+
+axiom Hungry : obj → Prop
+axiom MakePancakes : obj → Prop
+axiom UseStove : obj → Prop
+axiom AteDinner : obj → Prop
+
+-- If the stove is on, the kitchen gets hot.
+axiom R_on_hot : StoveOn → KitchenHot
+-- If someone makes pancakes, they use the stove.
+axiom R_pancakes_use : ∀ x : obj, MakePancakes x → UseStove x
+-- Either the stove was on, or Sam did not use the stove.
+axiom D_on_or_notuse : StoveOn ∨ ¬UseStove Sam
+-- If someone is hungry, they make pancakes.
+axiom R_hungry_pancakes : ∀ x : obj, Hungry x → MakePancakes x
+-- If Sam did not eat dinner last night, he was hungry this morning.
+axiom R_noDinner_hungry : ¬AteDinner Sam → Hungry Sam
+
+-- Excluded middle for the specific proposition "Sam ate dinner"
+axiom Ate_em : AteDinner Sam ∨ ¬AteDinner Sam
+
+theorem sam_ate_of_not_hot : ¬KitchenHot → AteDinner Sam := by
+  intro hNotHot
+  -- From not hot and (On → Hot), deduce the stove was not on.
+  have hNotOn : ¬StoveOn := fun hOn => hNotHot (R_on_hot hOn)
+  -- From (On ∨ ¬Use Sam) and ¬On, deduce ¬Use Sam.
+  have hNotUse : ¬UseStove Sam := by
+    cases D_on_or_notuse with
+    | inl hOn => exact False.elim (hNotOn hOn)
+    | inr h => exact h
+  -- Case split on whether Sam ate dinner.
+  cases Ate_em with
+  | inl hAte => exact hAte
+  | inr hNoAte =>
+      have hHungry : Hungry Sam := R_noDinner_hungry hNoAte
+      have hPancakes : MakePancakes Sam := R_hungry_pancakes Sam hHungry
+      have hUse : UseStove Sam := R_pancakes_use Sam hPancakes
+      exact False.elim (hNotUse hUse)
+</lean>
+
+ANSWER: Yes

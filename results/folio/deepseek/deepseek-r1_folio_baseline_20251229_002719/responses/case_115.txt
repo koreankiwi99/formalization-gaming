@@ -1,0 +1,85 @@
+The context and axioms lead to a proof that Windy is a great shooter. The key step uses the axiom that if Michael cannot block someone's shooting, then that person must jump when shooting (applying the contrapositive of Michael's blocking ability for non-jumpers).
+
+Lean proof:
+<lean>
+axiom Entity : Type
+axiom Michael : Entity
+axiom Windy : Entity
+axiom Peter : Entity
+
+axiom Man : Entity → Prop
+axiom Taller : Entity → Entity → Prop
+axiom CanBlock : Entity → Entity → Prop
+axiom CanJumpWhenShooting : Entity → Prop
+axiom GreatShooter : Entity → Prop
+
+-- Axioms from context
+axiom taller_block : ∀ x y, Man x → Man y → Taller x y → CanBlock x y
+axiom michael_tallest : Man Michael  -- Class context unused in proof
+axiom trans_taller : ∀ x y z, Taller x y → Taller y z → Taller x z
+axiom peter_taller : Taller Peter Michael
+axiom man_peter : Man Peter
+axiom michael_block_rule : ∀ x, ¬ CanJumpWhenShooting x → CanBlock Michael x
+axiom michael_cannot_block_windy : ¬ CanBlock Michael Windy
+axiom jump_means_great : ∀ x, CanJumpWhenShooting x → GreatShooter x
+
+-- Prove Windy is a great shooter
+theorem windy_great_shooter : GreatShooter Windy := by
+  apply jump_means_great Windy        -- Goal: CanJumpWhenShooting Windy
+  by_contra h                         -- Assume ¬CanJumpWhenShooting Windy
+  have : CanBlock Michael Windy := michael_block_rule Windy h
+  contradiction                       -- Contradiction with michael_cannot_block_windy
+</lean>
+
+ANSWER: True
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The errors occurred due to missing the classical logic tactics in the initial proof. In Lean 4, the `by_contra` tactic requires classical reasoning, which must be explicitly invoked using `Classical.byContradiction`. The corrected proof uses this approach to derive the result by contradiction from the given axioms. The height-related axioms (about Michael, Peter, and transitivity) are included for completeness but are not required for the proof about Windy.
+
+Here is the corrected Lean code:
+
+<lean>
+axiom Entity : Type
+axiom Michael : Entity
+axiom Windy : Entity
+axiom Peter : Entity
+
+-- Predicates
+axiom Man : Entity → Prop
+axiom InClass : Entity → Prop   -- E.g., Michael's class members
+axiom Taller : Entity → Entity → Prop
+axiom CanBlock : Entity → Entity → Prop    -- CanBlock blocker shootee
+axiom CanJumpWhenShooting : Entity → Prop  -- Can shoot while jumping
+axiom GreatShooter : Entity → Prop         -- Is a great shooter
+
+-- Axioms from context:
+-- 1. Blocking rule for taller men
+axiom taller_block : ∀ x y, Man x → Man y → Taller x y → CanBlock x y
+-- 2. Michael's height dominance in his class
+axiom man_michael : Man Michael
+axiom michael_tallest : ∀ x, Man x → InClass x → Taller Michael x
+-- 3. Transitivity of height
+axiom trans_taller : ∀ x y z, Taller x y → Taller y z → Taller x z
+-- 4. Peter's height relative to Michael
+axiom man_peter : Man Peter
+axiom peter_taller : Taller Peter Michael
+-- 5. Michael's blocking capabilities
+axiom michael_block_rule : ∀ x, ¬ CanJumpWhenShooting x → CanBlock Michael x
+-- 6. Michael cannot block Windy
+axiom michael_cannot_block_windy : ¬ CanBlock Michael Windy
+-- 7. Jump shooters are great shooters
+axiom jump_means_great : ∀ x, CanJumpWhenShooting x → GreatShooter x
+
+-- Proof that Windy is a great shooter
+theorem windy_great_shooter : GreatShooter Windy := by
+  apply jump_means_great Windy        -- Reduce to proving Windy jumps when shooting
+  apply Classical.byContradiction     -- Use classical contradiction
+  intro no_jump                       -- Assume Windy doesn't jump
+  have : CanBlock Michael Windy := michael_block_rule Windy no_jump
+  exact michael_cannot_block_windy this  -- Contradiction
+</lean>
+
+ANSWER: True

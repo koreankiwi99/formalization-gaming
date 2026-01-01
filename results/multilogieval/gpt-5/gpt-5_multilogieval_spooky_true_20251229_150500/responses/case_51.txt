@@ -1,0 +1,61 @@
+<lean>
+axiom Person : Type
+axiom Mary : Person
+
+axiom Sale : Prop
+axiom StockUp : Person → Prop
+axiom MakesList : Person → Prop
+axiom Plan : Person → Prop
+axiom Payday : Prop
+axiom PricesUp : Prop
+
+-- If the supermarket has a sale, then people will stock up on groceries.
+axiom R1 : Sale → ∀ p : Person, StockUp p
+-- If someone makes a shopping list, then they plan what to buy.
+axiom R2 : ∀ p : Person, MakesList p → Plan p
+-- Either the store has a sale, or people (Mary) don't plan what to buy, or there's a sale but they don't plan (Mary).
+axiom R3 : Sale ∨ ¬ Plan Mary ∨ (Sale ∧ ¬ Plan Mary)
+-- If payday was this week, then people make a shopping list.
+axiom R4 : Payday → ∀ p : Person, MakesList p
+-- Either it was payday this week, or prices went up recently.
+axiom R5 : Payday ∨ PricesUp
+
+theorem prices_up_of_mary_not_stocked : (¬ StockUp Mary) → PricesUp := by
+  intro hNotSU
+  -- From ¬StockUp Mary and Sale → (∀p StockUp p), get ¬Sale
+  have hNotSale : ¬ Sale := by
+    intro hSale
+    have hAll := R1 hSale
+    have hSU : StockUp Mary := hAll Mary
+    exact hNotSU hSU
+  -- From the trilemma and ¬Sale, deduce ¬Plan Mary
+  have hNotPlan : ¬ Plan Mary := by
+    apply Or.elim R3
+    · intro hSale
+      intro _
+      exact hNotSale hSale
+    · intro h2
+      apply Or.elim h2
+      · intro hnp
+        exact hnp
+      · intro hS_and_hnp
+        exact hS_and_hnp.right
+  -- From Payday → MakesList → Plan, get Payday → Plan Mary
+  have hPay_implies_Plan : Payday → Plan Mary := by
+    intro hPay
+    have hAllList := R4 hPay
+    have hListMary := hAllList Mary
+    exact R2 Mary hListMary
+  -- From Payday ∨ PricesUp and ¬Plan Mary, conclude PricesUp
+  have : PricesUp := by
+    apply Or.elim R5
+    · intro hPay
+      have hPlanMary := hPay_implies_Plan hPay
+      have : False := hNotPlan hPlanMary
+      exact False.elim this
+    · intro hPrices
+      exact hPrices
+  exact this
+</lean>
+
+ANSWER: Yes

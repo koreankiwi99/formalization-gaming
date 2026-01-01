@@ -1,0 +1,165 @@
+The goal is to prove that if James did not celebrate, then the house felt homey and cozy is false. This requires proving the negation: ¬(¬Celebrate James → FeelsCozy), which simplifies to ¬Celebrate James ∧ ¬FeelsCozy. However, the premises do not provide enough information to establish both conditions simultaneously. Specifically:
+
+- If peaches are available, FeelsCozy holds, contradicting ¬FeelsCozy.
+- If someone won a contest, we know ∃ p, WonContest p, but we cannot confirm James didn't win (so ¬Celebrate James is unprovable) and cannot guarantee ¬FeelsCozy (since peaches might also be available).
+
+Thus, the negation cannot be proven from the premises.
+
+<lean>
+axiom Person : Type
+axiom James : Person
+axiom PeachesAvailable : Prop
+axiom SomeoneBakesPie : Prop
+axiom HouseSmellsAmazing : Prop
+axiom FeelsCozy : Prop
+axiom WonContest : Person → Prop
+axiom Celebrate : Person → Prop
+
+axiom P1 : PeachesAvailable → SomeoneBakesPie
+axiom P2 : ∀ p : Person, WonContest p → Celebrate p
+axiom P3 : PeachesAvailable ∨ ∃ p : Person, WonContest p
+axiom P4 : SomeoneBakesPie → HouseSmellsAmazing
+axiom P5 : HouseSmellsAmazing → FeelsCozy
+
+theorem disprove : ¬(¬Celebrate James → FeelsCozy) :=
+  fun h_imp : ¬Celebrate James → FeelsCozy =>
+  have h_neg_goal : ¬Celebrate James ∧ ¬FeelsCozy := by
+    apply And.intro
+    · -- Prove ¬Celebrate James
+      -- No premise forces James to not celebrate; he might have won the contest.
+      cases P3 with
+      | inl _ => 
+        -- Peaches available, but no info about James winning/celebrating
+        admit
+      | inr h_winner =>
+        -- Someone won, but not necessarily James
+        let ⟨winner, h_win⟩ := h_winner
+        -- Even if someone won, James might not be the winner
+        admit
+    · -- Prove ¬FeelsCozy
+      cases P3 with
+      | inl h_peaches =>
+        have h_bake : SomeoneBakesPie := P1 h_peaches
+        have h_smell : HouseSmellsAmazing := P4 h_bake
+        have h_cozy : FeelsCozy := P5 h_smell
+        -- Contradiction: FeelsCozy is true, but we need ¬FeelsCozy
+        contradiction
+      | inr h_winner =>
+        -- Someone won, but peaches might still be available (P3 is inclusive)
+        admit
+  -- The above proof has admitted gaps; negation cannot be proven
+  sorry
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation error occurred because in the branch where `PeachesAvailable` is true, we derived `FeelsCozy` but then attempted to prove `¬FeelsCozy` (which is contradictory). However, this contradiction doesn't help us prove the overall negation since we cannot establish `¬FeelsCozy` universally. The key issue is that the premises don't force `¬FeelsCozy` when `¬Celebrate James` holds, because:
+
+1. If peaches are available, `FeelsCozy` must be true (via P1→P4→P5)
+2. Even if someone won a contest (not James), peaches might still be available (P3 is inclusive OR), leading to `FeelsCozy`
+3. There's no premise linking celebration to coziness or preventing coziness without peaches
+
+Thus, we cannot prove both `¬Celebrate James` and `¬FeelsCozy` simultaneously. The negation of the conditional cannot be proven.
+
+<lean>
+axiom Person : Type
+axiom James : Person
+axiom PeachesAvailable : Prop
+axiom SomeoneBakesPie : Prop
+axiom HouseSmellsAmazing : Prop
+axiom FeelsCozy : Prop
+axiom WonContest : Person → Prop
+axiom Celebrate : Person → Prop
+
+axiom P1 : PeachesAvailable → SomeoneBakesPie
+axiom P2 : ∀ p : Person, WonContest p → Celebrate p
+axiom P3 : PeachesAvailable ∨ ∃ p : Person, WonContest p
+axiom P4 : SomeoneBakesPie → HouseSmellsAmazing
+axiom P5 : HouseSmellsAmazing → FeelsCozy
+
+theorem disprove : ¬(¬Celebrate James → FeelsCozy) := 
+  fun h_imp : ¬Celebrate James → FeelsCozy => 
+  have h_neg_goal : ¬Celebrate James ∧ ¬FeelsCozy := by
+    apply And.intro
+    · -- Attempt to prove ¬Celebrate James
+      cases P3 with
+      | inl _ => 
+        -- Peaches available, but no info about James' celebration
+        admit  -- Cannot force James not to celebrate
+      | inr h_winner =>
+        let ⟨winner, h_win⟩ := h_winner
+        -- Winner exists, but might not be James
+        admit  -- Cannot prove James didn't win/celebrate
+    · -- Attempt to prove ¬FeelsCozy
+      cases P3 with
+      | inl h_peaches =>
+        have h_bake : SomeoneBakesPie := P1 h_peaches
+        have h_smell : HouseSmellsAmazing := P4 h_bake
+        have h_cozy : FeelsCozy := P5 h_smell
+        -- Contradiction: need ¬FeelsCozy but have FeelsCozy
+        exact h_cozy  -- Type mismatch: FeelsCozy vs ¬FeelsCozy
+      | inr _ =>
+        -- Someone won, but peaches might be available
+        admit  -- Cannot guarantee ¬FeelsCozy
+  False.elim (h_neg_goal.right (h_imp h_neg_goal.left))
+  -- Final contradiction attempt fails due to unprovable h_neg_goal
+  sorry
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The goal is to prove that the implication "If James did not celebrate, then the house felt homey and cozy" is false, which requires proving both that James did not celebrate and that the house did not feel cozy. However, the premises do not provide sufficient information to establish both conditions simultaneously:
+
+1. **Peaches are available**: This forces `FeelsCozy` to be true (via axioms P1→P4→P5), contradicting the requirement of `¬FeelsCozy`.
+
+2. **No peaches but contest winner exists**:
+   - We cannot prove James did not celebrate as he might have won (but axioms don't specify the winner).
+   - We cannot prove `¬FeelsCozy` as there might be other causes of amazing smells besides pie baking (axioms only provide sufficient conditions, not necessary conditions).
+
+Thus, the conclusion "if James did not celebrate, then the house felt cozy" cannot be disproven from the premises.
+
+<lean>
+axiom Person : Type
+axiom James : Person
+axiom PeachesAvailable : Prop
+axiom SomeoneBakesPie : Prop
+axiom HouseSmellsAmazing : Prop
+axiom FeelsCozy : Prop
+axiom WonContest : Person → Prop
+axiom Celebrate : Person → Prop
+
+axiom P1 : PeachesAvailable → SomeoneBakesPie
+axiom P2 : ∀ p : Person, WonContest p → Celebrate p
+axiom P3 : PeachesAvailable ∨ ∃ p : Person, WonContest p
+axiom P4 : SomeoneBakesPie → HouseSmellsAmazing
+axiom P5 : HouseSmellsAmazing → FeelsCozy
+
+theorem disprove : ¬(¬Celebrate James → FeelsCozy) := by
+  intro h_imp
+  have : ¬Celebrate James ∧ ¬FeelsCozy := by
+    constructor
+    · cases P3
+      case inl _ =>  -- Peaches available - no info about James
+        admit  
+      case inr h_winner =>  -- Winner exists
+        let ⟨winner, _⟩ := h_winner
+        -- Cannot prove James isn't winner or didn't celebrate
+        admit  
+    · cases P3
+      case inl h_peaches =>  -- Forces FeelsCozy true
+        exact P5 (P4 (P1 h_peaches))  -- ¬FeelsCozy impossible
+      case inr _ => 
+        -- Could be no peaches but no way to prove house isn't cozy
+        admit  
+  exact this.2 (h_imp this.1)
+</lean>
+
+ANSWER: Failure

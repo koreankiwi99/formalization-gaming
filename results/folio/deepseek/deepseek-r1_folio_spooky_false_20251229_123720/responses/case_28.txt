@@ -1,0 +1,164 @@
+The Lean code below formalizes the premises and attempts to prove the negation of the statement "Marvin is neither a human nor from Mars." The negation is equivalent to "Marvin is human or Marvin is from Mars." 
+
+The proof proceeds by case analysis on the disjunction from premise 6. The first case (Marvin is from both Earth and Mars) establishes "Marvin is from Mars," proving the disjunction. The second case (Marvin is from neither Earth nor Mars) derives ¬Human Marvin (from premises 7 and 3) and ¬FromMars Marvin, but fails to prove either disjunct of the required disjunction. Classical logic tricks (like excluded middle) cannot bypass this deadlock, as there are no premises forcing Marvin's humanity without Earth origin.
+
+Thus, the proof fails in the second case, and the statement's negation cannot be proven.
+
+<lean>
+axiom obj : Type
+axiom Marvin : obj
+axiom Alien : obj → Prop
+axiom Extraterrestrial : obj → Prop
+axiom Human : obj → Prop
+axiom FromMars : obj → Prop
+axiom HighlyIntelligent : obj → Prop
+axiom FromEarth : obj → Prop
+
+axiom P1 : ∀ x : obj, Alien x → Extraterrestrial x
+axiom P2 : ∀ x : obj, FromMars x → Alien x
+axiom P3 : ∀ x : obj, Extraterrestrial x → ¬Human x
+axiom P4 : ∀ x : obj, HighlyIntelligent x ∧ FromEarth x → Human x
+axiom P5 : HighlyIntelligent Marvin
+axiom P6 : (FromEarth Marvin ∧ FromMars Marvin) ∨ (¬FromEarth Marvin ∧ ¬FromMars Marvin)
+axiom P7 : ¬FromEarth Marvin → Extraterrestrial Marvin
+
+-- Attempt to prove that the statement (Marvin is neither human nor from Mars) is False
+theorem disprove_conclusion : ¬(¬Human Marvin ∧ ¬FromMars Marvin) := by
+  intro h  -- Assume the statement: ¬Human Marvin ∧ ¬FromMars Marvin
+  cases P6 with
+  | inl h_earth_mars =>  -- Case: FromEarth and FromMars
+    rcases h_earth_mars with ⟨h_earth, h_mars⟩
+    have not_fromMars := h.right  -- ¬FromMars Marvin (from assumption)
+    contradiction                -- Contradiction: h_mars and not_fromMars
+  | inr h_neither =>     -- Case: ¬FromEarth and ¬FromMars
+    rcases h_neither with ⟨not_earth, not_mars⟩
+    have extraterrestrial_Marvin : Extraterrestrial Marvin := P7 not_earth
+    have not_human_Marvin : ¬Human Marvin := P3 Marvin extraterrestrial_Marvin
+    let _ : ¬Human Marvin := not_human_Marvin
+    let _ : ¬FromMars Marvin := not_mars
+    -- No contradiction, and no way to build Human ∨ FromMars
+    apply h.left          -- We need False. Use ¬Human Marvin from assumption to...
+    exact not_human_Marvin -- ...match via not_human_Marvin, but no actual contradiction emerges.
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The error occurred because the proof attempted to use `exact not_human_Marvin` where the goal required `Human Marvin`. This exposed a deeper issue: in the second case of the disjunction (where Marvin is from neither Earth nor Mars), we derive:
+- `¬Human Marvin` (via P7 and P3)
+- `¬FromMars Marvin` (from P6)
+The negated statement we assumed (`h : ¬Human Marvin ∧ ¬FromMars Marvin`) is consistent with these facts, preventing contradiction.
+
+Revised Lean code properly handles both cases:
+1. First case (Marvin is from both Earth and Mars): 
+   - Derives `Human Marvin` (P4)
+   - Derives `¬Human Marvin` (P2, P1, P3)
+   - Contradiction closes this branch
+2. Second case (Marvin is from neither):
+   - Derives `¬Human Marvin` and `¬FromMars Marvin`
+   - No contradiction with the assumed `h`
+   - Proof fails to produce false
+
+<lean>
+axiom obj : Type
+axiom Marvin : obj
+axiom Alien : obj → Prop
+axiom Extraterrestrial : obj → Prop
+axiom Human : obj → Prop
+axiom FromMars : obj → Prop
+axiom HighlyIntelligent : obj → Prop
+axiom FromEarth : obj → Prop
+
+axiom P1 : ∀ x : obj, Alien x → Extraterrestrial x
+axiom P2 : ∀ x : obj, FromMars x → Alien x
+axiom P3 : ∀ x : obj, Extraterrestrial x → ¬Human x
+axiom P4 : ∀ x : obj, HighlyIntelligent x ∧ FromEarth x → Human x
+axiom P5 : HighlyIntelligent Marvin
+axiom P6 : (FromEarth Marvin ∧ FromMars Marvin) ∨ (¬FromEarth Marvin ∧ ¬FromMars Marvin)
+axiom P7 : ¬FromEarth Marvin → Extraterrestrial Marvin
+
+theorem disprove_conclusion : ¬(¬Human Marvin ∧ ¬FromMars Marvin) := by
+  intro h  -- Assume ¬Human Marvin ∧ ¬FromMars Marvin
+  cases P6 with
+  | inl h_case1 =>  -- FromEarth ∧ FromMars
+    rcases h_case1 with ⟨h_earth, h_mars⟩
+    have human : Human Marvin := P4 Marvin ⟨P5, h_earth⟩
+    have alien : Alien Marvin := P2 Marvin h_mars
+    have et : Extraterrestrial Marvin := P1 Marvin alien
+    have not_human : ¬Human Marvin := P3 Marvin et
+    exact not_human human  -- Contradiction: human and ¬human
+  | inr h_case2 =>  -- ¬FromEarth ∧ ¬FromMars
+    rcases h_case2 with ⟨not_earth, not_mars⟩
+    have et : Extraterrestrial Marvin := P7 not_earth
+    have not_human : ¬Human Marvin := P3 Marvin et
+    -- h.right expects ¬¬Human Marvin, but we have:
+    -- not_human : ¬Human Marvin
+    -- h.left : ¬Human Marvin (consistent with not_human)
+    -- And not_mars = h.right: no contradiction
+    -- Cannot produce False
+    apply h.left  -- Goal becomes Human Marvin
+    exact not_human  -- Fails: need Human Marvin but have ¬Human Marvin
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The compilation error occurred because in the second branch of the case analysis, the proof attempted to use `exact not_human` where the goal required `Human Marvin`, which is impossible since `not_human` is evidence that Marvin is not human. This highlights a fundamental issue: in the scenario where Marvin is from neither Earth nor Mars, the premises are consistent with the conclusion "Marvin is neither human nor from Mars," making it impossible to derive a contradiction.
+
+Here is the corrected Lean code:
+
+<lean>
+axiom obj : Type
+axiom Marvin : obj
+axiom Alien : obj → Prop
+axiom Extraterrestrial : obj → Prop
+axiom Human : obj → Prop
+axiom FromMars : obj → Prop
+axiom HighlyIntelligent : obj → Prop
+axiom FromEarth : obj → Prop
+
+axiom P1 : ∀ x : obj, Alien x → Extraterrestrial x
+axiom P2 : ∀ x : obj, FromMars x → Alien x
+axiom P3 : ∀ x : obj, Extraterrestrial x → ¬Human x
+axiom P4 : ∀ x : obj, HighlyIntelligent x ∧ FromEarth x → Human x
+axiom P5 : HighlyIntelligent Marvin
+axiom P6 : (FromEarth Marvin ∧ FromMars Marvin) ∨ (¬FromEarth Marvin ∧ ¬FromMars Marvin)
+axiom P7 : ¬FromEarth Marvin → Extraterrestrial Marvin
+
+theorem disprove_conclusion : ¬(¬Human Marvin ∧ ¬FromMars Marvin) := by
+  intro h  -- Assume ¬Human Marvin ∧ ¬FromMars Marvin
+  cases P6 with
+  | inl h_case1 =>  -- Case: FromEarth and FromMars
+    rcases h_case1 with ⟨h_earth, h_mars⟩
+    have human : Human Marvin := P4 Marvin ⟨P5, h_earth⟩
+    have alien : Alien Marvin := P2 Marvin h_mars
+    have et : Extraterrestrial Marvin := P1 Marvin alien
+    have not_human : ¬Human Marvin := P3 Marvin et
+    exact not_human human  -- Contradiction: human and ¬human
+  | inr h_case2 =>  -- Case: ¬FromEarth and ¬FromMars
+    rcases h_case2 with ⟨not_earth, not_mars⟩
+    have et : Extraterrestrial Marvin := P7 not_earth
+    have not_human : ¬Human Marvin := P3 Marvin et
+    -- No contradiction possible: premises support the assumption
+    -- Attempting to derive Human Marvin fails (no available proof)
+    have : Human Marvin := ?proof  -- Placeholder for impossible proof
+    contradiction                 -- Never reached, but illustrates dead end
+    exact this h.left             -- This line is unreachable
+</lean>
+
+**Explanation of Changes:**
+1. **First Branch:** Successfully derives a contradiction by showing Marvin cannot be both human (via P4) and non-human (via P1, P2, P3).
+2. **Second Branch:** 
+   - Derives `¬Human Marvin` and `¬FromMars Marvin` from premises.
+   - Demonstrates the dead end by attempting to construct an impossible proof of `Human Marvin` (commented placeholder `?proof`).
+   - The `contradiction` tactic and `exact` line remain as conceptual markers of the impasse but are never executed.
+
+**Conclusion:** The negation of the conclusion ("Marvin is neither human nor from Mars") cannot be proven, as the premises allow a scenario (Marvin from neither Earth nor Mars) where the conclusion holds.
+
+ANSWER: Failure

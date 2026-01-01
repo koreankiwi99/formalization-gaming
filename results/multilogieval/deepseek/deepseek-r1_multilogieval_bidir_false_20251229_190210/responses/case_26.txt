@@ -1,0 +1,112 @@
+<lean>
+axiom Team : Type
+axiom Game : Type
+axiom Important : Game → Prop
+axiom BigMatch : Game → Prop
+axiom Loses : Team → Game → Prop
+axiom Disappointed : Team → Prop
+axiom Demoralized : Team → Prop
+
+-- Context axioms
+axiom Ax1 : ∀ (t : Team) (g : Game), Important g → Loses t g → Disappointed t
+axiom Ax2 : ∀ (t : Team) (g : Game), BigMatch g → Loses t g → Demoralized t
+
+-- Define significant game as either important or big match
+def Significant (g : Game) : Prop := Important g ∨ BigMatch g
+
+-- Given specific team T with no disappointment or demoralization
+variable (T : Team)
+axiom Given : ¬ Disappointed T ∧ ¬ Demoralized T
+
+-- Prove team T did not lose any significant game
+theorem no_significant_loss : ¬ ∃ g, Significant g ∧ Loses T g := by
+  intro ⟨g, hSig, hLoss⟩
+  unfold Significant at hSig
+  cases hSig with
+  | inl imp => 
+    have : Disappointed T := Ax1 T g imp hLoss
+    exact Given.left this
+  | inr bm => 
+    have : Demoralized T := Ax2 T g bm hLoss
+    exact Given.right this
+
+-- Therefore, we've proven the negation of "the team lost a significant game"
+</lean>
+
+ANSWER: No
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors occurred because `Given.left` and `Given.right` were used incorrectly. In Lean, projections for structures (like `And`) require the structure to be defined explicitly. The corrected approach uses pattern matching to decompose the conjunction `Given` into its components `hd` (¬Disappointed T) and `hm` (¬Demoralized T), then uses these directly in the proof.
+
+Here's the corrected Lean code:
+
+<lean>
+axiom Team : Type
+axiom Game : Type
+axiom Important : Game → Prop
+axiom BigMatch : Game → Prop
+axiom Loses : Team → Game → Prop
+axiom Disappointed : Team → Prop
+axiom Demoralized : Team → Prop
+
+axiom Ax1 : ∀ (t : Team) (g : Game), Important g → Loses t g → Disappointed t
+axiom Ax2 : ∀ (t : Team) (g : Game), BigMatch g → Loses t g → Demoralized t
+
+def Significant (g : Game) : Prop := Important g ∨ BigMatch g
+
+variable (T : Team)
+axiom Given : ¬ Disappointed T ∧ ¬ Demoralized T
+
+theorem no_significant_loss : ¬ ∃ g, Significant g ∧ Loses T g := by
+  intro ⟨g, hSig, hLoss⟩
+  unfold Significant at hSig
+  cases Given with | intro hd hm =>  -- Decompose Given into hd and hm
+  cases hSig with
+  | inl imp => 
+    have : Disappointed T := Ax1 T g imp hLoss
+    exact hd this
+  | inr bm => 
+    have : Demoralized T := Ax2 T g bm hLoss
+    exact hm this
+</lean>
+
+ANSWER: No
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The compilation errors occurred because the `Given` axiom was incorrectly treated as a universal quantifier over teams. In Lean, declaring an axiom with a variable (`T : Team`) makes it universally quantified. Instead, we need to fix a specific team and state the condition for that team. The corrected approach moves the condition into the theorem as a hypothesis.
+
+Here's the corrected Lean code:
+
+<lean>
+axiom Team : Type
+axiom Game : Type
+axiom Important : Game → Prop
+axiom BigMatch : Game → Prop
+axiom Loses : Team → Game → Prop
+axiom Disappointed : Team → Prop
+axiom Demoralized : Team → Prop
+
+axiom Ax1 : ∀ (t : Team) (g : Game), Important g → Loses t g → Disappointed t
+axiom Ax2 : ∀ (t : Team) (g : Game), BigMatch g → Loses t g → Demoralized t
+
+def Significant (g : Game) : Prop := Important g ∨ BigMatch g
+
+theorem no_significant_loss (T : Team) (hGiven : ¬ Disappointed T ∧ ¬ Demoralized T) : 
+    ¬ ∃ g, Significant g ∧ Loses T g := by
+  intro ⟨g, hSig, hLoss⟩
+  cases hSig with
+  | inl imp => 
+    have : Disappointed T := Ax1 T g imp hLoss
+    exact hGiven.left this
+  | inr bm => 
+    have : Demoralized T := Ax2 T g bm hLoss
+    exact hGiven.right this
+</lean>
+
+ANSWER: No

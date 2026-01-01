@@ -1,0 +1,107 @@
+The reasoning involves proving that Juan de Onate visited a mountain range in New Mexico, given the premises. The key points are:
+
+1. The Picuris Mountains are located in either New Mexico or Texas.
+2. There is a donated mine (Harding Pegmatite Mine) located in the Picuris Mountains.
+3. No mountain range in Texas contains a donated mine.
+4. Since the Picuris Mountains have a donated mine, they cannot be in Texas (contradicting premise 3 if they were).
+5. Therefore, the Picuris Mountains must be in New Mexico.
+6. Juan de Onate visited the Picuris Mountains, so he visited a mountain range in New Mexico.
+
+The Lean 4 proof formalizes this reasoning:
+
+<lean>
+axiom obj : Type
+
+axiom PicurisMountains : obj
+axiom Juan_de_Onate : obj
+axiom HardingPegmatiteMine : obj
+axiom NewMexico : obj
+axiom Texas : obj
+
+axiom MountainRange : obj → Prop
+axiom Mine : obj → Prop
+axiom LocatedIn : obj → obj → Prop
+axiom Donated : obj → Prop
+axiom Visited : obj → obj → Prop
+
+axiom location : LocatedIn PicurisMountains NewMexico ∨ LocatedIn PicurisMountains Texas
+axiom visited : Visited Juan_de_Onate PicurisMountains
+axiom mine : Mine HardingPegmatiteMine
+axiom mine_location : LocatedIn HardingPegmatiteMine PicurisMountains
+axiom donated : Donated HardingPegmatiteMine
+axiom mountain : MountainRange PicurisMountains
+axiom no_texas_donated_mine : ¬∃ r, MountainRange r ∧ LocatedIn r Texas ∧ ∃ m, Mine m ∧ LocatedIn m r ∧ Donated m
+
+theorem juan_visited_new_mexico : ∃ r, MountainRange r ∧ LocatedIn r NewMexico ∧ Visited Juan_de_Onate r := by
+  -- Show PicurisMountains must be in New Mexico by contradiction
+  have not_in_texas : ¬LocatedIn PicurisMountains Texas := by
+    intro h_texas
+    -- Construct a witness for the contradiction with no_texas_donated_mine
+    have witness : ∃ r, MountainRange r ∧ LocatedIn r Texas ∧ ∃ m, Mine m ∧ LocatedIn m r ∧ Donated m := by
+      apply Exists.intro PicurisMountains
+      exact ⟨mountain, h_texas, Exists.intro HardingPegmatiteMine ⟨mine, ⟨mine_location, donated⟩⟩⟩
+    contradiction
+  -- Use disjunctive syllogem on location
+  have in_new_mexico : LocatedIn PicurisMountains NewMexico := by
+    cases location with
+    | inl h => exact h
+    | inr h => contradiction  -- Contradiction with not_in_texas
+  -- Directly use PicurisMountains as the witness
+  apply Exists.intro PicurisMountains
+  exact ⟨mountain, in_new_mexico, visited⟩
+</lean>
+
+ANSWER: True
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation error occurred because the `contradiction` tactic couldn't automatically resolve the contradiction between the constructed witness and the premise `no_texas_donated_mine`. The fix involves explicitly applying `no_texas_donated_mine` to the witness in the first contradiction step. The disjunctive syllogism step remains valid since `contradiction` can resolve the direct conflict between `LocatedIn PicurisMountains Texas` and its negation.
+
+Here is the corrected Lean 4 code:
+
+<lean>
+axiom obj : Type
+
+axiom PicurisMountains : obj
+axiom Juan_de_Onate : obj
+axiom HardingPegmatiteMine : obj
+axiom NewMexico : obj
+axiom Texas : obj
+
+axiom MountainRange : obj → Prop
+axiom Mine : obj → Prop
+axiom LocatedIn : obj → obj → Prop
+axiom Donated : obj → Prop
+axiom Visited : obj → obj → Prop
+
+axiom location : LocatedIn PicurisMountains NewMexico ∨ LocatedIn PicurisMountains Texas
+axiom visited : Visited Juan_de_Onate PicurisMountains
+axiom mine : Mine HardingPegmatiteMine
+axiom mine_location : LocatedIn HardingPegmatiteMine PicurisMountains
+axiom donated : Donated HardingPegmatiteMine
+axiom mountain : MountainRange PicurisMountains
+axiom no_texas_donated_mine : ¬∃ r, MountainRange r ∧ LocatedIn r Texas ∧ ∃ m, Mine m ∧ LocatedIn m r ∧ Donated m
+
+theorem juan_visited_new_mexico : ∃ r, MountainRange r ∧ LocatedIn r NewMexico ∧ Visited Juan_de_Onate r := by
+  -- Prove PicurisMountains cannot be in Texas
+  have not_in_texas : ¬LocatedIn PicurisMountains Texas := by
+    intro h_texas
+    -- Construct explicit witness for contradiction
+    let witness : ∃ r, MountainRange r ∧ LocatedIn r Texas ∧ ∃ m, Mine m ∧ LocatedIn m r ∧ Donated m :=
+      ⟨PicurisMountains, mountain, h_texas, HardingPegmatiteMine, mine, mine_location, donated⟩
+    exact no_texas_donated_mine witness
+  
+  -- Resolve location disjunction
+  have in_new_mexico : LocatedIn PicurisMountains NewMexico := by
+    cases location with
+    | inl h => exact h
+    | inr h => contradiction  -- h and not_in_texas directly contradict
+  
+  -- Provide PicurisMountains as witness
+  apply Exists.intro PicurisMountains
+  exact ⟨mountain, in_new_mexico, visited⟩
+</lean>
+
+ANSWER: True

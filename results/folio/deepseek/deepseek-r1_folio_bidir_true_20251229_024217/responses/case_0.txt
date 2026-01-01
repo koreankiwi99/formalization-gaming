@@ -1,0 +1,109 @@
+The Lean code models the context provided. The key axioms are:
+
+1. Performers are engaged: `∀ p, PerformsOften p → AttendsEngaged p`
+2. Members are either active performers or inactive: `∀ p, PerformsOften p ∨ InactiveDisinterested p`
+3. Chaperones are not students: `∀ p, Chaperones p → ¬ IsStudent p`
+4. Inactive members chaperone: `∀ p, InactiveDisinterested p → Chaperones p`
+5. Young motivated members are students: `∀ p, (YoungChildOrTeen p ∧ WishFurtherAcademic p) → IsStudent p`
+6. Bonnie's engagement determines student status: `AttendsEngaged Bonnie → IsStudent Bonnie`
+
+Bonnie's status must be consistent with the disjunction. The conclusion evaluates whether Bonnie performs often (`PerformsOften Bonnie`). The proof attempt shows that:
+- If Bonnie performs, she must be engaged and a student (from (1) and (6)).
+- If Bonnie is inactive, she becomes a chaperone (5) and thus non-student (3), satisfying (6) by being disengaged.
+Both cases satisfy the premises without contradiction, so we cannot prove `PerformsOften Bonnie`.
+
+<lean>
+def Person : Type
+
+axiom Bonnie : Person
+
+axiom PerformsOften : Person → Prop
+axiom AttendsEngaged : Person → Prop
+axiom InactiveDisinterested : Person → Prop
+axiom Chaperones : Person → Prop
+axiom IsStudent : Person → Prop
+axiom YoungChildOrTeen : Person → Prop
+axiom WishFurtherAcademic : Person → Prop
+
+axiom A1 : ∀ p : Person, PerformsOften p → AttendsEngaged p
+axiom A2 : ∀ p : Person, PerformsOften p ∨ InactiveDisinterested p
+axiom A3 : ∀ p : Person, Chaperones p → ¬ IsStudent p
+axiom A4 : ∀ p : Person, InactiveDisinterested p → Chaperones p
+axiom A5 : ∀ p : Person, YoungChildOrTeen p → WishFurtherAcademic p → IsStudent p
+axiom Bonnie_Case : AttendsEngaged Bonnie → IsStudent Bonnie
+
+theorem bonnie_performs : PerformsOften Bonnie := by
+  -- By A2, Bonnie either performs often or is inactive
+  have h_cases := A2 Bonnie
+  cases h_cases with
+  | inl performs => 
+    -- Case: Bonnie performs often
+    exact performs
+  | inr inactive => 
+    -- Case: Bonnie is inactive and disinterested
+    -- By A4, she chaperones
+    have h_chaperones := A4 Bonnie inactive
+    -- By A3, she is not a student
+    have h_not_student := A3 Bonnie h_chaperones
+    -- Bonnie's condition: AttendsEngaged Bonnie → IsStudent Bonnie
+    -- She is not a student, so she cannot be engaged
+    -- This case is consistent (she is both inactive and disengaged)
+    -- No contradiction, and no proof of PerformsOften
+    -- We cannot prove she performs
+    admit
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+After analyzing the context and the statement about Bonnie, I've formalized the reasoning in Lean 4. The key points are:
+
+1. Bonnie must be either active (performs often) or inactive per A2
+2. If she's active, we have direct proof of performance
+3. If inactive:
+   - She becomes a chaperone (A4)
+   - Thus she's not a student (A3)
+   - Bonnie_Case implies she can't be engaged
+   - But no contradiction occurs with inactivity
+4. A5 about young children is not applicable to Bonnie without additional assumptions
+5. We cannot prove she performs
+
+<lean>
+axiom Person : Type
+axiom Bonnie : Person
+
+axiom PerformsOften : Person → Prop
+axiom AttendsEngaged : Person → Prop
+axiom InactiveDisinterested : Person → Prop
+axiom Chaperones : Person → Prop
+axiom IsStudent : Person → Prop
+axiom YoungChildOrTeen : Person → Prop
+axiom WishFurtherAcademic : Person → Prop
+
+axiom A1 : ∀ p : Person, PerformsOften p → AttendsEngaged p
+axiom A2 : ∀ p : Person, PerformsOften p ∨ InactiveDisinterested p
+axiom A3 : ∀ p : Person, Chaperones p → ¬ IsStudent p
+axiom A4 : ∀ p : Person, InactiveDisinterested p → Chaperones p
+axiom A5 : ∀ p : Person, YoungChildOrTeen p → WishFurtherAcademic p → IsStudent p
+axiom Bonnie_Case : AttendsEngaged Bonnie → IsStudent Bonnie
+
+theorem bonnie_performs : PerformsOften Bonnie := by 
+  have cases := A2 Bonnie
+  cases cases with
+  | inl h => exact h
+  | inr inactive =>
+      have chaperones : Chaperones Bonnie := A4 Bonnie inactive
+      have not_student : ¬ IsStudent Bonnie := A3 Bonnie chaperones
+      -- Bonnie_Case would require engagement to imply student status
+      -- but she's not student, so she can't be engaged
+      -- This branch is consistent with premises
+      -- Cannot get performance from inactive branch
+      sorry
+</lean>
+
+The `sorry` indicates the proof cannot be completed. Bonnie might be inactive, preventing us from concluding she performs.
+
+ANSWER: Failure

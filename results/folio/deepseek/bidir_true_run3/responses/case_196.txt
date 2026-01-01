@@ -1,0 +1,191 @@
+The given premises do not allow us to prove that KiKi is a barking dog. Here's the reasoning:
+
+1. From the premises, we deduce that KiKi must jump or have legs (due to the conditional about KiKi and the properties of terricolous animals leading to a contradiction if neither holds).
+2. If KiKi has legs, it jumps (premise 4). Thus, KiKi jumps in all cases.
+3. Since KiKi jumps, Jane likes KiKi (premise 3).
+4. If KiKi were a barking animal, Jane would not like KiKi (premise 1). This contradicts the fact that Jane likes KiKi.
+5. Therefore, KiKi does not bark.
+6. If KiKi were a dog, it would bark (premise 2), but KiKi does not bark, so KiKi cannot be a dog.
+7. Thus, KiKi is neither a dog nor barks, making "KiKi is a barking dog" false.
+
+Since the statement is false under the premises, it cannot be proven.
+
+<lean>
+axiom Animal : Type
+axiom KiKi : Animal
+axiom Likes : Animal → Prop
+axiom Bark : Animal → Prop
+axiom Dog : Animal → Prop
+axiom Jump : Animal → Prop
+axiom HasLegs : Animal → Prop
+axiom Terricolous : Animal → Prop
+
+axiom Premise1 : ∀ x : Animal, Bark x → ¬ Likes x
+axiom Premise2 : ∀ x : Animal, Dog x → Bark x
+axiom Premise3 : ∀ x : Animal, Jump x → Likes x
+axiom Premise4 : ∀ x : Animal, HasLegs x → Jump x
+axiom Premise5 : ∀ x : Animal, Terricolous x → HasLegs x
+axiom Premise7 : (¬ Jump KiKi ∧ ¬ HasLegs KiKi) → Terricolous KiKi ∨ HasLegs KiKi
+
+-- Prove that KiKi jumps (using Premise7 and Premise5)
+theorem KiKi_jumps : Jump KiKi := by
+  -- Show that ¬(¬Jump KiKi ∧ ¬HasLegs KiKi) by contradiction
+  have not_both_neg : ¬(¬Jump KiKi ∧ ¬HasLegs KiKi) := by
+    intro h
+    have h1 := Premise7 h
+    cases h1 with
+    | inl terr =>
+      have has_legs := Premise5 KiKi terr
+      exact h.2 has_legs
+    | inr legs => exact h.2 legs
+  -- De Morgan: ¬(¬Jump ∧ ¬HasLegs) ↔ Jump ∨ HasLegs
+  rw [not_and_or, not_not, not_not] at not_both_neg
+  cases not_both_neg with
+  | inl jmp => exact jmp
+  | inr legs => exact Premise4 KiKi legs
+
+-- KiKi jumps, so Jane likes KiKi
+theorem Jane_likes_KiKi : Likes KiKi := Premise3 KiKi KiKi_jumps
+
+-- If KiKi were a dog, it would bark (Premise2), leading to ¬Likes KiKi (Premise1), contradiction
+theorem not_dog_KiKi : ¬ Dog KiKi := by
+  intro h_dog
+  have barks := Premise2 KiKi h_dog
+  exact Premise1 KiKi barks Jane_likes_KiKi
+
+-- If KiKi were a barking dog, it would be a dog (contradiction)
+theorem not_barking_dog : ¬ (Dog KiKi ∧ Bark KiKi) := by
+  intro ⟨h_dog, _⟩
+  exact not_dog_KiKi h_dog
+
+-- Cannot prove "KiKi is a barking dog" (Dog KiKi ∧ Bark KiKi) from premises
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation error occurred because `not_and_or` is not a built-in Lean 4 tactic. I restructured the proof for `KiKi_jumps` using direct case analysis and contradiction instead of relying on De Morgan's law. Here's the corrected Lean code:
+
+<lean>
+axiom Animal : Type
+axiom KiKi : Animal
+axiom Likes : Animal → Prop
+axiom Bark : Animal → Prop
+axiom Dog : Animal → Prop
+axiom Jump : Animal → Prop
+axiom HasLegs : Animal → Prop
+axiom Terricolous : Animal → Prop
+
+axiom Premise1 : ∀ x : Animal, Bark x → ¬ Likes x
+axiom Premise2 : ∀ x : Animal, Dog x → Bark x
+axiom Premise3 : ∀ x : Animal, Jump x → Likes x
+axiom Premise4 : ∀ x : Animal, HasLegs x → Jump x
+axiom Premise5 : ∀ x : Animal, Terricolous x → HasLegs x
+axiom Premise7 : (¬ Jump KiKi ∧ ¬ HasLegs KiKi) → Terricolous KiKi ∨ HasLegs KiKi
+
+-- Prove that KiKi jumps
+theorem KiKi_jumps : Jump KiKi := by
+  by_contra h_not_jump  -- Assume ¬Jump KiKi
+  have h_legs : HasLegs KiKi := by
+    by_contra h_no_legs  -- Assume ¬HasLegs KiKi
+    have h_conj : ¬Jump KiKi ∧ ¬HasLegs KiKi := ⟨h_not_jump, h_no_legs⟩
+    have h_case := Premise7 h_conj
+    cases h_case with
+    | inl terr => 
+      have legs := Premise5 KiKi terr
+      contradiction
+    | inr legs => contradiction
+  exact h_not_jump (Premise4 KiKi h_legs)
+
+-- KiKi jumps, so Jane likes KiKi
+theorem Jane_likes_KiKi : Likes KiKi := Premise3 KiKi KiKi_jumps
+
+-- KiKi cannot be a dog (leads to contradiction)
+theorem not_dog_KiKi : ¬ Dog KiKi := by
+  intro h_dog
+  have barks := Premise2 KiKi h_dog
+  exact Premise1 KiKi barks Jane_likes_KiKi
+
+-- Cannot prove "KiKi is a barking dog" (Dog KiKi ∧ Bark KiKi)
+</lean>
+
+ANSWER: Failure
+
+**Explanation:**  
+The premises allow us to prove:
+1. KiKi jumps (via contradiction using Premise7 and Premise5)
+2. Jane likes KiKi (since KiKi jumps)
+3. KiKi cannot be a dog (if KiKi were a dog, it would bark and Jane wouldn't like it, contradicting 2)
+
+However, we cannot prove "KiKi is a barking dog" (Dog KiKi ∧ Bark KiKi) because:
+- We've proven ¬Dog KiKi
+- There are no premises suggesting KiKi is a dog or barks
+- The conclusion is actually false under the given premises
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The compilation error occurred because the `by_contra` tactic requires classical logic, which isn't automatically available in Lean 4. Here's the corrected code using explicit classical reasoning:
+
+<lean>
+axiom Animal : Type
+axiom KiKi : Animal
+axiom Likes : Animal → Prop
+axiom Bark : Animal → Prop
+axiom Dog : Animal → Prop
+axiom Jump : Animal → Prop
+axiom HasLegs : Animal → Prop
+axiom Terricolous : Animal → Prop
+
+axiom Premise1 : ∀ x : Animal, Bark x → ¬ Likes x
+axiom Premise2 : ∀ x : Animal, Dog x → Bark x
+axiom Premise3 : ∀ x : Animal, Jump x → Likes x
+axiom Premise4 : ∀ x : Animal, HasLegs x → Jump x
+axiom Premise5 : ∀ x : Animal, Terricolous x → HasLegs x
+axiom Premise7 : (¬ Jump KiKi ∧ ¬ HasLegs KiKi) → Terricolous KiKi ∨ HasLegs KiKi
+
+-- Prove KiKi jumps using classical contradiction
+theorem KiKi_jumps : Jump KiKi := by
+  apply Classical.byContradiction
+  intro h_not_jump
+  have h_legs : HasLegs KiKi := by
+    apply Classical.byContradiction
+    intro h_no_legs
+    have h_conj : ¬Jump KiKi ∧ ¬HasLegs KiKi := ⟨h_not_jump, h_no_legs⟩
+    have h_case := Premise7 h_conj
+    cases h_case with
+    | inl terr => 
+      have legs := Premise5 KiKi terr
+      contradiction
+    | inr legs => contradiction
+  exact h_not_jump (Premise4 KiKi h_legs)
+
+-- KiKi jumps, so Jane likes KiKi
+theorem Jane_likes_KiKi : Likes KiKi := Premise3 KiKi KiKi_jumps
+
+-- KiKi cannot be a dog (leads to contradiction)
+theorem not_dog_KiKi : ¬ Dog KiKi := by
+  intro h_dog
+  have barks := Premise2 KiKi h_dog
+  exact Premise1 KiKi barks Jane_likes_KiKi
+
+-- Cannot prove "KiKi is a barking dog" (Dog KiKi ∧ Bark KiKi)
+</lean>
+
+ANSWER: Failure
+
+**Explanation:**  
+The corrected proof:
+1. Uses `Classical.byContradiction` explicitly for classical reasoning
+2. Proves KiKi must jump by showing:
+   - Assuming ¬Jump leads to contradiction
+   - ¬HasLegs also leads to contradiction via Premise7
+3. KiKi jumps → Jane likes KiKi (Premise3)
+4. KiKi cannot be a dog (if dog → barks → ¬Jane likes, contradiction)
+5. Thus "KiKi is a barking dog" (Dog KiKi ∧ Bark KiKi) is unprovable
+
+The premises allow us to prove KiKi jumps and isn't a dog, but provide no evidence that KiKi is a dog or barks. Therefore, the statement cannot be proven.

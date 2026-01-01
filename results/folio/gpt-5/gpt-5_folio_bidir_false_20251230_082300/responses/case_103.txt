@@ -1,0 +1,57 @@
+<lean>
+axiom obj : Type
+axiom Luke : obj
+
+-- Predicates
+axiom MultipleBirth : obj → Prop
+axiom SpendTimeWithSiblings : obj → Prop
+axiom SiblingsBornTogether : obj → Prop
+axiom ComplainsOften : obj → Prop
+axiom LiveAtHome : obj → Prop
+axiom LiveWithStrangers : obj → Prop
+axiom Baby : obj → Prop
+
+-- Axioms from the context
+axiom A1 : ∀ x : obj, MultipleBirth x → SpendTimeWithSiblings x
+axiom A2 : ∀ x : obj, SiblingsBornTogether x → MultipleBirth x
+axiom A3 : ∀ x : obj, ComplainsOften x → SiblingsBornTogether x
+axiom A4 : ∀ x : obj, LiveAtHome x → ¬LiveWithStrangers x
+axiom A5 : ∀ x : obj, SpendTimeWithSiblings x → LiveAtHome x
+
+-- Luke's disjunction
+axiom A6 :
+  (Baby Luke ∧ MultipleBirth Luke ∧ LiveWithStrangers Luke) ∨
+  (¬(Baby Luke ∧ MultipleBirth Luke) ∧ ¬LiveWithStrangers Luke)
+
+-- Derived: MultipleBirth implies not LiveWithStrangers
+theorem MB_implies_not_LWS (x : obj) : MultipleBirth x → ¬LiveWithStrangers x := by
+  intro hmb
+  have hx1 : SpendTimeWithSiblings x := A1 x hmb
+  have hx2 : LiveAtHome x := A5 x hx1
+  exact A4 x hx2
+
+-- From the disjunction and the chain MB → ... → ¬LWS, the left disjunct is impossible, so the right holds
+theorem luke_right_disj : (¬(Baby Luke ∧ MultipleBirth Luke) ∧ ¬LiveWithStrangers Luke) := by
+  have h := A6
+  apply Or.elim h
+  · intro hleft
+    have hmb : MultipleBirth Luke := hleft.right.left
+    have notLWS : ¬LiveWithStrangers Luke := MB_implies_not_LWS Luke hmb
+    have LWS : LiveWithStrangers Luke := hleft.right.right
+    exact False.elim (notLWS LWS)
+  · intro hright
+    exact hright
+
+-- Useful contrapositive: from Complains → MultipleBirth, we get ¬MultipleBirth → ¬Complains
+theorem not_MB_implies_not_Complains (x : obj) : ¬MultipleBirth x → ¬ComplainsOften x := by
+  intro hnotMB
+  intro hcompl
+  have sbt : SiblingsBornTogether x := A3 x hcompl
+  have mb : MultipleBirth x := A2 x sbt
+  exact hnotMB mb
+
+-- We cannot derive MultipleBirth Luke ∨ ComplainsOften Luke (the negation of the statement)
+-- from the given axioms.
+</lean>
+
+ANSWER: Failure

@@ -1,0 +1,93 @@
+<lean>
+axiom obj : Type
+axiom last_quarter : obj
+axiom Marketing : obj → Prop
+axiom MoreCustomers : obj → Prop
+axiom SalesIncrease : obj → Prop
+axiom ProdCostIncrease : obj → Prop
+
+axiom A1 : ∀ x : obj, Marketing x → MoreCustomers x
+axiom A2 : ∀ x : obj, MoreCustomers x → SalesIncrease x
+axiom A3 : ∀ x : obj, Marketing x ∨ ProdCostIncrease x
+
+premise given : ¬ SalesIncrease last_quarter
+
+-- Attempt to prove ¬ProdCostIncrease last_quarter
+theorem prove_negation : ¬ProdCostIncrease last_quarter :=
+  fun h_no_prod : ProdCostIncrease last_quarter => 
+    -- We have ¬SalesIncrease from premise
+    -- From A3: Marketing last_quarter ∨ ProdCostIncrease last_quarter
+    have disjunction : Marketing last_quarter ∨ ProdCostIncrease last_quarter := A3 last_quarter
+    -- Case analysis on disjunction
+    Or.elim disjunction
+      (fun h_marketing : Marketing last_quarter => 
+        have more_cust : MoreCustomers last_quarter := A1 last_quarter h_marketing
+        have sales_inc : SalesIncrease last_quarter := A2 last_quarter more_cust
+        given sales_inc)  -- Contradiction: sales_inc and given
+      (fun h_prod : ProdCostIncrease last_quarter => 
+        -- This branch doesn't contradict anything directly
+        -- We need to show False, but have no contradiction here
+        -- Without additional axioms linking ProdCostIncrease to SalesIncrease, we cannot derive contradiction
+        -- Therefore, cannot complete the proof
+        by admit)  -- Admission of failure to prove contradiction
+
+-- The proof above fails because the second branch (ProdCostIncrease) doesn't contradict ¬SalesIncrease
+-- We show the explicit failure by attempting to close the proof with tactics
+theorem attempt_proof : ¬ProdCostIncrease last_quarter :=
+  by
+    intro h_prod
+    cases (A3 last_quarter) with
+    | inl h_marketing =>
+        have more_cust := A1 last_quarter h_marketing
+        have sales_inc := A2 last_quarter more_cust
+        apply given sales_inc
+    | inr h_prod_cost =>
+        -- Stuck here: no axiom links ProdCostIncrease to SalesIncrease
+        -- Cannot derive contradiction from ¬SalesIncrease and ProdCostIncrease alone
+        exact False.elim (by admit)  -- Explicit admission of failure
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The errors in the previous Lean code were due to incorrect syntax for declaring the premise and using `admit` in term mode. The corrected code uses `axiom` for the premise and `sorry` in tactic mode to handle the unprovable branch.
+
+<lean>
+axiom obj : Type
+axiom last_quarter : obj
+axiom Marketing : obj → Prop
+axiom MoreCustomers : obj → Prop
+axiom SalesIncrease : obj → Prop
+axiom ProdCostIncrease : obj → Prop
+
+axiom A1 : ∀ x : obj, Marketing x → MoreCustomers x
+axiom A2 : ∀ x : obj, MoreCustomers x → SalesIncrease x
+axiom A3 : ∀ x : obj, Marketing x ∨ ProdCostIncrease x
+
+axiom given : ¬ SalesIncrease last_quarter
+
+theorem prove_negation : ¬ProdCostIncrease last_quarter :=
+  by
+    intro h_prod
+    have disjunction : Marketing last_quarter ∨ ProdCostIncrease last_quarter := A3 last_quarter
+    cases disjunction with
+    | inl h_marketing =>
+        have more_cust : MoreCustomers last_quarter := A1 last_quarter h_marketing
+        have sales_inc : SalesIncrease last_quarter := A2 last_quarter more_cust
+        exact given sales_inc
+    | inr h_prod_cost =>
+        -- No axiom links ProdCostIncrease to ¬SalesIncrease
+        -- Cannot derive contradiction in this branch
+        sorry  -- Proof failure
+</lean>
+
+ANSWER: Failure
+
+**Explanation:**  
+The goal was to prove the negation of "production costs increased" (i.e., `¬ProdCostIncrease last_quarter`). The proof attempt shows:
+- If marketing occurred (`Marketing last_quarter`), we derive a contradiction because sales would have increased (via `A1` and `A2`), contradicting the premise `¬SalesIncrease last_quarter`.
+- If production costs increased (`ProdCostIncrease last_quarter`), no contradiction arises because there are no axioms linking production cost increases to sales outcomes. The `sorry` in this branch admits the proof cannot be completed.  
+Since the negation cannot be proven from the premises, the answer is **Failure**.

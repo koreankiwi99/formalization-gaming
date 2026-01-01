@@ -1,0 +1,135 @@
+<lean>
+axiom obj : Type
+
+axiom BrownSwiss : obj → Prop
+axiom Cow : obj → Prop
+axiom Pet : obj → Prop
+axiom DomesticatedAnimal : obj → Prop
+axiom Alligator : obj → Prop
+axiom Ted : obj
+
+axiom A1 : ∀ x, BrownSwiss x → Cow x
+axiom A2 : ∃ x, Pet x ∧ BrownSwiss x
+axiom A3 : ∀ x, Cow x → DomesticatedAnimal x
+axiom A4 : ∀ x, Alligator x → ¬ DomesticatedAnimal x
+axiom A5 : Alligator Ted
+
+-- Attempt to prove ¬(Pet Ted) 
+theorem disprove_pet_Ted : ¬ Pet Ted := by
+  -- Assume Pet Ted as a temporary hypothesis for contradiction
+  intro h
+  -- From A5 and A4, we know Ted is not domesticated
+  have not_dom : ¬ DomesticatedAnimal Ted := A4 Ted A5
+  -- From A2, there exists some pet that is BrownSwiss
+  cases A2 with
+  | intro w hw =>
+    have pet_w : Pet w := hw.left
+    have swiss_w : BrownSwiss w := hw.right
+    -- This pet w is a cow (by A1) and domesticated (by A3)
+    have cow_w : Cow w := A1 w swiss_w
+    have dom_w : DomesticatedAnimal w := A3 w cow_w
+    -- Crucially, w might not be Ted, so we cannot relate Ted to these properties
+    -- We cannot get DomesticatedAnimal Ted or its negation from w's properties
+    -- The assumption Pet Ted does not force Ted to be BrownSwiss or a cow
+    -- Therefore, we have no contradiction with not_dom
+    done
+  -- All cases of the existential lead nowhere
+  contradiction  -- Fails: no contradiction found
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+After analyzing the reasoning, I realize that while we can derive that Ted cannot be a cow (since cows are domesticated but alligators are not), there's no premise stating that all pets must be cows or domesticated animals. The existential premise "some pets are Brown Swiss cattle" only guarantees there exists at least one domesticated pet, but doesn't prohibit non-domesticated pets. Since Ted is a non-domesticated animal and the premises allow for non-domesticated pets, we cannot prove Ted isn't a pet.
+
+Here's the corrected Lean code with a complete proof structure showing we cannot derive the required contradiction:
+
+<lean>
+axiom obj : Type
+
+axiom BrownSwiss : obj → Prop
+axiom Cow : obj → Prop
+axiom Pet : obj → Prop
+axiom DomesticatedAnimal : obj → Prop
+axiom Alligator : obj → Prop
+axiom Ted : obj
+
+axiom A1 : ∀ x, BrownSwiss x → Cow x
+axiom A2 : ∃ x, Pet x ∧ BrownSwiss x
+axiom A3 : ∀ x, Cow x → DomesticatedAnimal x
+axiom A4 : ∀ x, Alligator x → ¬ DomesticatedAnimal x
+axiom A5 : Alligator Ted
+
+-- Attempted proof shows no contradiction from ¬PetTed
+-- We can prove Ted isn't domesticated or a cow...
+theorem ted_not_dom : ¬ DomesticatedAnimal Ted := A4 Ted A5
+theorem ted_not_cow : ¬ Cow Ted := 
+  fun hCow : Cow Ted => 
+    A4 Ted A5 (A3 Ted hCow)
+
+-- ...but cannot prove Ted isn't a pet
+example : ¬(Pet Ted) := 
+  fun hPet : Pet Ted => 
+    -- Existential doesn't force Ted to be Brown Swiss/cow
+    match A2 with
+    | ⟨w, ⟨Petw, BrownSwissw⟩⟩ =>
+        -- Have DomesticatedAnimal w via A1+A3, but w ≠ Ted
+        have : DomesticatedAnimal w := A3 w (A1 w BrownSwissw)
+        -- Ted's properties don't interact with w's properties
+        -- No contradiction: pets can be non-domesticated
+        False.elim (ted_not_dom (A3 Ted ?a)) -- Cannot fill the gap
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+After analyzing the premises and the attempted proof, it's clear that while Ted is definitively not a domesticated animal (due to being an alligator), there's no premise requiring all pets to be domesticated animals. The existential premise "Some pets are Brown Swiss Cattle" introduces a pet that is domesticated (via the chain Brown Swiss → cow → domesticated animal), but this doesn't preclude the existence of non-domesticated pets. Ted being a pet violates no premises, so the negation of "Ted is a pet" cannot be proven.
+
+Here's the corrected Lean code:
+
+<lean>
+axiom obj : Type
+
+axiom BrownSwiss : obj → Prop
+axiom Cow : obj → Prop
+axiom Pet : obj → Prop
+axiom DomesticatedAnimal : obj → Prop
+axiom Alligator : obj → Prop
+axiom Ted : obj
+
+axiom A1 : ∀ x, BrownSwiss x → Cow x
+axiom A2 : ∃ x, Pet x ∧ BrownSwiss x
+axiom A3 : ∀ x, Cow x → DomesticatedAnimal x
+axiom A4 : ∀ x, Alligator x → ¬ DomesticatedAnimal x
+axiom A5 : Alligator Ted
+
+-- Proof that Ted cannot be domesticated
+theorem ted_not_dom : ¬ DomesticatedAnimal Ted := 
+  fun hDom : DomesticatedAnimal Ted => 
+    A4 Ted A5 hDom
+
+-- Proof that Ted cannot be a cow (redundant but included for completeness)
+theorem ted_not_cow : ¬ Cow Ted := 
+  fun hCow : Cow Ted => 
+    ted_not_dom (A3 Ted hCow)
+
+-- Failed attempt to prove ¬(Pet Ted) shows no contradiction
+example : ¬(Pet Ted) := 
+  fun hPet : Pet Ted => 
+    -- Existential pet w is domesticated but doesn't imply anything about Ted
+    match A2 with
+    | ⟨w, ⟨hPet_w, hBrownSwiss_w⟩⟩ =>
+        have cow_w : Cow w := A1 w hBrownSwiss_w
+        have dom_w : DomesticatedAnimal w := A3 w cow_w
+        -- Ted is a pet but has no connection to w
+        -- Ted is NOT domesticated or a cow, but w is
+        False.elim (ted_not_dom ?h)  -- Can't prove Ted is domesticated
+</lean>
+
+ANSWER: Failure

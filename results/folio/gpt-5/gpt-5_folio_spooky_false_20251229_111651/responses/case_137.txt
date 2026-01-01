@@ -1,0 +1,52 @@
+<lean>
+axiom Algo : Type
+axiom Model : Type
+
+axiom SOTA : Model
+
+axiom ML : Algo → Prop
+axiom Supervised : Algo → Prop
+axiom Unsupervised : Algo → Prop
+axiom Reinforcement : Algo → Prop
+axiom RequiresLabeled : Algo → Prop
+axiom Trains : Algo → Model → Prop
+
+-- Categorization: any ML algorithm is either supervised, unsupervised, or reinforcement
+axiom Categorized : ∀ a : Algo, ML a → (Supervised a ∨ Unsupervised a ∨ Reinforcement a)
+
+-- Unsupervised algorithms do not require labeled data
+axiom Unsup_no_label : ∀ a : Algo, Unsupervised a → ¬RequiresLabeled a
+
+-- The SOTA model is trained with (some) ML algorithm
+axiom exists_ml_trains_sota : ∃ a : Algo, ML a ∧ Trains a SOTA
+
+-- Reinforcement learning is not used to train the SOTA model
+axiom no_reinf_trains_sota : ∀ a : Algo, Reinforcement a → ¬Trains a SOTA
+
+-- Any algorithm that trains the SOTA summarization model requires labeled data
+axiom train_requires_label : ∀ a : Algo, Trains a SOTA → RequiresLabeled a
+
+-- From the premises, we can derive that a supervised algorithm is used to train SOTA
+theorem supervised_used : ∃ a : Algo, Supervised a ∧ Trains a SOTA := by
+  obtain ⟨a, hML, hTr⟩ := exists_ml_trains_sota
+  have hReq : RequiresLabeled a := train_requires_label a hTr
+  have hNotUnsup : ¬Unsupervised a := by
+    intro hu
+    have hNo := Unsup_no_label a hu
+    exact hNo hReq
+  have hNotReinf : ¬Reinforcement a := by
+    intro hr
+    have hNo := no_reinf_trains_sota a hr
+    exact hNo hTr
+  have hCat := Categorized a hML
+  have hSup : Supervised a := by
+    cases hCat with
+    | inl hs => exact hs
+    | inr h2 =>
+      cases h2 with
+      | inl hu => exact False.elim (hNotUnsup hu)
+      | inr hr => exact False.elim (hNotReinf hr)
+  exact ⟨a, hSup, hTr⟩
+</lean>
+
+ANSWER: Failure

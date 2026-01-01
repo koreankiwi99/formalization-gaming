@@ -1,0 +1,76 @@
+The context describes the bookstore's situation with logical implications and a disjunction. The key propositions are:
+- `great_service`: offering great customer service
+- `host_events`: hosting author events
+- `more_customers`: increased customer traffic
+- `revenue_improves`: revenue improvement
+
+Given axioms:
+1. Great service implies reputation growth (irrelevant to revenue).
+2. Hosting events implies more customers.
+3. Either great service or hosting events occurs.
+4. More customers imply revenue improvement.
+5. **Given**: Service quality decreased (¬great_service).
+
+From ¬great_service and the disjunction (axiom 3), hosting events must occur. Then, by axiom 2, more customers follow. Finally, axiom 4 proves revenue improvement.
+
+<lean>
+axiom great_service : Prop
+axiom host_events : Prop
+axiom more_customers : Prop
+axiom revenue_improves : Prop
+
+axiom A1 : great_service → Prop  -- Reputation grows (unused in proof)
+axiom A2 : host_events → more_customers
+axiom A3 : great_service ∨ host_events
+axiom A4 : more_customers → revenue_improves
+axiom given : ¬great_service
+
+theorem store_revenue : revenue_improves :=
+  have H : host_events := by
+    cases A3 with
+    | inl gs => contradiction
+    | inr he => exact he
+  have H2 : more_customers := A2 H
+  A4 H2
+</lean>
+
+ANSWER: Yes
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation error occurred because the `contradiction` tactic failed to resolve the case where `great_service` was true while also having `¬great_service` as an axiom. This creates a logical contradiction, but the tactic didn't automatically close the goal. The solution is to explicitly handle the contradiction using `False.elim` with the proof of `False` derived from the conflicting hypotheses.
+
+Here's the corrected Lean code:
+
+<lean>
+axiom great_service : Prop
+axiom host_events : Prop
+axiom more_customers : Prop
+axiom revenue_improves : Prop
+
+axiom A2 : host_events → more_customers
+axiom A3 : great_service ∨ host_events
+axiom A4 : more_customers → revenue_improves
+axiom given : ¬great_service
+
+theorem store_revenue : revenue_improves :=
+  have H : host_events := by
+    cases A3 with
+    | inl gs => exact False.elim (given gs)  -- Explicit contradiction resolution
+    | inr he => exact he
+  have H2 : more_customers := A2 H
+  A4 H2
+</lean>
+
+**Proof Explanation:**
+1. From `¬great_service` (given) and `great_service ∨ host_events` (A3), we deduce `host_events`:
+   - If `great_service` holds (left disjunct), we get `False` via `given gs`, then derive `host_events` by explosion (`False.elim`).
+   - If `host_events` holds (right disjunct), we use it directly.
+2. From `host_events` and `host_events → more_customers` (A2), we get `more_customers`.
+3. From `more_customers` and `more_customers → revenue_improves` (A4), we conclude `revenue_improves`.
+
+The conclusion follows validly from the premises.
+
+ANSWER: Yes

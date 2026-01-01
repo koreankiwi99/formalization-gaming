@@ -1,0 +1,89 @@
+<lean>
+axiom obj : Type
+axiom Tom : obj
+axiom Grumpy : obj → Prop
+axiom MeanToAnimals : obj → Prop
+axiom NiceToAnimals : obj → Prop
+axiom AnimalLover : obj → Prop
+axiom PetOwner : obj → Prop
+
+axiom A1 : ∀ x, NiceToAnimals x → ¬ MeanToAnimals x
+axiom A2 : ∃ x, Grumpy x ∧ MeanToAnimals x
+axiom A3 : ∀ x, AnimalLover x → NiceToAnimals x
+axiom A4 : ∀ x, PetOwner x → AnimalLover x
+axiom A5 : PetOwner Tom
+
+-- Prove Tom cannot be mean to animals (from premises)
+theorem Tom_not_mean : ¬ MeanToAnimals Tom := by
+  have Tom_animalLover : AnimalLover Tom := A4 Tom A5
+  have Tom_nice : NiceToAnimals Tom := A3 Tom Tom_animalLover
+  exact A1 Tom Tom_nice
+
+-- Decompose the implication: ¬(P ∧ Q) → (¬P ∧ ¬R)
+theorem counterexample : 
+    ¬((¬(Grumpy Tom ∧ MeanToAnimals Tom)) → (¬Grumpy Tom ∧ ¬AnimalLover Tom)) := by
+  intro hImplies
+  have hNegConjunction : ¬(Grumpy Tom ∧ MeanToAnimals Tom) := by
+    intro ⟨_, mean⟩
+    exact Tom_not_mean mean
+  have hFalseConsequent : ¬(¬Grumpy Tom ∧ ¬AnimalLover Tom) := by
+    have animalLover_Tom : AnimalLover Tom := A4 Tom A5
+    intro ⟨_, notAnimalLover⟩
+    exact notAnimalLover animalLover_Tom
+  exact hFalseConsequent (hImplies hNegConjunction).2
+
+-- The entire statement is false
+theorem the_stmt_is_false : False := counterexample
+</lean>
+
+ANSWER: False
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The original code had two main errors:
+1. In the `counterexample` proof: Instead of applying `hFalseConsequent` to the entire consequent, it incorrectly used only the second component.
+2. The final theorem incorrectly tried to equate the negation of the implication with `False`.
+
+The corrected proof:
+1. Proves Tom cannot be mean to animals
+2. Assumes the implication
+3. Proves the premise is true (Tom isn't both grumpy and mean)
+4. Obtains the false consequent (Tom isn't grumpy and isn't animal lover)
+5. Derives contradiction from the false consequent (Tom is an animal lover)
+
+<lean>
+axiom obj : Type
+axiom Tom : obj
+axiom Grumpy : obj → Prop
+axiom MeanToAnimals : obj → Prop
+axiom NiceToAnimals : obj → Prop
+axiom AnimalLover : obj → Prop
+axiom PetOwner : obj → Prop
+
+axiom A1 : ∀ x, NiceToAnimals x → ¬ MeanToAnimals x
+axiom A2 : ∃ x, Grumpy x ∧ MeanToAnimals x
+axiom A3 : ∀ x, AnimalLover x → NiceToAnimals x
+axiom A4 : ∀ x, PetOwner x → AnimalLover x
+axiom A5 : PetOwner Tom
+
+-- Tom is not mean to animals
+theorem Tom_not_mean : ¬ MeanToAnimals Tom := by
+  have al : AnimalLover Tom := A4 Tom A5
+  have nice : NiceToAnimals Tom := A3 Tom al
+  exact A1 Tom nice
+
+-- The statement is false
+theorem false_statement : 
+    ¬(¬(Grumpy Tom ∧ MeanToAnimals Tom) → (¬Grumpy Tom ∧ ¬AnimalLover Tom)) := by
+  intro h
+  -- Prove the premise is true
+  have prem : ¬(Grumpy Tom ∧ MeanToAnimals Tom) := fun ⟨_, mean⟩ => Tom_not_mean mean
+  -- Obtain false consequent
+  have cons := h prem  -- cons : ¬Grumpy Tom ∧ ¬AnimalLover Tom
+  have al_Tom : AnimalLover Tom := A4 Tom A5
+  exact cons.2 al_Tom  -- Contradiction: not animal lover vs animal lover
+</lean>
+
+ANSWER: False

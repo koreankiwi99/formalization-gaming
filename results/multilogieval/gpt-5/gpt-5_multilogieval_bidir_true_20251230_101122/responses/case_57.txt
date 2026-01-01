@@ -1,0 +1,59 @@
+<lean>
+axiom obj : Type
+axiom John : obj
+
+axiom Sale : Prop
+axiom BeginMonth : Prop
+
+axiom BuyMore : obj → Prop
+axiom Grocery : obj → Prop
+axiom AllList : obj → Prop
+axiom SoldOut : obj → Prop
+
+-- If the store has a sale, then people will buy more items.
+axiom A1 : ∀ x : obj, Sale → BuyMore x
+-- If someone goes grocery shopping, then they will get everything on their list.
+axiom A2 : ∀ x : obj, Grocery x → AllList x
+-- Either the store has a sale, or John did not get everything on his list,
+-- or there was a sale and John still did not get all his groceries.
+axiom A3 : Sale ∨ ¬ AllList John ∨ (Sale ∧ ¬ AllList John)
+-- If it is the beginning of the month, then people go grocery shopping.
+axiom A4 : BeginMonth → ∀ x : obj, Grocery x
+-- Either it is the beginning of the month, or John's favorite cereal is sold out, or both.
+axiom A5 : BeginMonth ∨ SoldOut John ∨ (BeginMonth ∧ SoldOut John)
+
+-- Given: John did not buy more items.
+axiom H1 : ¬ BuyMore John
+
+theorem john_cereal_soldout : SoldOut John := by
+  -- From H1 and A1 specialized to John, we get ¬Sale
+  have nSale : ¬ Sale := by
+    intro hS
+    have hBM : BuyMore John := A1 John hS
+    exact H1 hBM
+  -- From A3 and ¬Sale, derive that John did not get everything on his list
+  have nAll : ¬ AllList John := by
+    cases A3 with
+    | inl hSale =>
+        intro _
+        exact nSale hSale
+    | inr h2 =>
+        cases h2 with
+        | inl hNotAll => exact hNotAll
+        | inr hBoth => exact hBoth.right
+  -- From A5, deduce SoldOut John (using contradiction if we get BeginMonth)
+  cases A5 with
+  | inl hBegin =>
+      have hAll : AllList John := by
+        have hGrocs : ∀ x, Grocery x := A4 hBegin
+        have hGJ : Grocery John := hGrocs John
+        exact A2 John hGJ
+      have : False := nAll hAll
+      exact False.elim this
+  | inr h2 =>
+      cases h2 with
+      | inl hSold => exact hSold
+      | inr hBoth => exact hBoth.right
+</lean>
+
+ANSWER: Yes

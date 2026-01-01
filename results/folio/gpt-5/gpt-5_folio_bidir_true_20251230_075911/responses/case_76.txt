@@ -1,0 +1,48 @@
+<lean>
+axiom obj : Type
+
+-- Individuals
+axiom Hannah : obj
+
+-- Predicates
+axiom AtMS : obj → Prop                              -- is at Mary's school
+axiom WorksOnCampus : obj → Prop                     -- works in student jobs on campus
+axiom NeedsMoneyForTuition : obj → Prop              -- needs to earn money to help pay for college tuition
+axiom OrdersTakeoutFrequently : obj → Prop           -- orders takeout frequently in college
+axiom EnjoysDiningHall : obj → Prop                  -- enjoys the dining hall meals and recipes
+axiom PickyEater : obj → Prop                        -- is a picky eater
+axiom SpendsTimeInDiningHalls : obj → Prop           -- spends a lot of time eating/catching up in campus dining halls
+
+-- Rules from the context
+axiom R1 : ∀ x : obj, AtMS x ∧ WorksOnCampus x → NeedsMoneyForTuition x
+axiom R2 : ∀ x : obj, AtMS x ∧ OrdersTakeoutFrequently x → WorksOnCampus x
+axiom R3 : ∀ x : obj, AtMS x → OrdersTakeoutFrequently x ∨ EnjoysDiningHall x
+axiom R4 : ∀ x : obj, AtMS x ∧ EnjoysDiningHall x → ¬PickyEater x
+axiom R5 : ∀ x : obj, AtMS x ∧ EnjoysDiningHall x → SpendsTimeInDiningHalls x
+
+-- Facts about Hannah
+axiom T1 : AtMS Hannah
+axiom T2a : WorksOnCampus Hannah
+axiom T2b : NeedsMoneyForTuition Hannah → (¬PickyEater Hannah ∧ ¬NeedsMoneyForTuition Hannah)
+
+-- Goal: Hannah is at Mary's school and she is not a picky eater and spends a lot of her time in the dining halls
+theorem hannah_conclusion : AtMS Hannah ∧ ¬PickyEater Hannah ∧ SpendsTimeInDiningHalls Hannah := by
+  have hAt : AtMS Hannah := T1
+  have hDisj : OrdersTakeoutFrequently Hannah ∨ EnjoysDiningHall Hannah := R3 Hannah hAt
+  have hEnjoy : EnjoysDiningHall Hannah := by
+    cases hDisj with
+    | inl hOT =>
+        -- From AtMS and OrdersTakeout, get Works; then NeedMoney; then contradiction yields Enjoy by ex falso
+        have hWork : WorksOnCampus Hannah := R2 Hannah (And.intro hAt hOT)
+        have hNeed : NeedsMoneyForTuition Hannah := R1 Hannah (And.intro hAt hWork)
+        have hpair := T2b hNeed
+        have hNotNeed : ¬NeedsMoneyForTuition Hannah := And.right hpair
+        have hFalse : False := hNotNeed hNeed
+        exact False.elim hFalse
+    | inr hEnj => exact hEnj
+  have hNotPicky : ¬PickyEater Hannah := R4 Hannah (And.intro hAt hEnjoy)
+  have hSpend : SpendsTimeInDiningHalls Hannah := R5 Hannah (And.intro hAt hEnjoy)
+  exact And.intro hAt (And.intro hNotPicky hSpend)
+</lean>
+
+ANSWER: True

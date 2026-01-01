@@ -1,0 +1,90 @@
+<lean>
+axiom Employee : Type
+axiom Sam : Employee
+axiom Impressed : Employee → Prop
+axiom Promotion : Employee → Prop
+axiom ExtraResponsibilities : Employee → Prop
+axiom GainsExperience : Employee → Prop
+axiom LeadNewTeam : Employee → Prop
+
+-- Axioms from context
+axiom A1 : ∀ e : Employee, Impressed e → Promotion e
+axiom A2 : ∀ e : Employee, ExtraResponsibilities e → GainsExperience e
+axiom A3 : Impressed Sam ∨ ExtraResponsibilities Sam
+axiom A4 : ∀ e : Employee, GainsExperience e → LeadNewTeam e
+
+-- Given premise
+axiom given : ¬ Promotion Sam
+
+-- Attempt to prove ¬LeadNewTeam Sam
+theorem not_lead_new_team : ¬LeadNewTeam Sam := by
+  -- We have ¬Promotion Sam, so by contrapositive of A1, ¬Impressed Sam
+  have not_impressed : ¬Impressed Sam := by
+    intro h
+    apply given
+    exact A1 Sam h
+  -- From A3 and ¬Impressed Sam, ExtraResponsibilities Sam must hold
+  have extra : ExtraResponsibilities Sam := by
+    cases A3 with
+    | inl imp => contradiction
+    | inr ex => exact ex
+  -- From extra and A2, GainsExperience Sam
+  have experience : GainsExperience Sam := A2 Sam extra
+  -- From experience and A4, LeadNewTeam Sam
+  have lead : LeadNewTeam Sam := A4 Sam experience
+  -- But we are trying to prove ¬LeadNewTeam Sam -> contradiction
+  intro h
+  contradiction
+-- This proof fails because we derived LeadNewTeam Sam, making ¬LeadNewTeam Sam unprovable
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation error occurred because the `contradiction` tactic was used incorrectly. After deriving that Sam leads a new team (`lead : LeadNewTeam Sam`), attempting to prove the negation (`¬LeadNewTeam Sam`) by introducing the hypothesis `h : LeadNewTeam Sam` and then using `contradiction` fails because there is no contradictory pair of hypotheses - both `lead` and `h` are evidence *for* `LeadNewTeam Sam`.
+
+The corrected approach shows that:
+1. From `¬Promotion Sam` and axiom A1, we derive `¬Impressed Sam`
+2. Using axiom A3 (`Impressed Sam ∨ ExtraResponsibilities Sam`) with `¬Impressed Sam`, we get `ExtraResponsibilities Sam`
+3. Axiom A2 then gives `GainsExperience Sam`
+4. Finally, axiom A4 yields `LeadNewTeam Sam`
+
+Since we've proven `LeadNewTeam Sam` from the premises, it's impossible to prove its negation (`¬LeadNewTeam Sam`). The Lean code below demonstrates this by formally proving `LeadNewTeam Sam` and acknowledging that the negation cannot be proven.
+
+<lean>
+axiom Employee : Type
+axiom Sam : Employee
+axiom Impressed : Employee → Prop
+axiom Promotion : Employee → Prop
+axiom ExtraResponsibilities : Employee → Prop
+axiom GainsExperience : Employee → Prop
+axiom LeadNewTeam : Employee → Prop
+
+-- Axioms from context
+axiom A1 : ∀ e : Employee, Impressed e → Promotion e
+axiom A2 : ∀ e : Employee, ExtraResponsibilities e → GainsExperience e
+axiom A3 : Impressed Sam ∨ ExtraResponsibilities Sam
+axiom A4 : ∀ e : Employee, GainsExperience e → LeadNewTeam e
+
+-- Given premise
+axiom given : ¬ Promotion Sam
+
+-- Formal proof that Sam leads a new team
+theorem lead_new_team : LeadNewTeam Sam := by
+  have not_impressed : ¬Impressed Sam := by
+    intro h_imp
+    apply given
+    exact A1 Sam h_imp
+  cases A3 with
+  | inl imp => contradiction
+  | inr ex =>
+      have experience : GainsExperience Sam := A2 Sam ex
+      exact A4 Sam experience
+
+-- Cannot prove ¬LeadNewTeam Sam because we've proven LeadNewTeam Sam
+</lean>
+
+ANSWER: Failure

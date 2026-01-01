@@ -1,0 +1,52 @@
+<lean>
+axiom obj : Type
+axiom Luke : obj
+
+axiom Multiple : obj → Prop
+axiom HaveSibsBornTogether : obj → Prop
+axiom Complains : obj → Prop
+axiom SpendTimeWithSibs : obj → Prop
+axiom LiveAtHome : obj → Prop
+axiom LiveWithStrangers : obj → Prop
+
+-- People born in a multiple birth spend a lot of time with siblings
+axiom R1 : ∀ x : obj, Multiple x → SpendTimeWithSibs x
+-- If people have siblings who were born together, then they were born in a multiple birth
+axiom R2 : ∀ x : obj, HaveSibsBornTogether x → Multiple x
+-- If people complain often about annoying siblings, then they have siblings who were born together
+axiom R3 : ∀ x : obj, Complains x → HaveSibsBornTogether x
+-- If people live at home, then they do not live with strangers
+axiom R4 : ∀ x : obj, LiveAtHome x → ¬ LiveWithStrangers x
+-- If people spend a lot of time with siblings, then they live at home
+axiom R5 : ∀ x : obj, SpendTimeWithSibs x → LiveAtHome x
+
+-- Luke either (multiple birth and lives with strangers) or (not multiple birth and not live with strangers)
+axiom D : (Multiple Luke ∧ LiveWithStrangers Luke) ∨ (¬ Multiple Luke ∧ ¬ LiveWithStrangers Luke)
+
+theorem luke_neither_multiple_nor_complains : ¬ Multiple Luke ∧ ¬ Complains Luke := by
+  -- From being in a multiple birth, Luke cannot live with strangers
+  have hNotStrangersFromMultiple : ∀ x : obj, Multiple x → ¬ LiveWithStrangers x := by
+    intro x
+    intro hMult
+    have hSpend : SpendTimeWithSibs x := R1 x hMult
+    have hHome : LiveAtHome x := R5 x hSpend
+    exact R4 x hHome
+  cases D with
+  | inl h =>
+      -- Case leads to contradiction: lives with and not with strangers
+      have hMult : Multiple Luke := h.left
+      have hStr : LiveWithStrangers Luke := h.right
+      have hNotStr : ¬ LiveWithStrangers Luke := hNotStrangersFromMultiple Luke hMult
+      have : False := hNotStr hStr
+      exact False.elim this
+  | inr h =>
+      have hNotMult : ¬ Multiple Luke := h.left
+      have hNotComplains : ¬ Complains Luke := by
+        intro hCompl
+        have hSibsTogether : HaveSibsBornTogether Luke := R3 Luke hCompl
+        have hMult : Multiple Luke := R2 Luke hSibsTogether
+        exact hNotMult hMult
+      exact And.intro hNotMult hNotComplains
+</lean>
+
+ANSWER: True

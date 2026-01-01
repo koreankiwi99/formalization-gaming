@@ -1,0 +1,77 @@
+<lean>
+axiom obj : Type
+
+axiom Club : obj → Prop
+axiom PerformsOften : obj → Prop
+axiom AttendEngaged : obj → Prop
+axiom InactiveDisinterested : obj → Prop
+axiom ChaperoneDances : obj → Prop
+axiom StudentAtSchool : obj → Prop
+axiom YoungOrTeen : obj → Prop
+axiom WishesAcademic : obj → Prop
+
+axiom Bonnie : obj
+
+-- Premises
+axiom P1 : ∀ x : obj, Club x ∧ PerformsOften x → AttendEngaged x
+axiom P2 : ∀ x : obj, Club x → PerformsOften x ∨ InactiveDisinterested x
+axiom P3 : ∀ x : obj, Club x ∧ ChaperoneDances x → ¬StudentAtSchool x
+axiom P4 : ∀ x : obj, Club x ∧ InactiveDisinterested x → ChaperoneDances x
+axiom P5 : ∀ x : obj, Club x ∧ YoungOrTeen x ∧ WishesAcademic x → StudentAtSchool x
+
+axiom Bonnie_in_club : Club Bonnie
+axiom Bonnie_engaged_student_partition :
+  (AttendEngaged Bonnie ∧ StudentAtSchool Bonnie) ∨
+  (¬AttendEngaged Bonnie ∧ ¬StudentAtSchool Bonnie)
+
+-- Derived relationships for Bonnie
+
+theorem Bonnie_AE_implies_Student : AttendEngaged Bonnie → StudentAtSchool Bonnie := by
+  intro hAE
+  cases Bonnie_engaged_student_partition with
+  | inl h =>
+    exact h.right
+  | inr h =>
+    have hFalse : False := h.left hAE
+    exact False.elim hFalse
+
+theorem Bonnie_Student_implies_AE : StudentAtSchool Bonnie → AttendEngaged Bonnie := by
+  intro hStu
+  cases Bonnie_engaged_student_partition with
+  | inl h =>
+    exact h.left
+  | inr h =>
+    have hFalse : False := h.right hStu
+    exact False.elim hFalse
+
+theorem Bonnie_not_inactive_of_student : StudentAtSchool Bonnie → ¬InactiveDisinterested Bonnie := by
+  intro hStu
+  intro hInact
+  have hCh : ChaperoneDances Bonnie := P4 Bonnie (And.intro Bonnie_in_club hInact)
+  have hNotStu : ¬StudentAtSchool Bonnie := P3 Bonnie (And.intro Bonnie_in_club hCh)
+  exact hNotStu hStu
+
+theorem Bonnie_student_implies_performs : StudentAtSchool Bonnie → PerformsOften Bonnie := by
+  intro hStu
+  have hdisj : PerformsOften Bonnie ∨ InactiveDisinterested Bonnie := P2 Bonnie Bonnie_in_club
+  cases hdisj with
+  | inl hPerf =>
+    exact hPerf
+  | inr hInact =>
+    have hFalse : False := Bonnie_not_inactive_of_student hStu hInact
+    exact False.elim hFalse
+
+theorem Bonnie_performs_implies_student : PerformsOften Bonnie → StudentAtSchool Bonnie := by
+  intro hPerf
+  have hAE : AttendEngaged Bonnie := P1 Bonnie (And.intro Bonnie_in_club hPerf)
+  exact Bonnie_AE_implies_Student hAE
+
+theorem Bonnie_performs_iff_student : PerformsOften Bonnie ↔ StudentAtSchool Bonnie := by
+  constructor
+  · intro hPerf
+    exact Bonnie_performs_implies_student hPerf
+  · intro hStu
+    exact Bonnie_student_implies_performs hStu
+</lean>
+
+ANSWER: Failure

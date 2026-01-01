@@ -1,0 +1,109 @@
+The natural language context describes an office scenario with logical implications. The key elements are:
+
+1. If someone finishes their project early, they take a long lunch.
+2. If it's a coworker's birthday, people bring treats.
+3. Either projects get done early, or it's a birthday, or both.
+4. Taking a long lunch leads to feeling recharged.
+5. Feeling recharged leads to a productive afternoon.
+
+The question asks: If John didn't bring treats, did he have a productive afternoon?
+
+**Issues preventing proof:**
+- The "people bring treats" rule doesn't specify that every individual must bring treats on birthdays. John's absence in treat-bringing doesn't imply it wasn't a birthday (others may have brought treats).
+- The disjunction in (3) might result in only others - not John - finishing projects early. Thus:
+   - John may not have taken a long lunch (blocking the chain to productivity).
+   - Birthday occurrence would not affect John's actions under given rules.
+
+**Lean analysis:**
+```lean
+axiom obj : Type
+axiom John : obj
+axiom Birthday : Prop
+axiom FinishAhead : obj → Prop
+axiom TakeLongLunch : obj → Prop
+axiom Recharged : obj → Prop
+axiom Productive : obj → Prop
+axiom BringsTreats : obj → Prop
+
+axiom R1 : ∀ x, FinishAhead x → TakeLongLunch x  -- If finish early → long lunch
+axiom R2 : Birthday → ∃ x, BringsTreats x         -- If birthday → someone brings treats
+axiom R3 : (∃ x, FinishAhead x) ∨ Birthday        -- Early finish OR birthday
+axiom R4 : ∀ x, TakeLongLunch x → Recharged x     -- Long lunch → recharged
+axiom R5 : ∀ x, Recharged x → Productive x        -- Recharged → productive
+
+-- Given premise: John didn't bring treats
+axiom john_no_treats : ¬BringsTreats John
+
+-- Our goal would be Productive John, but...
+theorem target : ¬BringsTreats John → Productive John :=
+  fun h => 
+  -- R3 gives two cases
+  have case1 : (∃ x, FinishAhead x) ∨ Birthday := R3
+  match case1 with
+  | Or.inl h_finish =>  -- Someone finished early (not necessarily John)
+      let ⟨person, h_fin⟩ := h_finish
+      have _ : TakeLongLunch person := R1 person h_fin
+      have _ : Recharged person := R4 person this
+      have _ : Productive person := R5 person this
+      -- But this proves only that `person` is productive, not John
+      sorry  -- Can't confirm if John was productive
+  | Or.inr h_bday =>   -- It's a birthday
+      have _ : ∃ x, BringsTreats x := R2 h_bday
+      -- But we don't know that Birthday forces John to take long lunch
+      sorry  -- Can't link birthday to John's productivity
+```
+
+**Conclusion:** We cannot prove John had a productive afternoon from the premises. The lack of treat-bringing by John doesn't constrain the disjunction in a way that forces John-specific productivity triggers.
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+I fixed the compilation errors by providing explicit names for intermediate steps instead of relying on `this`. The key changes are:
+1. Named each intermediate step (`h_take`, `h_rech`, etc.) to avoid the `this` referencing issue
+2. Restructured the proof to explicitly show where the reasoning fails
+
+<lean>
+axiom obj : Type
+axiom John : obj
+axiom Birthday : Prop
+axiom FinishAhead : obj → Prop
+axiom TakeLongLunch : obj → Prop
+axiom Recharged : obj → Prop
+axiom Productive : obj → Prop
+axiom BringsTreats : obj → Prop
+
+axiom R1 : ∀ x, FinishAhead x → TakeLongLunch x
+axiom R2 : Birthday → ∃ x, BringsTreats x
+axiom R3 : (∃ x, FinishAhead x) ∨ Birthday
+axiom R4 : ∀ x, TakeLongLunch x → Recharged x
+axiom R5 : ∀ x, Recharged x → Productive x
+
+axiom john_no_treats : ¬ BringsTreats John
+
+theorem target : ¬ BringsTreats John → Productive John :=
+fun h => 
+  match R3 with
+  | Or.inl h_finish => 
+      let ⟨person, h_fin⟩ := h_finish
+      have h_take : TakeLongLunch person := R1 person h_fin
+      have h_rech : Recharged person := R4 person h_take
+      have h_prod : Productive person := R5 person h_rech
+      -- Fails: person might not be John
+      sorry
+  | Or.inr h_bday => 
+      have h_exists : ∃ x, BringsTreats x := R2 h_bday
+      -- Fails: John's lack of treat doesn't prevent birthday,
+      -- and birthday doesn't imply John finished early
+      sorry
+</lean>
+
+ANSWER: Failure
+
+**Reason for Failure:**
+1. The office-level disjunction (R3: early finishers OR birthday) doesn't guarantee John specifically finished early
+2. John not bringing treats (given axiom) doesn't eliminate the birthday possibility since others might bring treats
+3. The logical chain to productivity requires either John finishing early (via R1→R4→R5) which isn't enforced by the premises
+4. Birthday alone doesn't trigger John's lunch break/productivity per given rules

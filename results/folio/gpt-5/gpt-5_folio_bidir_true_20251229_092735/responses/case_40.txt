@@ -1,0 +1,120 @@
+<lean>
+axiom obj : Type
+axiom ZahaStyle : obj → Prop
+axiom KellyStyle : obj → Prop
+axiom Brutalist : obj → Prop
+axiom Adores : obj → Prop
+axiom Interesting : obj → Prop
+axiom Evocative : obj → Prop
+axiom Dreamy : obj → Prop
+axiom DesignByMax : obj → Prop
+
+-- Premises
+axiom P1 : ∀ x : obj, ZahaStyle x ∧ Adores x → Interesting x
+axiom P2 : ∀ x : obj, Brutalist x ∧ Adores x → ¬ Interesting x
+axiom P3 : ∀ x : obj, Adores x → ZahaStyle x ∨ KellyStyle x
+axiom P4 : ∀ x : obj, KellyStyle x ∧ Adores x → Evocative x
+axiom P5 : ∀ x : obj, KellyStyle x ∧ Adores x → Dreamy x
+axiom P6 : ∀ x : obj, DesignByMax x ∧ Adores x ∧ Interesting x → Brutalist x ∧ Evocative x
+
+-- Derived: any design by Max that he adores cannot be ZahaStyle
+lemma adored_design_not_zaha : ∀ x : obj, Adores x ∧ DesignByMax x → ¬ ZahaStyle x :=
+by
+  intro x hx
+  have hA : Adores x := And.left hx
+  have hD : DesignByMax x := And.right hx
+  intro hZ
+  have hI : Interesting x := P1 x (And.intro hZ hA)
+  have hBE : Brutalist x ∧ Evocative x := P6 x (And.intro hD (And.intro hA hI))
+  have hB : Brutalist x := And.left hBE
+  have hNotI : ¬ Interesting x := P2 x (And.intro hB hA)
+  exact hNotI hI
+
+-- Thus, any design by Max that he adores must be KellyStyle
+lemma adored_design_is_kelly : ∀ x : obj, Adores x ∧ DesignByMax x → KellyStyle x :=
+by
+  intro x hx
+  have hA : Adores x := And.left hx
+  have hZorK : ZahaStyle x ∨ KellyStyle x := P3 x hA
+  have hNotZ : ¬ ZahaStyle x := adored_design_not_zaha x hx
+  exact Or.elim hZorK (fun hZ => False.elim (hNotZ hZ)) (fun hK => hK)
+
+-- Hence, any design by Max that he adores is evocative and dreamy
+lemma adored_design_evocative_dreamy : ∀ x : obj, Adores x ∧ DesignByMax x → Evocative x ∧ Dreamy x :=
+by
+  intro x hx
+  have hA : Adores x := And.left hx
+  have hK : KellyStyle x := adored_design_is_kelly x hx
+  have hE : Evocative x := P4 x (And.intro hK hA)
+  have hD : Dreamy x := P5 x (And.intro hK hA)
+  exact And.intro hE hD
+
+-- Target would be: ∃ x, DesignByMax x ∧ Evocative x ∧ Dreamy x
+-- but there is no existence premise from which to produce such an x.
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom obj : Type
+axiom ZahaStyle : obj → Prop
+axiom KellyStyle : obj → Prop
+axiom Brutalist : obj → Prop
+axiom Adores : obj → Prop
+axiom Interesting : obj → Prop
+axiom Evocative : obj → Prop
+axiom Dreamy : obj → Prop
+axiom DesignByMax : obj → Prop
+
+-- Premises
+axiom P1 : ∀ x : obj, ZahaStyle x ∧ Adores x → Interesting x
+axiom P2 : ∀ x : obj, Brutalist x ∧ Adores x → ¬ Interesting x
+axiom P3 : ∀ x : obj, Adores x → ZahaStyle x ∨ KellyStyle x
+axiom P4 : ∀ x : obj, KellyStyle x ∧ Adores x → Evocative x
+axiom P5 : ∀ x : obj, KellyStyle x ∧ Adores x → Dreamy x
+axiom P6 : ∀ x : obj, DesignByMax x ∧ Adores x ∧ Interesting x → Brutalist x ∧ Evocative x
+
+-- Any design by Max that he adores cannot be ZahaStyle
+theorem adored_design_not_zaha : ∀ x : obj, Adores x ∧ DesignByMax x → ¬ ZahaStyle x :=
+by
+  intro x hx
+  intro hZ
+  have hA : Adores x := And.left hx
+  have hD : DesignByMax x := And.right hx
+  have hI : Interesting x := P1 x ⟨hZ, hA⟩
+  have hBE : Brutalist x ∧ Evocative x := P6 x ⟨hD, ⟨hA, hI⟩⟩
+  have hB : Brutalist x := And.left hBE
+  have hNotI : ¬ Interesting x := P2 x ⟨hB, hA⟩
+  exact hNotI hI
+
+-- Thus, any design by Max that he adores must be KellyStyle
+theorem adored_design_is_kelly : ∀ x : obj, Adores x ∧ DesignByMax x → KellyStyle x :=
+by
+  intro x hx
+  have hA : Adores x := And.left hx
+  have hZorK : ZahaStyle x ∨ KellyStyle x := P3 x hA
+  have hNotZ : ¬ ZahaStyle x := adored_design_not_zaha x hx
+  cases hZorK with
+  | inl hZ => exact False.elim (hNotZ hZ)
+  | inr hK => exact hK
+
+-- Hence, any design by Max that he adores is evocative and dreamy
+theorem adored_design_evocative_dreamy : ∀ x : obj, Adores x ∧ DesignByMax x → Evocative x ∧ Dreamy x :=
+by
+  intro x hx
+  have hA : Adores x := And.left hx
+  have hK : KellyStyle x := adored_design_is_kelly x hx
+  have hE : Evocative x := P4 x ⟨hK, hA⟩
+  have hDr : Dreamy x := P5 x ⟨hK, hA⟩
+  exact And.intro hE hDr
+
+-- Note: From the given premises, we cannot prove the existence of any design by Max,
+-- nor properties of designs not known to be adored by Max. So the target existential
+-- statement cannot be derived.
+</lean>
+
+ANSWER: Failure

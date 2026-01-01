@@ -1,0 +1,98 @@
+<lean>
+axiom obj : Type
+axiom FirTree : obj → Prop
+axiom Evergreen : obj → Prop
+axiom ObjectOfWorship : obj → Prop
+
+axiom all_fir_are_evergreen : ∀ x, FirTree x → Evergreen x
+axiom some_worship_are_fir : ∃ x, ObjectOfWorship x ∧ FirTree x
+
+-- Attempt to prove that "Some evergreens are not objects of worship" is False
+theorem disprove_statement : ¬∃ x, Evergreen x ∧ ¬ObjectOfWorship x :=
+  fun h => 
+    let ⟨w, hw⟩ := some_worship_are_fir
+    let ⟨f, hf⟩ := h
+    have ever_f : Evergreen w := all_fir_are_evergreen w hw.2
+    -- Case analysis on whether w and f are the same object
+    Classical.em (w = f) 
+    (fun heq => 
+      have not_worship_f : ¬ObjectOfWorship f := hf.2
+      heq ▸ not_worship_f hw.1
+    )
+    (fun _ => 
+      -- When w ≠ f, no contradiction arises from the premises
+      False.elim (by admit)  -- Cannot derive contradiction in this branch
+    )
+-- Proof fails: Admitted branch shows the theorem cannot be proven
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation error occurred because `Classical.em` returns a disjunction (`w = f ∨ ¬w = f`), which requires case analysis using `match` or `cases` instead of function application. The corrected code uses `match` for case analysis. However, the proof still fails because the premises don't provide enough information to derive a contradiction in the case where the witness objects are distinct. Specifically:
+1. Premises confirm there exists an object of worship that's a fir tree (and thus evergreen)
+2. But there might exist *other* evergreens not worshipped (consistent with premises)
+3. No premise states that all evergreens are objects of worship or that fir trees are the only evergreens
+
+Thus, we cannot prove the negation of "Some evergreens are not objects of worship".
+
+<lean>
+axiom obj : Type
+axiom FirTree : obj → Prop
+axiom Evergreen : obj → Prop
+axiom ObjectOfWorship : obj → Prop
+
+axiom all_fir_are_evergreen : ∀ x, FirTree x → Evergreen x
+axiom some_worship_are_fir : ∃ x, ObjectOfWorship x ∧ FirTree x
+
+theorem disprove_statement : ¬∃ x, Evergreen x ∧ ¬ObjectOfWorship x :=
+  fun h => 
+    let ⟨w, hw⟩ := some_worship_are_fir
+    let ⟨f, hf⟩ := h
+    have ever_w : Evergreen w := all_fir_are_evergreen w hw.2
+    match Classical.em (w = f) with
+    | Or.inl heq => 
+        have not_worship_f : ¬ObjectOfWorship f := hf.2
+        heq ▸ not_worship_f hw.1
+    | Or.inr _ => 
+        -- No contradiction: premises allow other evergreens not worshipped
+        False.elim (by sorry)  -- Proof fails here
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The compilation error occurred because the `▸` operator requires the equality to be applied in the correct direction for type casting. Specifically, when we have `heq : w = f` and need to cast `¬ObjectOfWorship f` to `¬ObjectOfWorship w`, we must use the symmetric equality `f = w` (`heq.symm`). The corrected proof uses `heq.symm ▸ not_worship_f` to cast the negation correctly, then applies it to `hw.1` to derive `False` in the equality case.
+
+However, in the inequality case (`w ≠ f`), no contradiction can be derived from the premises. The axioms guarantee that at least one worshipped fir tree exists (which is evergreen), but they do not preclude the existence of other evergreens that are not worshipped. Thus, the proof remains incomplete for this branch.
+
+<lean>
+axiom obj : Type
+axiom FirTree : obj → Prop
+axiom Evergreen : obj → Prop
+axiom ObjectOfWorship : obj → Prop
+
+axiom all_fir_are_evergreen : ∀ x, FirTree x → Evergreen x
+axiom some_worship_are_fir : ∃ x, ObjectOfWorship x ∧ FirTree x
+
+theorem disprove_statement : ¬∃ x, Evergreen x ∧ ¬ObjectOfWorship x :=
+  fun h => 
+    let ⟨w, hw⟩ := some_worship_are_fir
+    let ⟨f, hf⟩ := h
+    match Classical.em (w = f) with
+    | Or.inl heq => 
+        have not_worship_f : ¬ObjectOfWorship f := hf.2
+        have not_worship_w : ¬ObjectOfWorship w := heq.symm ▸ not_worship_f
+        not_worship_w hw.1
+    | Or.inr _ => 
+        -- Premises allow other evergreens not worshipped (no contradiction)
+        False.elim (by sorry)  -- Proof fails here
+</lean>
+
+ANSWER: Failure

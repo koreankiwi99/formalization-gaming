@@ -1,0 +1,63 @@
+<lean>
+axiom Person : Type
+axiom Savory : Prop
+axiom Thick : Prop
+axiom AddsSalt : Person → Prop
+axiom Stirs : Person → Prop
+axiom Tastes : Person → Prop
+axiom Salad : Person → Prop
+
+axiom R1 : ∀ x : Person, AddsSalt x → Savory
+axiom R2 : ∀ x : Person, Stirs x → Thick
+axiom Law1 : (∃ x : Person, AddsSalt x) ∨ ¬ Thick ∨ ((∃ x : Person, AddsSalt x) ∧ ¬ Thick)
+axiom R3 : ∀ x : Person, Tastes x → Stirs x
+axiom Secret : ∃ x : Person, (Tastes x ∨ Salad x ∨ (Tastes x ∧ Salad x))
+
+theorem no_salt_of_not_savory (hns : ¬ Savory) : ¬ (∃ x : Person, AddsSalt x) := by
+  intro hex
+  apply Exists.elim hex
+  intro x hx
+  exact hns (R1 x hx)
+
+theorem not_thick_of_not_savory (hns : ¬ Savory) : ¬ Thick := by
+  have hnsalt : ¬ (∃ x : Person, AddsSalt x) := no_salt_of_not_savory hns
+  have disj := Law1
+  cases disj with
+  | inl hexsalt =>
+      exact False.elim (hnsalt hexsalt)
+  | inr rest =>
+      cases rest with
+      | inl hnt => exact hnt
+      | inr hboth =>
+          have hex := hboth.left
+          exact False.elim (hnsalt hex)
+
+theorem no_stir_of_not_thick (hnt : ¬ Thick) : ¬ (∃ x : Person, Stirs x) := by
+  intro hex
+  apply Exists.elim hex
+  intro x hx
+  exact hnt (R2 x hx)
+
+theorem no_taste_of_not_thick (hnt : ¬ Thick) : ¬ (∃ x : Person, Tastes x) := by
+  intro hex
+  apply Exists.elim hex
+  intro x hx
+  have hxstir : Stirs x := R3 x hx
+  exact hnt (R2 x hxstir)
+
+theorem salad_exists_of_not_savory (hns : ¬ Savory) : ∃ x : Person, Salad x := by
+  have hnt : ¬ Thick := not_thick_of_not_savory hns
+  have hnotaste : ¬ (∃ x : Person, Tastes x) := no_taste_of_not_thick hnt
+  apply Exists.elim Secret
+  intro x hx
+  cases hx with
+  | inl htaste =>
+      have : False := hnotaste (Exists.intro x htaste)
+      exact this.elim
+  | inr rest =>
+      cases rest with
+      | inl hsal => exact Exists.intro x hsal
+      | inr hboth => exact Exists.intro x hboth.right
+</lean>
+
+ANSWER: Failure

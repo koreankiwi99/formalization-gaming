@@ -1,0 +1,177 @@
+<lean>
+axiom obj : Type
+
+-- Predicates
+axiom Vertebrate : obj → Prop
+axiom Invertebrate : obj → Prop
+axiom Backbone : obj → Prop
+axiom ReproduceMF : obj → Prop
+axiom Bee : obj → Prop
+axiom QueenBee : obj → Prop
+
+-- Individual
+axiom Harry : obj
+
+-- Premises
+axiom P1 : ∀ x : obj, Invertebrate x ∨ Vertebrate x
+axiom P2 : ∀ x : obj, Backbone x → ReproduceMF x
+axiom P3 : ∀ x : obj, Vertebrate x → Backbone x
+axiom P4 : ∀ x : obj, Bee x → ¬ ReproduceMF x
+axiom P5 : ∀ x : obj, QueenBee x → Bee x
+axiom P6 : Bee Harry
+
+-- Derived facts about Harry
+lemma not_backbone_Harry : ¬Backbone Harry := by
+  intro hb
+  have mf : ReproduceMF Harry := P2 Harry hb
+  have n : ¬ ReproduceMF Harry := P4 Harry P6
+  exact n mf
+
+lemma not_vertebrate_Harry : ¬Vertebrate Harry := by
+  intro hv
+  have hb : Backbone Harry := P3 Harry hv
+  exact not_backbone_Harry hb
+
+lemma invertebrate_Harry : Invertebrate Harry := by
+  have h : Invertebrate Harry ∨ Vertebrate Harry := P1 Harry
+  cases h with
+  | inl hi => exact hi
+  | inr hv =>
+      have f : False := not_vertebrate_Harry hv
+      exact False.elim f
+
+-- The antecedent in the statement to evaluate
+def Ante : Prop := (Vertebrate Harry ∧ Backbone Harry) ∨ (¬Vertebrate Harry ∧ ¬Backbone Harry)
+
+lemma antecedent_true : Ante := by
+  right
+  exact And.intro not_vertebrate_Harry not_backbone_Harry
+
+-- The given implication is not derivable (indeed, it is refutable from the premises).
+theorem not_target_statement :
+  ¬(Ante → (¬Invertebrate Harry ∧ ¬QueenBee Harry)) := by
+  intro h
+  have a : Ante := antecedent_true
+  have c : (¬Invertebrate Harry ∧ ¬QueenBee Harry) := h a
+  have nI : ¬Invertebrate Harry := And.left c
+  exact nI invertebrate_Harry
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom obj : Type
+
+-- Predicates
+axiom Vertebrate : obj → Prop
+axiom Invertebrate : obj → Prop
+axiom Backbone : obj → Prop
+axiom ReproduceMF : obj → Prop
+axiom Bee : obj → Prop
+axiom QueenBee : obj → Prop
+
+-- Individual
+axiom Harry : obj
+
+-- Premises
+axiom P1 : ∀ x : obj, Invertebrate x ∨ Vertebrate x
+axiom P2 : ∀ x : obj, Backbone x → ReproduceMF x
+axiom P3 : ∀ x : obj, Vertebrate x → Backbone x
+axiom P4 : ∀ x : obj, Bee x → ¬ ReproduceMF x
+axiom P5 : ∀ x : obj, QueenBee x → Bee x
+axiom P6 : Bee Harry
+
+-- Derived facts about Harry
+lemma not_backbone_Harry : ¬Backbone Harry := by
+  intro hb
+  have mf : ReproduceMF Harry := P2 Harry hb
+  have n : ¬ ReproduceMF Harry := P4 Harry P6
+  exact n mf
+
+lemma not_vertebrate_Harry : ¬Vertebrate Harry := by
+  intro hv
+  have hb : Backbone Harry := P3 Harry hv
+  exact not_backbone_Harry hb
+
+lemma invertebrate_Harry : Invertebrate Harry := by
+  have h : Invertebrate Harry ∨ Vertebrate Harry := P1 Harry
+  exact Or.elim h (fun hi => hi) (fun hv => False.elim (not_vertebrate_Harry hv))
+
+-- The antecedent in the statement to evaluate
+def Ante : Prop := (Vertebrate Harry ∧ Backbone Harry) ∨ (¬Vertebrate Harry ∧ ¬Backbone Harry)
+
+lemma antecedent_true : Ante :=
+  Or.inr (And.intro not_vertebrate_Harry not_backbone_Harry)
+
+-- The given implication is refutable from the premises.
+theorem not_target_statement :
+  ¬(Ante → (¬Invertebrate Harry ∧ ¬QueenBee Harry)) := by
+  intro h
+  have c : (¬Invertebrate Harry ∧ ¬QueenBee Harry) := h antecedent_true
+  have nI : ¬Invertebrate Harry := c.left
+  exact nI invertebrate_Harry
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+<lean>
+axiom obj : Type
+
+-- Predicates
+axiom Vertebrate : obj → Prop
+axiom Invertebrate : obj → Prop
+axiom Backbone : obj → Prop
+axiom ReproduceMF : obj → Prop
+axiom Bee : obj → Prop
+axiom QueenBee : obj → Prop
+
+-- Individual
+axiom Harry : obj
+
+-- Premises
+axiom P1 : ∀ x : obj, Invertebrate x ∨ Vertebrate x
+axiom P2 : ∀ x : obj, Backbone x → ReproduceMF x
+axiom P3 : ∀ x : obj, Vertebrate x → Backbone x
+axiom P4 : ∀ x : obj, Bee x → ¬ ReproduceMF x
+axiom P5 : ∀ x : obj, QueenBee x → Bee x
+axiom P6 : Bee Harry
+
+-- The target statement is refutable from the premises.
+theorem not_target_statement :
+  ¬(((Vertebrate Harry ∧ Backbone Harry) ∨ (¬Vertebrate Harry ∧ ¬Backbone Harry))
+     → (¬Invertebrate Harry ∧ ¬QueenBee Harry)) := by
+  intro h
+  -- From Bee Harry and P4, Harry does not reproduce by male-and-female mating
+  have nRM : ¬ ReproduceMF Harry := P4 Harry P6
+  -- Therefore, Harry cannot have a backbone (P2 would force ReproduceMF)
+  have nBB : ¬ Backbone Harry := by
+    intro hb
+    exact nRM (P2 Harry hb)
+  -- Therefore, Harry cannot be a vertebrate (P3 would force Backbone)
+  have nV : ¬ Vertebrate Harry := by
+    intro hv
+    exact nBB (P3 Harry hv)
+  -- The antecedent holds via the right disjunct (neither vertebrate nor backbone)
+  have ante :
+    (Vertebrate Harry ∧ Backbone Harry) ∨ (¬Vertebrate Harry ∧ ¬Backbone Harry) :=
+    Or.inr (And.intro nV nBB)
+  -- Apply the assumed implication to get the conclusion
+  have concl : (¬Invertebrate Harry ∧ ¬QueenBee Harry) := h ante
+  have nInv : ¬ Invertebrate Harry := And.left concl
+  -- But from P1 and nV, we derive Invertebrate Harry
+  have disj : Invertebrate Harry ∨ Vertebrate Harry := P1 Harry
+  have inv : Invertebrate Harry :=
+    Or.elim disj (fun hi => hi) (fun hv => False.elim (nV hv))
+  -- Contradiction
+  exact nInv inv
+</lean>
+
+ANSWER: Failure

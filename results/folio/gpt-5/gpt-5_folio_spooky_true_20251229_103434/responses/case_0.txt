@@ -1,0 +1,65 @@
+<lean>
+axiom obj : Type
+
+-- Predicates
+axiom InClub : obj → Prop
+axiom PerformOften : obj → Prop
+axiom AttendsEvents : obj → Prop
+axiom EngagedEvents : obj → Prop
+axiom InactiveDisinterested : obj → Prop
+axiom ChaperoneDances : obj → Prop
+axiom StudentAtSchool : obj → Prop
+axiom YoungChild : obj → Prop
+axiom Teenager : obj → Prop
+axiom WishFurtherAcademic : obj → Prop
+
+-- Premises
+-- 1. Club members who perform often attend and are very engaged with school events.
+axiom P1 : ∀ x : obj, InClub x → (PerformOften x → (AttendsEvents x ∧ EngagedEvents x))
+-- 2. Club members either perform often or are inactive and disinterested.
+axiom P2 : ∀ x : obj, InClub x → (PerformOften x ∨ InactiveDisinterested x)
+-- 3. Club members who chaperone high school dances are not students at the school.
+axiom P3 : ∀ x : obj, (InClub x ∧ ChaperoneDances x) → ¬ StudentAtSchool x
+-- 4. Inactive and disinterested club members chaperone high school dances.
+axiom P4 : ∀ x : obj, (InClub x ∧ InactiveDisinterested x) → ChaperoneDances x
+-- 5. Young children or teenagers in the club who wish to further academics are students at the school.
+axiom P5 : ∀ x : obj, (InClub x ∧ (YoungChild x ∨ Teenager x) ∧ WishFurtherAcademic x) → StudentAtSchool x
+
+-- Bonnie and her status
+axiom Bonnie : obj
+axiom B_inClub : InClub Bonnie
+-- Bonnie either (attends and is very engaged and is a student) or (not(attends and engaged) and not a student).
+axiom B_choice :
+  (AttendsEvents Bonnie ∧ EngagedEvents Bonnie ∧ StudentAtSchool Bonnie) ∨
+  (¬ (AttendsEvents Bonnie ∧ EngagedEvents Bonnie) ∧ ¬ StudentAtSchool Bonnie)
+
+-- A useful lemma: If Bonnie is a student at the school, then she performs often.
+theorem bonnie_performs_if_student : StudentAtSchool Bonnie → PerformOften Bonnie := by
+  intro hS
+  have hC : InClub Bonnie := B_inClub
+  have h := P2 Bonnie hC
+  cases h with
+  | inl hPerf => exact hPerf
+  | inr hInact =>
+    have hChap : ChaperoneDances Bonnie := P4 Bonnie (And.intro hC hInact)
+    have hNotS : ¬ StudentAtSchool Bonnie := P3 Bonnie (And.intro hC hChap)
+    exact False.elim (hNotS hS)
+
+-- Another useful lemma: From the second disjunct of B_choice, Bonnie is inactive (hence does not perform).
+theorem bonnie_inactive_from_notA_notS :
+  (¬ (AttendsEvents Bonnie ∧ EngagedEvents Bonnie) ∧ ¬ StudentAtSchool Bonnie) → InactiveDisinterested Bonnie := by
+  intro h
+  have hC : InClub Bonnie := B_inClub
+  have hDisj : PerformOften Bonnie ∨ InactiveDisinterested Bonnie := P2 Bonnie hC
+  have hNotA : ¬ (AttendsEvents Bonnie ∧ EngagedEvents Bonnie) := And.left h
+  have hImp : PerformOften Bonnie → (AttendsEvents Bonnie ∧ EngagedEvents Bonnie) := P1 Bonnie hC
+  have hNotPerf : ¬ PerformOften Bonnie := by
+    intro hPerf
+    have hAE : AttendsEvents Bonnie ∧ EngagedEvents Bonnie := hImp hPerf
+    exact hNotA hAE
+  cases hDisj with
+  | inl hPerf => exact False.elim (hNotPerf hPerf)
+  | inr hInact => exact hInact
+</lean>
+
+ANSWER: Failure

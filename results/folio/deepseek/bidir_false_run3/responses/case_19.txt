@@ -1,0 +1,139 @@
+The goal is to prove that the negation of the conclusion follows from the premises. The conclusion is: "If Rockie is not both a turtle and a squirrel, then Rockie is either cute or skittish." Its negation is: "Rockie is not both a turtle and a squirrel, and Rockie is neither cute nor skittish."
+
+From the premises:
+- Rockie is spotted near the campus and calm.
+- Any spotted animal is either a rabbit or a squirrel.
+- If Rockie is a spotted rabbit, then Rockie is cute.
+- If Rockie is a spotted squirrel, then Rockie is skittish.
+
+Assuming the negation of the conclusion:
+- Rockie is not both a turtle and a squirrel (which is always true if Rockie is not a turtle, not a squirrel, or both; but this doesn't directly contradict).
+- Rockie is neither cute nor skittish.
+
+However, since Rockie is spotted, Rockie must be a rabbit or a squirrel:
+- If Rockie is a rabbit, then Rockie must be cute (premise 1), contradicting "not cute."
+- If Rockie is a squirrel, then Rockie must be skittish (premise 5), contradicting "not skittish."
+
+This shows that "neither cute nor skittish" leads to a contradiction. However, the first part of the negation ("not both turtle and squirrel") cannot be proven to lead to a contradiction alone, as there is no explicit disjointness between turtles and rabbits/squirrels in the premises. While the premises imply Rockie must be rabbit or squirrel, they do not preclude Rockie from also being a turtle (e.g., an animal could be both turtle and rabbit). Thus, the full negation (both parts) cannot be proven from the premises.
+
+<lean>
+axiom obj : Type
+axiom Rockie : obj
+
+axiom Spotted : obj → Prop
+axiom Rabbit : obj → Prop
+axiom Turtle : obj → Prop
+axiom Squirrel : obj → Prop
+axiom Cute : obj → Prop
+axiom Skittish : obj → Prop
+axiom Calm : obj → Prop
+
+axiom Premise1 : ∀ x, Rabbit x ∧ Spotted x → Cute x
+axiom Premise2 : ∃ x, Turtle x ∧ Spotted x
+axiom Premise3 : ∀ x, Spotted x → Rabbit x ∨ Squirrel x
+axiom Premise4 : ∀ x, Skittish x → ¬ Calm x
+axiom Premise5 : ∀ x, Squirrel x ∧ Spotted x → Skittish x
+axiom Premise6 : Spotted Rockie ∧ Calm Rockie
+
+-- Attempt to prove the negation of the conclusion: 
+-- ¬(¬(Turtle Rockie ∧ Squirrel Rockie) → (Cute Rockie ∨ Skittish Rockie))
+-- which is equivalent to: (¬(Turtle Rockie ∧ Squirrel Rockie)) ∧ ¬(Cute Rockie ∨ Skittish Rockie)
+
+theorem prove_negation : ¬(Turtle Rockie ∧ Squirrel Rockie) ∧ ¬(Cute Rockie ∨ Skittish Rockie) := by 
+  apply And.intro
+  · -- Prove ¬(Turtle Rockie ∧ Squirrel Rockie)
+    intro h 
+    -- h: Turtle Rockie ∧ Squirrel Rockie
+    -- But Premise3 requires Rockie to be Rabbit or Squirrel if spotted. 
+    -- However, no axiom prevents Rockie from also being Turtle (e.g., Rabbit and Turtle).
+    -- Cannot derive contradiction without disjointness axioms.
+    sorry
+  · -- Prove ¬(Cute Rockie ∨ Skittish Rockie)
+    intro hOr 
+    -- hOr: Cute Rockie ∨ Skittish Rockie
+    -- This case is actually impossible, but we need the first part to hold for the full conjunction.
+    have hSpotted := Premise6.left
+    have hRockieType := Premise3 Rockie hSpotted
+    cases hRockieType with
+    | inl hRabbit =>
+        have : Rabbit Rockie ∧ Spotted Rockie := ⟨hRabbit, hSpotted⟩
+        have : Cute Rockie := Premise1 Rockie this
+        -- Contradicts ¬Cute (from ¬(Cute ∨ Skittish))
+        contradiction
+    | inr hSquirrel =>
+        have : Squirrel Rockie ∧ Spotted Rockie := ⟨hSquirrel, hSpotted⟩
+        have : Skittish Rockie := Premise5 Rockie this
+        -- Contradicts ¬Skittish (from ¬(Cute ∨ Skittish))
+        contradiction
+
+-- The first subgoal cannot be proven, so the overall negation cannot be proven.
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors occurred because the `contradiction` tactic was used without having explicit contradictory hypotheses in the context. Specifically:
+1. In the rabbit case, we derived `Cute Rockie` but didn't have an explicit `¬Cute Rockie` in the context
+2. In the squirrel case, we derived `Skittish Rockie` but didn't have an explicit `¬Skittish Rockie`
+
+The corrected approach:
+- For the first conjunct (`¬(Turtle ∧ Squirrel)`), we can prove it since `Squirrel Rockie` leads to contradiction with calmness
+- For the second conjunct (`¬(Cute ∨ Skittish)`), we cannot prove it because:
+  - Rockie must be a rabbit (squirrel leads to contradiction)
+  - As a rabbit, Rockie is cute, making `Cute ∨ Skittish` true
+  - Thus `¬(Cute ∨ Skittish)` is false
+
+Here's the corrected Lean code:
+
+<lean>
+axiom obj : Type
+axiom Rockie : obj
+
+axiom Spotted : obj → Prop
+axiom Rabbit : obj → Prop
+axiom Turtle : obj → Prop
+axiom Squirrel : obj → Prop
+axiom Cute : obj → Prop
+axiom Skittish : obj → Prop
+axiom Calm : obj → Prop
+
+axiom Premise1 : ∀ x, Rabbit x ∧ Spotted x → Cute x
+axiom Premise2 : ∃ x, Turtle x ∧ Spotted x
+axiom Premise3 : ∀ x, Spotted x → Rabbit x ∨ Squirrel x
+axiom Premise4 : ∀ x, Skittish x → ¬ Calm x
+axiom Premise5 : ∀ x, Squirrel x ∧ Spotted x → Skittish x
+axiom Premise6 : Spotted Rockie ∧ Calm Rockie
+
+theorem prove_negation : ¬(Turtle Rockie ∧ Squirrel Rockie) ∧ ¬(Cute Rockie ∨ Skittish Rockie) := by 
+  apply And.intro
+  · -- Prove ¬(Turtle ∧ Squirrel)
+    intro ⟨hTurtle, hSquirrel⟩
+    have ⟨hSpotted, hCalm⟩ := Premise6
+    have hSqSpot : Squirrel Rockie ∧ Spotted Rockie := ⟨hSquirrel, hSpotted⟩
+    have hSkittish := Premise5 Rockie hSqSpot
+    have hNotCalm := Premise4 Rockie hSkittish
+    exact hNotCalm hCalm
+  · -- Attempt to prove ¬(Cute ∨ Skittish)
+    intro hOr
+    have ⟨hSpotted, hCalm⟩ := Premise6
+    have hType := Premise3 Rockie hSpotted
+    cases hType with
+    | inl hRabbit =>
+        -- Rockie is rabbit → must be cute
+        have : Rabbit Rockie ∧ Spotted Rockie := ⟨hRabbit, hSpotted⟩
+        have : Cute Rockie := Premise1 Rockie this
+        -- But hOr requires ¬(Cute ∨ Skittish), while we have Cute
+        -- Cannot derive contradiction since cute is consistent with premises
+        sorry
+    | inr hSquirrel =>
+        -- Rockie is squirrel → leads to contradiction
+        have hSqSpot : Squirrel Rockie ∧ Spotted Rockie := ⟨hSquirrel, hSpotted⟩
+        have hSkittish := Premise5 Rockie hSqSpot
+        have hNotCalm := Premise4 Rockie hSkittish
+        exact hNotCalm hCalm
+</lean>
+
+ANSWER: Failure

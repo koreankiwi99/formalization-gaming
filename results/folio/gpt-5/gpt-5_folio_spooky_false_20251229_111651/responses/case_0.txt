@@ -1,0 +1,110 @@
+<lean>
+axiom obj : Type
+
+-- Individuals
+axiom Bonnie : obj
+
+-- Predicates
+axiom InClub : obj → Prop
+axiom PerformsOften : obj → Prop
+axiom AttendsEvents : obj → Prop
+axiom VeryEngaged : obj → Prop
+axiom InactiveDisinterested : obj → Prop
+axiom ChaperonesDances : obj → Prop
+axiom StudentAtSchool : obj → Prop
+axiom YoungChild : obj → Prop
+axiom Teenager : obj → Prop
+axiom WishesFurtherAcademic : obj → Prop
+
+-- Axioms from the context
+-- 1. Club performers often attend and are very engaged with school events.
+axiom A1 : ∀ x : obj, InClub x ∧ PerformsOften x → AttendsEvents x ∧ VeryEngaged x
+
+-- 2. Club members either perform often or are inactive and disinterested.
+axiom A2 : ∀ x : obj, InClub x → PerformsOften x ∨ InactiveDisinterested x
+
+-- 3. Club members who chaperone dances are not students at the school.
+axiom A3 : ∀ x : obj, InClub x ∧ ChaperonesDances x → ¬StudentAtSchool x
+
+-- 4. Inactive and disinterested club members chaperone high school dances.
+axiom A4 : ∀ x : obj, InClub x ∧ InactiveDisinterested x → ChaperonesDances x
+
+-- 5. Young children or teenagers in the club who wish to further academics are students at the school.
+axiom A5 : ∀ x : obj, InClub x ∧ (YoungChild x ∨ Teenager x) ∧ WishesFurtherAcademic x → StudentAtSchool x
+
+-- Bonnie's specific information:
+-- Bonnie is in the club and either:
+--   (attends and is very engaged and is a student) or
+--   (not(attends and very engaged) and not a student).
+axiom Bonnie_info :
+  InClub Bonnie ∧
+  ((AttendsEvents Bonnie ∧ VeryEngaged Bonnie ∧ StudentAtSchool Bonnie) ∨
+   (¬(AttendsEvents Bonnie ∧ VeryEngaged Bonnie) ∧ ¬StudentAtSchool Bonnie))
+
+-- Some derived facts
+
+theorem Bonnie_inClub : InClub Bonnie :=
+  And.left Bonnie_info
+
+-- If Bonnie performs often, she attends and is very engaged.
+theorem Bonnie_performs_attends_engaged : PerformsOften Bonnie → AttendsEvents Bonnie ∧ VeryEngaged Bonnie := by
+  intro hperf
+  exact A1 Bonnie (And.intro Bonnie_inClub hperf)
+
+-- If Bonnie performs often, then she is a student (using her biconditional-style info).
+theorem Bonnie_performs_student : PerformsOften Bonnie → StudentAtSchool Bonnie := by
+  intro hperf
+  have hae : AttendsEvents Bonnie ∧ VeryEngaged Bonnie := A1 Bonnie (And.intro Bonnie_inClub hperf)
+  have disj := And.right Bonnie_info
+  cases disj with
+  | inl hleft =>
+      -- hleft : attends ∧ engaged ∧ student
+      exact And.right (And.right hleft)
+  | inr hright =>
+      -- hright : ¬(attends ∧ engaged) ∧ ¬student
+      have hnae : ¬(AttendsEvents Bonnie ∧ VeryEngaged Bonnie) := And.left hright
+      exact False.elim (hnae hae)
+
+-- If Bonnie is a student, then she is not inactive (since inactivity leads to chaperoning and thus not a student).
+theorem Bonnie_student_not_inactive : StudentAtSchool Bonnie → ¬InactiveDisinterested Bonnie := by
+  intro hstu
+  intro hinact
+  have hchap : ChaperonesDances Bonnie := A4 Bonnie (And.intro Bonnie_inClub hinact)
+  have hnotstu : ¬StudentAtSchool Bonnie := A3 Bonnie (And.intro Bonnie_inClub hchap)
+  exact hnotstu hstu
+
+-- If Bonnie does not perform often, then she is inactive (by the club either-or rule).
+theorem Bonnie_not_performs_inactive : ¬PerformsOften Bonnie → InactiveDisinterested Bonnie := by
+  intro hnp
+  have disj := A2 Bonnie Bonnie_inClub
+  cases disj with
+  | inl hp => exact False.elim (hnp hp)
+  | inr hinact => exact hinact
+
+-- If Bonnie is inactive, then she is not a student.
+theorem Bonnie_inactive_not_student : InactiveDisinterested Bonnie → ¬StudentAtSchool Bonnie := by
+  intro hinact
+  have hchap : ChaperonesDances Bonnie := A4 Bonnie (And.intro Bonnie_inClub hinact)
+  exact A3 Bonnie (And.intro Bonnie_inClub hchap)
+
+-- From Bonnie's info, if she is not a student, then she is not both attending and very engaged.
+theorem Bonnie_not_student_not_attend_engaged : ¬StudentAtSchool Bonnie → ¬(AttendsEvents Bonnie ∧ VeryEngaged Bonnie) := by
+  intro hns
+  have disj := And.right Bonnie_info
+  cases disj with
+  | inl hleft =>
+      -- hleft : attends ∧ engaged ∧ student
+      have hs : StudentAtSchool Bonnie := And.right (And.right hleft)
+      exact False.elim (hns hs)
+  | inr hright =>
+      exact And.left hright
+
+-- If Bonnie is in the club and not both attending and engaged, she does not perform often.
+theorem not_attend_engaged_implies_not_performs (x : obj) :
+  InClub x → ¬(AttendsEvents x ∧ VeryEngaged x) → ¬PerformsOften x := by
+  intro hc hnae
+  intro hp
+  exact hnae (A1 x (And.intro hc hp))
+</lean>
+
+ANSWER: Failure

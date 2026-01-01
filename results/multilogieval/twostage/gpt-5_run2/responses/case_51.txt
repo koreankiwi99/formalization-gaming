@@ -1,0 +1,99 @@
+======================================================================
+STAGE 1: TRANSLATION
+======================================================================
+
+--- Iteration 1 ---
+
+<lean>
+axiom Person : Type
+axiom Mary : Person
+
+axiom Sale : Prop
+axiom PricesUp : Prop
+axiom Payday : Prop
+
+axiom Stock : Person → Prop
+axiom MakeList : Person → Prop
+axiom Plan : Person → Prop
+
+-- If the supermarket has a sale, then people will stock up on groceries.
+axiom P1 : ∀ x : Person, Sale → Stock x
+
+-- If someone makes a shopping list, then they plan what to buy.
+axiom P2 : ∀ x : Person, MakeList x → Plan x
+
+-- Either the store has a sale, or people don't plan what to buy, or there's a sale but they don't plan ahead.
+axiom P3 : Sale ∨ (∀ x : Person, ¬ Plan x) ∨ (Sale ∧ (∀ x : Person, ¬ Plan x))
+
+-- If payday was this week, then people make a shopping list.
+axiom P4 : ∀ x : Person, Payday → MakeList x
+
+-- Either it was payday this week, or prices went up recently, or both.
+axiom P5 : Payday ∨ PricesUp ∨ (Payday ∧ PricesUp)
+
+-- Conclusion: If Mary did not stock up on groceries, then prices went up recently.
+theorem goal : (¬ Stock Mary) → PricesUp := sorry
+</lean>
+
+
+======================================================================
+STAGE 2: PROVING
+======================================================================
+
+--- Iteration 1 ---
+
+<lean>
+axiom Person : Type
+axiom Mary : Person
+
+axiom Sale : Prop
+axiom PricesUp : Prop
+axiom Payday : Prop
+
+axiom Stock : Person → Prop
+axiom MakeList : Person → Prop
+axiom Plan : Person → Prop
+
+-- If the supermarket has a sale, then people will stock up on groceries.
+axiom P1 : ∀ x : Person, Sale → Stock x
+
+-- If someone makes a shopping list, then they plan what to buy.
+axiom P2 : ∀ x : Person, MakeList x → Plan x
+
+-- Either the store has a sale, or people don't plan what to buy, or there's a sale but they don't plan ahead.
+axiom P3 : Sale ∨ (∀ x : Person, ¬ Plan x) ∨ (Sale ∧ (∀ x : Person, ¬ Plan x))
+
+-- If payday was this week, then people make a shopping list.
+axiom P4 : ∀ x : Person, Payday → MakeList x
+
+-- Either it was payday this week, or prices went up recently, or both.
+axiom P5 : Payday ∨ PricesUp ∨ (Payday ∧ PricesUp)
+
+-- Conclusion: If Mary did not stock up on groceries, then prices went up recently.
+theorem goal : (¬ Stock Mary) → PricesUp :=
+by
+  intro hNotStock
+  have hNotSale : ¬ Sale := by
+    intro hSale
+    exact hNotStock (P1 Mary hSale)
+  cases P5 with
+  | inl hPayday =>
+      cases P3 with
+      | inl hSale =>
+          exact False.elim (hNotSale hSale)
+      | inr hRest =>
+          cases hRest with
+          | inl hForallNotPlan =>
+              have hMake : MakeList Mary := P4 Mary hPayday
+              have hPlan : Plan Mary := P2 Mary hMake
+              have hNotPlan : ¬ Plan Mary := hForallNotPlan Mary
+              exact False.elim (hNotPlan hPlan)
+          | inr hSaleAndForall =>
+              have hSale : Sale := hSaleAndForall.left
+              exact False.elim (hNotSale hSale)
+  | inr hRest =>
+      cases hRest with
+      | inl hPricesUp => exact hPricesUp
+      | inr hPaydayAndPricesUp => exact hPaydayAndPricesUp.right
+</lean>
+ANSWER: Yes

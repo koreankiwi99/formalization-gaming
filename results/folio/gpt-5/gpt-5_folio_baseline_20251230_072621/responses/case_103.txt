@@ -1,0 +1,60 @@
+<lean>
+axiom obj : Type
+axiom Luke : obj
+
+-- Predicates
+axiom MultipleBirth : obj → Prop
+axiom SpendTimeWithSiblings : obj → Prop
+axiom HaveSiblingsBornTogether : obj → Prop
+axiom ComplainsOften : obj → Prop
+axiom LiveAtHome : obj → Prop
+axiom LiveWithStrangers : obj → Prop
+axiom Baby : obj → Prop
+
+-- Rules from the context
+axiom R1 : ∀ x : obj, MultipleBirth x → SpendTimeWithSiblings x
+axiom R2 : ∀ x : obj, HaveSiblingsBornTogether x → MultipleBirth x
+axiom R3 : ∀ x : obj, ComplainsOften x → HaveSiblingsBornTogether x
+axiom R4 : ∀ x : obj, LiveAtHome x → ¬ LiveWithStrangers x
+axiom R5 : ∀ x : obj, SpendTimeWithSiblings x → LiveAtHome x
+
+-- Luke's disjunction:
+-- Either (Baby and MultipleBirth and LiveWithStrangers) or (not (Baby and MultipleBirth) and not LiveWithStrangers)
+axiom Luke_disj :
+  (Baby Luke ∧ MultipleBirth Luke ∧ LiveWithStrangers Luke) ∨
+  (¬ (Baby Luke ∧ MultipleBirth Luke) ∧ ¬ LiveWithStrangers Luke)
+
+-- Derived: MultipleBirth implies not LiveWithStrangers (by chaining R1, R5, R4)
+theorem multipleBirth_no_strangers : ∀ x : obj, MultipleBirth x → ¬ LiveWithStrangers x :=
+  fun x h => R4 x (R5 x (R1 x h))
+
+-- Using the above, the first disjunct in Luke_disj is impossible, so we obtain the second disjunct.
+theorem luke_not_baby_and_multi_and_not_strangers :
+  (¬ (Baby Luke ∧ MultipleBirth Luke)) ∧ (¬ LiveWithStrangers Luke) :=
+by
+  have not_first :
+    ¬ (Baby Luke ∧ MultipleBirth Luke ∧ LiveWithStrangers Luke) :=
+  by
+    intro h
+    have hMB : MultipleBirth Luke := h.right.left
+    have hStr : LiveWithStrangers Luke := h.right.right
+    have hNotStr : ¬ LiveWithStrangers Luke := multipleBirth_no_strangers Luke hMB
+    exact hNotStr hStr
+  cases Luke_disj with
+  | inl hA =>
+      exact False.elim (not_first hA)
+  | inr hB =>
+      exact hB
+
+-- Target statement (question): ¬MultipleBirth Luke ∧ ¬ComplainsOften Luke
+-- We cannot derive this, nor its negation, from the given axioms.
+-- Reason:
+-- - From the context we can show ¬LiveWithStrangers Luke (as above), but this gives no information about ComplainsOften Luke.
+-- - ComplainsOften Luke → MultipleBirth Luke, but knowing ¬LiveWithStrangers does not allow inferring ¬ComplainsOften.
+-- - The disjunction only yields ¬(Baby Luke ∧ MultipleBirth Luke), not ¬MultipleBirth Luke.
+-- Therefore, neither ¬MultipleBirth Luke ∧ ¬ComplainsOften Luke nor its negation is provable.
+-- theorem target : ¬ MultipleBirth Luke ∧ ¬ ComplainsOften Luke := ?_  -- not derivable
+-- theorem not_target : ¬ (¬ MultipleBirth Luke ∧ ¬ ComplainsOften Luke) := ?_  -- also not derivable
+</lean>
+
+ANSWER: Uncertain

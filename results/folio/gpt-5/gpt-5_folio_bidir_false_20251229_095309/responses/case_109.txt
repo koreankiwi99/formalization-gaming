@@ -1,0 +1,242 @@
+<lean>
+axiom obj : Type
+axiom Peter : obj
+
+axiom Spill : obj → Prop
+axiom Tidy : obj → Prop
+axiom Clean : obj → Prop
+axiom ValueOrder : obj → Prop
+axiom FamilyPrioritizesOrder : obj → Prop
+axiom ClumsyFoodie : obj → Prop
+axiom GoesOutFrequently : obj → Prop
+
+-- If people spill a lot of food on their clothing, then they are not notably tidy.
+axiom R1 : ∀ x : obj, Spill x → ¬ Tidy x
+-- All clumsy foodies who go out frequently are people who spill a lot of food on their clothing.
+axiom R2 : ∀ x : obj, ClumsyFoodie x ∧ GoesOutFrequently x → Spill x
+-- If people are cleanly, then they are notably tidy.
+axiom R3 : ∀ x : obj, Clean x → Tidy x
+-- If people value order and spotlessness, then they are cleanly.
+axiom R4 : ∀ x : obj, ValueOrder x → Clean x
+-- All people whose families prioritize order and spotlessness themselves value order and spotlessness.
+axiom R5 : ∀ x : obj, FamilyPrioritizesOrder x → ValueOrder x
+-- Peter is either (spills and cleanly) or (does not spill and not cleanly).
+axiom R6 : (Spill Peter ∧ Clean Peter) ∨ (¬ Spill Peter ∧ ¬ Clean Peter)
+
+-- Clean Peter leads to contradiction (hence ¬Clean Peter).
+lemma clean_implies_false_for_Peter : Clean Peter → False := by
+  intro c
+  have disj := R6
+  apply Or.elim disj
+  · intro h
+    have s : Spill Peter := And.left h
+    have t : Tidy Peter := R3 Peter c
+    have nt : ¬ Tidy Peter := R1 Peter s
+    exact nt t
+  · intro h
+    have nc : ¬ Clean Peter := And.right h
+    exact nc c
+
+-- Hence Peter's family does not prioritize order and spotlessness.
+theorem not_FamilyPrioritizesOrder_Peter : ¬ FamilyPrioritizesOrder Peter := by
+  intro fpo
+  have vo : ValueOrder Peter := R5 Peter fpo
+  have c : Clean Peter := R4 Peter vo
+  exact clean_implies_false_for_Peter c
+
+-- Peter is not (a clumsy foodie who goes out frequently).
+theorem not_CF_and_GO_Peter : ¬ (ClumsyFoodie Peter ∧ GoesOutFrequently Peter) := by
+  intro hcfgo
+  have s : Spill Peter := R2 Peter hcfgo
+  -- Derive Clean Peter from R6 and s
+  have disj := R6
+  have c : Clean Peter := by
+    apply Or.elim disj
+    · intro h
+      exact And.right h
+    · intro h
+      have ns : ¬ Spill Peter := And.left h
+      exact False.elim (ns s)
+  -- Now contradiction from s and c
+  have t : Tidy Peter := R3 Peter c
+  have nt : ¬ Tidy Peter := R1 Peter s
+  exact nt t
+
+-- Formalize the statement to evaluate:
+-- Either (CF ∧ GO ∧ FPO) or (¬(CF ∧ GO) ∧ ¬FPO)
+def Statement : Prop :=
+  (ClumsyFoodie Peter ∧ GoesOutFrequently Peter ∧ FamilyPrioritizesOrder Peter) ∨
+  ((¬ (ClumsyFoodie Peter ∧ GoesOutFrequently Peter)) ∧ (¬ FamilyPrioritizesOrder Peter))
+
+-- In fact, the statement is provable from the premises (so its negation is not derivable).
+theorem statement_true : Statement := by
+  right
+  constructor
+  · exact not_CF_and_GO_Peter
+  · exact not_FamilyPrioritizesOrder_Peter
+
+-- Therefore, we cannot prove ¬Statement from the given axioms.
+-- theorem statement_false : ¬Statement := by
+--   -- Cannot be proven; the statement is actually true (see statement_true).
+--   admit
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom obj : Type
+axiom Peter : obj
+
+axiom Spill : obj → Prop
+axiom Tidy : obj → Prop
+axiom Clean : obj → Prop
+axiom ValueOrder : obj → Prop
+axiom FamilyPrioritizesOrder : obj → Prop
+axiom ClumsyFoodie : obj → Prop
+axiom GoesOutFrequently : obj → Prop
+
+-- If people spill a lot of food on their clothing, then they are not notably tidy.
+axiom R1 : ∀ x : obj, Spill x → ¬ Tidy x
+-- All clumsy foodies who go out frequently are people who spill a lot of food on their clothing.
+axiom R2 : ∀ x : obj, ClumsyFoodie x ∧ GoesOutFrequently x → Spill x
+-- If people are cleanly, then they are notably tidy.
+axiom R3 : ∀ x : obj, Clean x → Tidy x
+-- If people value order and spotlessness, then they are cleanly.
+axiom R4 : ∀ x : obj, ValueOrder x → Clean x
+-- All people whose families prioritize order and spotlessness themselves value order and spotlessness.
+axiom R5 : ∀ x : obj, FamilyPrioritizesOrder x → ValueOrder x
+-- Peter is either (spills and cleanly) or (does not spill and not cleanly).
+axiom R6 : (Spill Peter ∧ Clean Peter) ∨ (¬ Spill Peter ∧ ¬ Clean Peter)
+
+lemma not_spill_and_clean : ¬ (Spill Peter ∧ Clean Peter) := by
+  intro h
+  have s : Spill Peter := h.left
+  have c : Clean Peter := h.right
+  have t : Tidy Peter := R3 Peter c
+  have nt : ¬ Tidy Peter := R1 Peter s
+  exact nt t
+
+lemma not_clean_Peter : ¬ Clean Peter := by
+  intro c
+  cases R6 with
+  | inl h =>
+      have s : Spill Peter := h.left
+      have t : Tidy Peter := R3 Peter c
+      have nt : ¬ Tidy Peter := R1 Peter s
+      exact nt t
+  | inr h =>
+      exact h.right c
+
+theorem not_FamilyPrioritizesOrder_Peter : ¬ FamilyPrioritizesOrder Peter := by
+  intro fpo
+  have vo : ValueOrder Peter := R5 Peter fpo
+  have c : Clean Peter := R4 Peter vo
+  exact not_clean_Peter c
+
+theorem not_CF_and_GO_Peter : ¬ (ClumsyFoodie Peter ∧ GoesOutFrequently Peter) := by
+  intro hcfgo
+  have s : Spill Peter := R2 Peter hcfgo
+  cases R6 with
+  | inl h =>
+      have c : Clean Peter := h.right
+      have t : Tidy Peter := R3 Peter c
+      have nt : ¬ Tidy Peter := R1 Peter s
+      exact nt t
+  | inr h =>
+      exact False.elim (h.left s)
+
+-- Statement to evaluate
+def Statement : Prop :=
+  (ClumsyFoodie Peter ∧ GoesOutFrequently Peter ∧ FamilyPrioritizesOrder Peter) ∨
+  ((¬ (ClumsyFoodie Peter ∧ GoesOutFrequently Peter)) ∧ (¬ FamilyPrioritizesOrder Peter))
+
+-- The statement is actually true from the premises.
+theorem statement_true : Statement := by
+  right
+  constructor
+  · exact not_CF_and_GO_Peter
+  · exact not_FamilyPrioritizesOrder_Peter
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+<lean>
+axiom obj : Type
+axiom Peter : obj
+
+axiom Spill : obj → Prop
+axiom Tidy : obj → Prop
+axiom Clean : obj → Prop
+axiom ValueOrder : obj → Prop
+axiom FamilyPrioritizesOrder : obj → Prop
+axiom ClumsyFoodie : obj → Prop
+axiom GoesOutFrequently : obj → Prop
+
+-- If people spill a lot of food on their clothing, then they are not notably tidy.
+axiom R1 : ∀ x : obj, Spill x → ¬ Tidy x
+-- All clumsy foodies who go out frequently are people who spill a lot of food on their clothing.
+axiom R2 : ∀ x : obj, ClumsyFoodie x ∧ GoesOutFrequently x → Spill x
+-- If people are cleanly, then they are notably tidy.
+axiom R3 : ∀ x : obj, Clean x → Tidy x
+-- If people value order and spotlessness, then they are cleanly.
+axiom R4 : ∀ x : obj, ValueOrder x → Clean x
+-- All people whose families prioritize order and spotlessness themselves value order and spotlessness.
+axiom R5 : ∀ x : obj, FamilyPrioritizesOrder x → ValueOrder x
+-- Peter is either (spills and cleanly) or (does not spill and not cleanly).
+axiom R6 : (Spill Peter ∧ Clean Peter) ∨ (¬ Spill Peter ∧ ¬ Clean Peter)
+
+theorem not_clean_Peter : ¬ Clean Peter := by
+  intro c
+  have disj := R6
+  apply Or.elim disj
+  · intro h
+    have s : Spill Peter := h.left
+    have t : Tidy Peter := R3 Peter c
+    have nt : ¬ Tidy Peter := R1 Peter s
+    exact nt t
+  · intro h
+    exact h.right c
+
+theorem not_FamilyPrioritizesOrder_Peter : ¬ FamilyPrioritizesOrder Peter := by
+  intro fpo
+  have vo : ValueOrder Peter := R5 Peter fpo
+  have c : Clean Peter := R4 Peter vo
+  exact not_clean_Peter c
+
+theorem not_CF_and_GO_Peter : ¬ (ClumsyFoodie Peter ∧ GoesOutFrequently Peter) := by
+  intro hcfgo
+  have s : Spill Peter := R2 Peter hcfgo
+  have disj := R6
+  apply Or.elim disj
+  · intro h
+    have c : Clean Peter := h.right
+    have t : Tidy Peter := R3 Peter c
+    have nt : ¬ Tidy Peter := R1 Peter s
+    exact nt t
+  · intro h
+    have ns : ¬ Spill Peter := h.left
+    exact False.elim (ns s)
+
+-- Statement to evaluate:
+-- Either (CF ∧ GO ∧ FPO) or (¬(CF ∧ GO) ∧ ¬FPO)
+def Statement : Prop :=
+  (ClumsyFoodie Peter ∧ GoesOutFrequently Peter ∧ FamilyPrioritizesOrder Peter) ∨
+  ((¬ (ClumsyFoodie Peter ∧ GoesOutFrequently Peter)) ∧ (¬ FamilyPrioritizesOrder Peter))
+
+-- The statement is derivable from the premises.
+theorem statement_true : Statement := by
+  right
+  constructor
+  · exact not_CF_and_GO_Peter
+  · exact not_FamilyPrioritizesOrder_Peter
+</lean>
+
+ANSWER: Failure

@@ -1,0 +1,54 @@
+<lean>
+axiom person : Type
+axiom Mary : person
+
+axiom SnowOnGround : Prop
+axiom BelowFreezing : Prop
+axiom EnoughSnow : Prop
+
+axiom LovesWinter : person → Prop
+axiom BuildsSnowman : person → Prop
+
+-- If the temperature dropped below freezing, then there would be snow on the ground.
+axiom A1 : BelowFreezing → SnowOnGround
+
+-- If someone builds a snowman, that meant there was enough snow.
+axiom A2 : ∀ x : person, BuildsSnowman x → EnoughSnow
+
+-- They were certain that either it was below freezing, or there was not enough snow,
+-- or it was below freezing and there was not enough snow.
+axiom A3 : BelowFreezing ∨ ¬EnoughSnow ∨ (BelowFreezing ∧ ¬EnoughSnow)
+
+-- If someone loves winter, then they build snowmen.
+axiom A4 : ∀ x : person, LovesWinter x → BuildsSnowman x
+
+theorem not_snow_imp_not_enough : ¬SnowOnGround → ¬EnoughSnow := by
+  intro hNoSnow
+  have hNotBelow : ¬BelowFreezing := by
+    intro hB
+    have : SnowOnGround := A1 hB
+    exact hNoSnow this
+  cases A3 with
+  | inl hB =>
+      exact fun _ => False.elim (hNotBelow hB)
+  | inr hrest =>
+      cases hrest with
+      | inl hNotEnough => exact hNotEnough
+      | inr hBoth =>
+          have hB : BelowFreezing := hBoth.left
+          exact fun _ => False.elim (hNotBelow hB)
+
+theorem love_imp_enough (x : person) : LovesWinter x → EnoughSnow := by
+  intro hL
+  have hB : BuildsSnowman x := A4 x hL
+  exact A2 x hB
+
+theorem no_snow_imp_not_love_mary : ¬SnowOnGround → ¬LovesWinter Mary := by
+  intro hNoSnow
+  intro hLove
+  have hEnough : EnoughSnow := love_imp_enough Mary hLove
+  have hNotEnough : ¬EnoughSnow := not_snow_imp_not_enough hNoSnow
+  exact hNotEnough hEnough
+</lean>
+
+ANSWER: No

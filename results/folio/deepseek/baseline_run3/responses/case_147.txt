@@ -1,0 +1,48 @@
+<lean>
+axiom Person : Type
+
+-- Predicates
+axiom CanRegister : Person → Prop
+axiom CanParticipate : Person → Prop
+axiom USCitizen : Person → Prop
+axiom TaiwaneseCitizen : Person → Prop
+axiom RussianOfficial : Person → Prop
+axiom ManagerGazprom : Person → Prop
+
+-- Constants
+axiom Ekaterina : Person
+axiom Vladimir : Person
+
+-- Axioms
+axiom A1 : ∀ p : Person, CanRegister p → CanParticipate p
+axiom A2 : ∀ p : Person, USCitizen p → CanRegister p
+axiom A3 : ∀ p : Person, USCitizen p ∨ TaiwaneseCitizen p
+axiom A4 : ∀ p : Person, RussianOfficial p → ¬ TaiwaneseCitizen p
+axiom A5 : ¬ TaiwaneseCitizen Vladimir ∧ ¬ ManagerGazprom Vladimir
+axiom A6 : CanRegister Ekaterina ∨ RussianOfficial Ekaterina
+
+-- Theorem to prove: Ekaterina can participate OR Vladimir is a manager
+theorem target : CanParticipate Ekaterina ∨ ManagerGazprom Vladimir := by
+  -- Since Vladimir is not a manager (from A5), we focus on Ekaterina
+  have no_manager : ¬ ManagerGazprom Vladimir := A5.right
+  -- Consider cases from A6
+  cases A6 with
+  | inl reg_ek =>
+    -- Ekaterina can register → can participate by A1
+    exact Or.inl (A1 Ekaterina reg_ek)
+  | inr off_ek =>
+    -- Ekaterina is a Russian official
+    have no_taiwan : ¬ TaiwaneseCitizen Ekaterina := A4 Ekaterina off_ek
+    -- By A3, she must have US citizenship (since no Taiwanese)
+    have us_or_taiwan : USCitizen Ekaterina ∨ TaiwaneseCitizen Ekaterina := A3 Ekaterina
+    cases us_or_taiwan with
+    | inl us_ek =>
+      -- US citizenship → can register → can participate
+      have reg_ek : CanRegister Ekaterina := A2 Ekaterina us_ek
+      exact Or.inl (A1 Ekaterina reg_ek)
+    | inr taiwan_ek =>
+      -- Contradiction: she has Taiwanese citizenship but A4 says she doesn't
+      contradiction
+</lean>
+
+ANSWER: True

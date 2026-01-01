@@ -1,0 +1,47 @@
+After analyzing the premises and the conclusion, I translated the natural language reasoning into Lean 4 code. The key insight is:
+
+- Rockie is calm and spotted (premise 6).
+- Spotted animals are either rabbits or squirrels (premise 3).
+- If Rockie were a squirrel, it would be skittish (premise 5), but skittish implies not calm (premise 4), contradicting Rockie's calmness. Thus, Rockie cannot be a squirrel.
+- Therefore, Rockie must be a rabbit.
+- As a spotted rabbit, Rockie is cute (premise 1).
+- The consequence is true (Rockie is cute), making the implication true regardless of the antecedent.
+
+The Lean proof confirms this reasoning:
+
+<lean>
+axiom Animal : Type
+axiom Rockie : Animal
+axiom SpottedNearCampus : Animal → Prop
+axiom Rabbit : Animal → Prop
+axiom Squirrel : Animal → Prop
+axiom Turtle : Animal → Prop
+axiom Cute : Animal → Prop
+axiom Skittish : Animal → Prop
+axiom Calm : Animal → Prop
+
+axiom P1 : ∀ x, Rabbit x ∧ SpottedNearCampus x → Cute x
+axiom P3 : ∀ x, SpottedNearCampus x → Rabbit x ∨ Squirrel x
+axiom P4 : ∀ x, Skittish x → ¬ Calm x
+axiom P5 : ∀ x, Squirrel x ∧ SpottedNearCampus x → Skittish x
+axiom P6 : SpottedNearCampus Rockie ∧ Calm Rockie
+
+theorem conclusion : (¬ (Turtle Rockie ∧ Squirrel Rockie) → (Cute Rockie ∨ Skittish Rockie)) :=
+  fun _ ↦ 
+  have spotted : SpottedNearCampus Rockie := P6.left
+  have calm : Calm Rockie := P6.right
+  have notSquirrel : ¬ Squirrel Rockie := 
+    fun h : Squirrel Rockie ↦ 
+    have squirrel_skittish : Skittish Rockie := P5 Rockie ⟨h, spotted⟩
+    have not_calm : ¬ Calm Rockie := P4 Rockie squirrel_skittish
+    not_calm calm
+  have rabbit_or_squirrel : Rabbit Rockie ∨ Squirrel Rockie := P3 Rockie spotted
+  have rabbit : Rabbit Rockie := 
+    Or.elim rabbit_or_squirrel 
+      id 
+      (fun squirrel_case ↦ absurd squirrel_case notSquirrel)
+  have cute : Cute Rockie := P1 Rockie ⟨rabbit, spotted⟩
+  Or.inl cute
+</lean>
+
+ANSWER: True

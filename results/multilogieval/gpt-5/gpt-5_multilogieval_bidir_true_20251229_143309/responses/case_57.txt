@@ -1,0 +1,52 @@
+<lean>
+axiom obj : Type
+axiom John : obj
+
+axiom Sale : Prop
+axiom BuyMore : obj → Prop
+axiom GoesGroceryShopping : obj → Prop
+axiom GotEverythingOnList : obj → Prop
+axiom BeginningOfMonth : Prop
+axiom FavoriteCerealSoldOut : obj → Prop
+
+-- If the store has a sale, then people will buy more items.
+axiom A1 : ∀ x : obj, Sale → BuyMore x
+-- If someone goes grocery shopping, then they will get everything on their list.
+axiom A2 : ∀ x : obj, GoesGroceryShopping x → GotEverythingOnList x
+-- Either the store has a sale, or they did not get everything on their list, or there was a sale and they still did not get all their groceries. (instantiated for John)
+axiom A3 : Sale ∨ ¬ GotEverythingOnList John ∨ (Sale ∧ ¬ GotEverythingOnList John)
+-- If it is the beginning of the month, then people go grocery shopping.
+axiom A4 : ∀ x : obj, BeginningOfMonth → GoesGroceryShopping x
+-- Either it is the beginning of the month, or their favorite cereal is sold out (instantiated for John).
+axiom A5 : BeginningOfMonth ∨ FavoriteCerealSoldOut John
+
+-- From "John did not buy more items" conclude "John's favorite cereal was sold out".
+theorem john_cereal_sold_out_of_not_buymore : ¬ BuyMore John → FavoriteCerealSoldOut John := by
+  intro hnb
+  -- From not (BuyMore John) and Sale → BuyMore John, deduce not Sale.
+  have hnsale : ¬ Sale := by
+    intro hsale
+    exact hnb (A1 John hsale)
+  -- From the disjunction A3 and not Sale, deduce John did not get everything on his list.
+  have hnotall : ¬ GotEverythingOnList John := by
+    cases A3 with
+    | inl hsale =>
+      intro _
+      exact hnsale hsale
+    | inr h =>
+      cases h with
+      | inl hnotall => exact hnotall
+      | inr hsale_and_hnotall => exact hsale_and_hnotall.right
+  -- If it is the beginning of the month, then John gets everything on his list; contrapose to get not beginning of the month.
+  have hnot_begin : ¬ BeginningOfMonth := by
+    intro hb
+    have gs : GoesGroceryShopping John := A4 John hb
+    have hall : GotEverythingOnList John := A2 John gs
+    exact hnotall hall
+  -- From (BeginningOfMonth ∨ FavoriteCerealSoldOut John) and not BeginningOfMonth, deduce FavoriteCerealSoldOut John.
+  cases A5 with
+  | inl hb => exact False.elim (hnot_begin hb)
+  | inr hsold => exact hsold
+</lean>
+
+ANSWER: Yes

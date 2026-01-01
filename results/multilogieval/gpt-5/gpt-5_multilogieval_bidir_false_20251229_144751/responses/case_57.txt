@@ -1,0 +1,70 @@
+<lean>
+axiom obj : Type
+axiom John : obj
+
+axiom BuyMore : obj → Prop
+axiom GoShop : obj → Prop
+axiom GotAll : obj → Prop
+axiom SoldOut : obj → Prop
+
+axiom Sale : Prop
+axiom Beginning : Prop
+
+-- If the store has a sale, then people (John) will buy more items.
+axiom R_sale_buy : Sale → BuyMore John
+-- If someone goes grocery shopping, then they will get everything on their list.
+axiom R_shop_get : ∀ x : obj, GoShop x → GotAll x
+-- Either the store has a sale, or they did not get everything on their list, or both sale and not get everything.
+axiom D1 : Sale ∨ ¬GotAll John ∨ (Sale ∧ ¬GotAll John)
+-- If it is the beginning of the month, then people (John) go grocery shopping.
+axiom R_begin_shop : Beginning → GoShop John
+-- Either it is the beginning of the month, or their favorite cereal is sold out, or both.
+axiom D2 : Beginning ∨ SoldOut John ∨ (Beginning ∧ SoldOut John)
+
+-- Assumption from the query: John did not buy more items.
+axiom NotBuy : ¬BuyMore John
+
+-- From NotBuy and Sale → BuyMore, we get ¬Sale.
+theorem not_sale : ¬Sale := by
+  intro hs
+  have bm : BuyMore John := R_sale_buy hs
+  exact NotBuy bm
+
+-- From D1 and ¬Sale, derive ¬GotAll John.
+theorem not_gotall : ¬GotAll John := by
+  have ns : ¬Sale := not_sale
+  apply Or.elim D1
+  · intro hs
+    exact False.elim (ns hs)
+  · intro h2
+    apply Or.elim h2
+    · intro hng
+      exact hng
+    · intro hpair
+      exact And.right hpair
+
+-- From Beginning → GoShop → GotAll and ¬GotAll, derive ¬Beginning.
+theorem not_begin : ¬Beginning := by
+  intro hb
+  have gs : GoShop John := R_begin_shop hb
+  have ga : GotAll John := R_shop_get John gs
+  have hng : ¬GotAll John := not_gotall
+  exact hng ga
+
+-- From D2 and ¬Beginning, derive SoldOut John.
+theorem soldout : SoldOut John := by
+  have nb : ¬Beginning := not_begin
+  apply Or.elim D2
+  · intro hb
+    exact False.elim (nb hb)
+  · intro h2
+    apply Or.elim h2
+    · intro so
+      exact so
+    · intro hpair
+      exact And.right hpair
+
+-- Cannot prove ¬SoldOut John from given axioms; in fact, we can derive SoldOut John (see 'soldout').
+</lean>
+
+ANSWER: Failure

@@ -1,0 +1,66 @@
+The Lean formalization below translates the given premises into logical axioms and attempts to prove that "John does not have a larger family". The proof strategy assumes John has a larger family and derives a contradiction from the premises. However, after careful analysis, no contradiction is found under either interpretation of premise 5 (whether it negates the conjunction or separates the negation). Premise 4 provides an existential statement about some individuals but does not constrain John specifically. The cases derived from premise 6 (well-attended wedding or inviting friends) do not lead to an inconsistency with the other premises. Thus, the proof fails.
+
+<lean>
+axiom Person : Type
+axiom John : Person
+axiom MakesWeddingPlans : Person → Prop
+axiom Engaged : Person → Prop
+axiom InvitesOthers : Person → Prop
+axiom HasWellAttendedWedding : Person → Prop
+axiom HasLargerFamily : Person → Prop
+axiom InvitesFriends : Person → Prop
+
+-- Premise 1: All people who make wedding plans are engaged.
+axiom P1 : ∀ x : Person, MakesWeddingPlans x → Engaged x
+-- Premise 2: All who invite others to their ceremony make wedding plans.
+axiom P2 : ∀ x : Person, InvitesOthers x → MakesWeddingPlans x
+-- Premise 3: Anyone with a well-attended wedding invites others.
+axiom P3 : ∀ x : Person, HasWellAttendedWedding x → InvitesOthers x
+-- Premise 4: Some with well-attended weddings have larger families (not used for John).
+axiom P4 : ∃ x : Person, HasWellAttendedWedding x ∧ HasLargerFamily x
+-- Premise 5a: If engaged, John does not (invite friends AND make wedding plans).
+axiom P5a : Engaged John → ¬ (InvitesFriends John ∧ MakesWeddingPlans John)
+-- Premise 5b: Alternative interpretation (if engaged, John does not invite friends AND makes wedding plans).
+axiom P5b : Engaged John → (¬ InvitesFriends John) ∧ MakesWeddingPlans John
+-- Premise 6: If John has a larger family, he has a well-attended wedding or invites friends.
+axiom P6 : HasLargerFamily John → (HasWellAttendedWedding John ∨ InvitesFriends John)
+
+-- Attempt to prove ¬HasLargerFamily John using P5a (fails).
+theorem proof_attempt_P5a : ¬ HasLargerFamily John := by
+  intro hLarger
+  have h6 := P6 hLarger
+  cases h6 with
+  | inl hWell =>
+    have hInvOthers := P3 John hWell
+    have hPlans := P2 John hInvOthers
+    have hEngaged := P1 John hPlans
+    have h5 := P5a hEngaged
+    -- No contradiction: h5 only blocks inviting friends if also making plans, but we lack InvitesFriends.
+    admit
+  | inr hInvFriends =>
+    -- No rule forces engaged or plans from inviting friends alone. Avoid contradiction by not having plans.
+    admit
+
+-- Attempt to prove ¬HasLargerFamily John using P5b (fails).
+theorem proof_attempt_P5b : ¬ HasLargerFamily John := by
+  intro hLarger
+  have h6 := P6 hLarger
+  cases h6 with
+  | inl hWell =>
+    have hInvOthers := P3 John hWell
+    have hPlans := P2 John hInvOthers
+    have hEngaged := P1 John hPlans
+    have h5 := P5b hEngaged
+    -- ¬InvitesFriends John is consistent; no contradiction.
+    admit
+  | inr hInvFriends =>
+    by_cases hEngaged : Engaged John
+    · have h5 := P5b hEngaged
+      exact h5.1 hInvFriends  -- Contradiction: ¬InvitesFriends vs hInvFriends.
+    · -- Not engaged: no constraint from P5b. Inviting friends without plans is allowed.
+      admit
+
+-- Both proof attempts fail; conclusion cannot be proven.
+</lean>
+
+ANSWER: Failure

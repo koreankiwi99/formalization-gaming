@@ -1,0 +1,47 @@
+<lean>
+axiom Alg : Type
+axiom Model : Type
+axiom SOTA : Model
+
+axiom IsML : Alg → Prop
+axiom Supervised : Alg → Prop
+axiom Unsupervised : Alg → Prop
+axiom Reinforcement : Alg → Prop
+
+axiom RequiresLabeledData : Alg → Prop
+axiom UsedToTrain : Alg → Model → Prop
+
+-- Any ML algorithm is either supervised, unsupervised, or reinforcement
+axiom Cat : ∀ a : Alg, IsML a → (Supervised a ∨ Unsupervised a ∨ Reinforcement a)
+
+-- Unsupervised algorithms do not require labeled data
+axiom Unsupervised_no_labels : ∀ a : Alg, Unsupervised a → ¬ RequiresLabeledData a
+
+-- There exists an ML algorithm used to train the SOTA model
+axiom Exists_used_ml : ∃ a : Alg, IsML a ∧ UsedToTrain a SOTA
+
+-- Reinforcement learning is not used to train the SOTA model
+axiom No_RL_used : ∀ a : Alg, UsedToTrain a SOTA → ¬ Reinforcement a
+
+-- The algorithm used to train the SOTA model requires labeled data
+axiom Used_requires_labels : ∀ a : Alg, UsedToTrain a SOTA → RequiresLabeledData a
+
+theorem supervised_used : ∃ a : Alg, Supervised a ∧ UsedToTrain a SOTA := by
+  rcases Exists_used_ml with ⟨a, hML, hUsed⟩
+  have hLabels : RequiresLabeledData a := Used_requires_labels a hUsed
+  have hNotRL : ¬ Reinforcement a := No_RL_used a hUsed
+  have hCat := Cat a hML
+  cases hCat with
+  | inl hSup =>
+      exact ⟨a, And.intro hSup hUsed⟩
+  | inr h =>
+      cases h with
+      | inl hUnsup =>
+          have : False := (Unsupervised_no_labels a hUnsup) hLabels
+          exact False.elim this
+      | inr hReinf =>
+          have : False := hNotRL hReinf
+          exact False.elim this
+</lean>
+
+ANSWER: True

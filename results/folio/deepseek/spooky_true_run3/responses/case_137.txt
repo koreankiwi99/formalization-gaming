@@ -1,0 +1,50 @@
+The reasoning involves translating the natural language premises into formal predicates and proving the statement using Lean. The key steps are:
+
+1. Define types for algorithms and models
+2. Formalize predicates for algorithm categories and properties
+3. Translate premises into axioms:
+   - Unsupervised algorithms never require labeled data
+   - The state-of-the-art model is trained by some algorithm
+   - Reinforcement learning is not used for this model
+   - The algorithm used requires labeled data
+   - Every algorithm belongs to one of the three categories
+4. Prove that supervised learning must be used by:
+   - Obtaining the training algorithm (from existence axiom)
+   - Showing it can't be unsupervised (contradicts labeled data requirement)
+   - Showing it can't be reinforcement (directly contradicted)
+   - Thus it must be supervised
+
+The Lean proof demonstrates this reasoning constructively.
+
+<lean>
+axiom Algorithm : Type
+axiom Model : Type
+axiom stateOfTheArt : Model
+axiom trainedBy : Model → Algorithm → Prop
+axiom isSupervised : Algorithm → Prop
+axiom isUnsupervised : Algorithm → Prop
+axiom isReinforcement : Algorithm → Prop
+axiom requiresLabeledData : Algorithm → Prop
+
+axiom unsupervised_no_label : ∀ a, isUnsupervised a → ¬ requiresLabeledData a
+axiom exists_training_algorithm : ∃ a, trainedBy stateOfTheArt a
+axiom no_reinforcement : ∀ a, trainedBy stateOfTheArt a → ¬ isReinforcement a
+axiom requires_label : ∀ a, trainedBy stateOfTheArt a → requiresLabeledData a
+axiom complete_categorization : ∀ a, isSupervised a ∨ isUnsupervised a ∨ isReinforcement a
+
+theorem supervised_used : ∃ a, trainedBy stateOfTheArt a ∧ isSupervised a := by
+  obtain ⟨a, trained_a⟩ := exists_training_algorithm
+  have no_reinf := no_reinforcement a trained_a
+  have needs_label := requires_label a trained_a
+  have categories := complete_categorization a
+  cases categories with
+  | inl supervised => exact ⟨a, trained_a, supervised⟩
+  | inr other =>
+      cases other with
+      | inl unsupervised =>
+          have no_label := unsupervised_no_label a unsupervised
+          contradiction
+      | inr reinforcement => contradiction
+</lean>
+
+ANSWER: True

@@ -1,0 +1,41 @@
+<lean>
+axiom Algo : Type
+axiom Used : Algo → Prop
+axiom IsSupervised : Algo → Prop
+axiom IsUnsupervised : Algo → Prop
+axiom IsReinforcement : Algo → Prop
+axiom RequiresLabeled : Algo → Prop
+
+-- Categorization: every ML algorithm is supervised or unsupervised or reinforcement
+axiom categorization : ∀ a : Algo, IsSupervised a ∨ IsUnsupervised a ∨ IsReinforcement a
+-- Unsupervised algorithms do not require labeled data
+axiom unsup_no_labels : ∀ a : Algo, IsUnsupervised a → ¬RequiresLabeled a
+-- The SOTA text summarization model is trained with at least one ML algorithm
+axiom exists_used : ∃ a : Algo, Used a
+-- Reinforcement learning is not used to train the SOTA text summarization model
+axiom rl_not_used : ∀ a : Algo, IsReinforcement a → ¬Used a
+-- Any algorithm used to train the text summarization model requires labeled data
+axiom used_requires_label : ∀ a : Algo, Used a → RequiresLabeled a
+
+-- From the premises, we can derive that some used algorithm must be supervised
+theorem supervised_used_exists : ∃ a : Algo, Used a ∧ IsSupervised a := by
+  cases exists_used with
+  | intro a Ua =>
+    have hcat := categorization a
+    cases hcat with
+    | inl sup =>
+      exact Exists.intro a (And.intro Ua sup)
+    | inr rest =>
+      cases rest with
+      | inl unsup =>
+        have hreq : RequiresLabeled a := used_requires_label a Ua
+        have hnreq : ¬RequiresLabeled a := unsup_no_labels a unsup
+        have : False := hnreq hreq
+        exact False.elim this
+      | inr rl =>
+        have hnotused : ¬Used a := rl_not_used a rl
+        have : False := hnotused Ua
+        exact False.elim this
+</lean>
+
+ANSWER: Failure

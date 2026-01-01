@@ -1,0 +1,64 @@
+<lean>
+axiom obj : Type
+
+axiom AddsSalt : obj → Prop
+axiom StirsContinuously : obj → Prop
+axiom Tastes : obj → Prop
+axiom PrepareSalad : obj → Prop
+
+axiom Savory : Prop
+axiom ThickensPerfectly : Prop
+
+-- If someone adds salt, the stew becomes savory
+axiom R1 : ∀ x : obj, AddsSalt x → Savory
+-- If someone stirs continuously, the stew thickens perfectly
+axiom R2 : ∀ x : obj, StirsContinuously x → ThickensPerfectly
+-- Either someone adds salt or the stew does not thicken perfectly (inclusive or)
+axiom Law1 : (∃ x : obj, AddsSalt x) ∨ ¬ThickensPerfectly
+-- If someone tastes the stew, they stir it continuously
+axiom R3 : ∀ x : obj, Tastes x → StirsContinuously x
+-- Either someone tastes the stew or someone prepares a salad (inclusive or)
+axiom Secret : (∃ x : obj, Tastes x) ∨ (∃ x : obj, PrepareSalad x)
+
+-- From ¬Savory, we can actually derive that someone prepares a salad
+theorem salad_exists_from_not_savory : ¬Savory → ∃ x : obj, PrepareSalad x := by
+  intro notSavory
+  -- No one adds salt
+  have noSalt : ¬(∃ x : obj, AddsSalt x) := by
+    intro h
+    cases h with
+    | intro a ha =>
+      have hs : Savory := R1 a ha
+      exact notSavory hs
+  -- Therefore the stew does not thicken perfectly
+  have notThicken : ¬ThickensPerfectly := by
+    cases Law1 with
+    | inl someSalt =>
+      exact False.elim (noSalt someSalt)
+    | inr notThick =>
+      exact notThick
+  -- Therefore no one stirs continuously
+  have noStir : ¬(∃ x : obj, StirsContinuously x) := by
+    intro h
+    cases h with
+    | intro a ha =>
+      have ht : ThickensPerfectly := R2 a ha
+      exact notThicken ht
+  -- Therefore no one tastes the stew
+  have noTaste : ¬(∃ x : obj, Tastes x) := by
+    intro h
+    cases h with
+    | intro a ha =>
+      have hs : StirsContinuously a := R3 a ha
+      exact noStir ⟨a, hs⟩
+  -- Using the secret disjunction, it follows someone prepares a salad
+  cases Secret with
+  | inl tastesExists =>
+    exact False.elim (noTaste tastesExists)
+  | inr saladExists =>
+    exact saladExists
+
+-- Hence, we cannot prove ¬(∃ x, PrepareSalad x); in fact, we can prove the opposite from ¬Savory.
+</lean>
+
+ANSWER: Failure

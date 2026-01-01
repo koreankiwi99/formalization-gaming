@@ -1,0 +1,58 @@
+<lean>
+axiom obj : Type
+
+-- Individuals
+axiom Vladimir : obj
+axiom Ekaterina : obj
+
+-- Predicates
+axiom CanRegisterUS : obj → Prop
+axiom CanParticipate2024 : obj → Prop
+axiom USCitizen : obj → Prop
+axiom TaiwanCitizen : obj → Prop
+axiom RussianOfficial : obj → Prop
+axiom ManagerGazprom : obj → Prop
+
+-- Premises
+axiom P1 : ∀ x : obj, CanRegisterUS x → CanParticipate2024 x
+axiom P2 : ∀ x : obj, USCitizen x → CanRegisterUS x
+axiom P3 : ∀ x : obj, USCitizen x ∨ TaiwanCitizen x
+axiom P4 : ∀ x : obj, RussianOfficial x → ¬TaiwanCitizen x
+axiom P5 : ¬TaiwanCitizen Vladimir ∧ ¬ManagerGazprom Vladimir
+axiom P6 : CanRegisterUS Ekaterina ∨ RussianOfficial Ekaterina
+
+-- Some derived facts (do not refute that Vladimir is a Russian official)
+theorem vladimir_not_taiwan : ¬TaiwanCitizen Vladimir := by
+  exact And.left P5
+
+theorem vladimir_not_gazprom_manager : ¬ManagerGazprom Vladimir := by
+  exact And.right P5
+
+theorem vladimir_us_citizen : USCitizen Vladimir := by
+  have h := P3 Vladimir
+  cases h with
+  | inl hUS => exact hUS
+  | inr hTW => exact False.elim (vladimir_not_taiwan hTW)
+
+theorem vladimir_can_register : CanRegisterUS Vladimir := by
+  exact P2 Vladimir vladimir_us_citizen
+
+theorem vladimir_can_participate : CanParticipate2024 Vladimir := by
+  exact P1 Vladimir vladimir_can_register
+
+-- Russian officials are US citizens (but this does not refute Vladimir being an official)
+theorem official_us_citizen (x : obj) (h : RussianOfficial x) : USCitizen x := by
+  have disj := P3 x
+  have not_tw : ¬TaiwanCitizen x := P4 x h
+  cases disj with
+  | inl hUS => exact hUS
+  | inr hTW => exact False.elim (not_tw hTW)
+
+-- Russian officials can participate in the 2024 US election (still no contradiction)
+theorem official_can_participate (x : obj) (h : RussianOfficial x) : CanParticipate2024 x := by
+  have hUS : USCitizen x := official_us_citizen x h
+  have hReg : CanRegisterUS x := P2 x hUS
+  exact P1 x hReg
+</lean>
+
+ANSWER: Failure

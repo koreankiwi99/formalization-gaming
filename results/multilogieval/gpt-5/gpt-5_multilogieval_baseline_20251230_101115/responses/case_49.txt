@@ -1,0 +1,47 @@
+<lean>
+axiom WetDriveway : Prop
+axiom RainedRecently : Prop
+axiom WashedCar : Prop
+axiom UsedWaterOnDriveway : Prop
+axiom HoseUncoiled : Prop
+axiom SpongeSoapy : Prop
+
+-- If the driveway is wet, then it must have rained recently.
+axiom R1 : WetDriveway → RainedRecently
+-- If someone washed their car, then they used water on the driveway.
+axiom R2 : WashedCar → UsedWaterOnDriveway
+-- Either the driveway is wet, or no water was used on the driveway, or the driveway is wet even though no water was used.
+axiom R3 : WetDriveway ∨ ¬ UsedWaterOnDriveway ∨ (WetDriveway ∧ ¬ UsedWaterOnDriveway)
+-- If the hose is uncoiled, it means someone was washing their car.
+axiom R4 : HoseUncoiled → WashedCar
+-- Either the hose is uncoiled, or the sponge is soapy (or both).
+axiom R5 : HoseUncoiled ∨ SpongeSoapy
+
+-- It didn't rain recently.
+axiom not_rained : ¬ RainedRecently
+
+theorem sponge_soapy : SpongeSoapy := by
+  -- From "Wet → Rained" and "¬Rained", get "¬Wet"
+  have nWet : ¬ WetDriveway := fun w => not_rained (R1 w)
+  -- From the trichotomy R3 and ¬Wet, get ¬UsedWaterOnDriveway
+  have nUsed : ¬ UsedWaterOnDriveway := by
+    cases R3 with
+    | inl w =>
+        exact (fun _ => False.elim (nWet w))
+    | inr rest =>
+        cases rest with
+        | inl nU => exact nU
+        | inr w_and_nU =>
+            have : False := nWet w_and_nU.left
+            exact (fun _ => False.elim this)
+  -- From "Hose ∨ Sponge", rule out "Hose" using ¬UsedWaterOnDriveway, deduce Sponge
+  cases R5 with
+  | inl hHose =>
+      have hWashed : WashedCar := R4 hHose
+      have hUsed : UsedWaterOnDriveway := R2 hWashed
+      exact False.elim (nUsed hUsed)
+  | inr hSponge =>
+      exact hSponge
+</lean>
+
+ANSWER: Yes

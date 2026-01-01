@@ -1,0 +1,55 @@
+<lean>
+axiom obj : Type
+axiom Jake : obj
+
+axiom NiceWeather : Prop
+axiom RelaxOutside : obj → Prop
+axiom PackedEnough : obj → Prop
+axiom ReadBooks : obj → Prop
+axiom Prepared : obj → Prop
+
+-- If the weather is nice, then anyone can relax outside.
+axiom R1 : ∀ x : obj, NiceWeather → RelaxOutside x
+-- If someone reads books, then they packed enough.
+axiom R2 : ∀ x : obj, ReadBooks x → PackedEnough x
+-- For any person, either the weather is nice, or they did not pack enough, or both.
+axiom R3 : ∀ x : obj, NiceWeather ∨ ¬ PackedEnough x ∨ (NiceWeather ∧ ¬ PackedEnough x)
+-- If someone is prepared, they read books.
+axiom R4 : ∀ x : obj, Prepared x → ReadBooks x
+
+-- We cannot derive Prepared Jake from ¬RelaxOutside Jake using the given axioms.
+-- theorem prepared_of_not_relax : ¬ RelaxOutside Jake → Prepared Jake := by
+--   -- Cannot prove this from the given premises.
+
+-- In fact, we can derive the opposite: if Jake cannot relax outside, then he is not prepared.
+theorem not_prepared_of_not_relax : ¬ RelaxOutside Jake → ¬ Prepared Jake := by
+  intro hnotrelax
+  intro hprep
+  -- First, show ¬NiceWeather from ¬RelaxOutside Jake and R1.
+  have hnotNice : ¬ NiceWeather := by
+    intro hNice
+    have hrelax : RelaxOutside Jake := R1 Jake hNice
+    exact hnotrelax hrelax
+  -- From R3 and ¬NiceWeather, deduce ¬PackedEnough Jake.
+  have hdisj : NiceWeather ∨ ¬ PackedEnough Jake ∨ (NiceWeather ∧ ¬ PackedEnough Jake) := R3 Jake
+  have hnotPack : ¬ PackedEnough Jake := by
+    cases hdisj with
+    | inl hNice =>
+        exact False.elim (hnotNice hNice)
+    | inr h2 =>
+        cases h2 with
+        | inl hnp => exact hnp
+        | inr hpair =>
+            have hNice : NiceWeather := hpair.left
+            exact False.elim (hnotNice hNice)
+  -- From R2, deduce ¬ReadBooks Jake.
+  have hnotRead : ¬ ReadBooks Jake := by
+    intro hread
+    have hpack : PackedEnough Jake := R2 Jake hread
+    exact hnotPack hpack
+  -- From R4 and hprep, get ReadBooks Jake, contradiction.
+  have hread' : ReadBooks Jake := R4 Jake hprep
+  exact hnotRead hread'
+</lean>
+
+ANSWER: Failure

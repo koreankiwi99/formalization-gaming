@@ -1,0 +1,43 @@
+The context and question are translated into Lean by defining the necessary types and propositions. The key elements include:
+- Global events: `Sale` (supermarket has a sale), `PriceUp` (prices went up), `Payday` (payday occurred)
+- Per-person predicates: `MakeList` (makes shopping list), `Plan` (plans purchases), `StockUp` (stocks up on groceries)
+- Axioms capturing the logical relationships from the context
+- Theorem stating that if Mary did not stock up, then prices went up (`prices_went_up`)
+
+The proof proceeds as follows:
+1. From `¬StockUp mary` and `A1` (sale implies everyone stocks up), deduce `¬Sale`.
+2. Using `A3` (sale or someone doesn't plan) and `¬Sale`, obtain a person `q` who doesn't plan (`¬Plan q`).
+3. From `A2` (making a list implies planning), deduce `q` doesn't make a list (`¬MakeList q`).
+4. Using `A4` (payday implies everyone makes a list) and `¬MakeList q`, deduce `¬Payday`.
+5. From `A5` (payday or prices up) and `¬Payday`, conclude `PriceUp`.
+
+<lean>
+axiom Person : Type
+axiom mary : Person
+axiom Sale : Prop
+axiom PriceUp : Prop
+axiom Payday : Prop
+axiom MakeList : Person → Prop
+axiom Plan : Person → Prop
+axiom StockUp : Person → Prop
+
+axiom A1 : Sale → ∀ p, StockUp p
+axiom A2 : ∀ p, MakeList p → Plan p
+axiom A3 : Sale ∨ (∃ p, ¬ Plan p)
+axiom A4 : Payday → ∀ p, MakeList p
+axiom A5 : Payday ∨ PriceUp
+
+theorem prices_went_up (h_notStockUp_mary : ¬ StockUp mary) : PriceUp := by
+  have notSale : ¬ Sale := fun hSale => h_notStockUp_mary (A1 hSale mary)
+  cases A3 with
+  | inl h_sale => contradiction
+  | inr h_exists =>
+      rcases h_exists with ⟨q, hq⟩
+      have notMakeList_q : ¬ MakeList q := fun h_make_q => hq (A2 q h_make_q)
+      have notPayday : ¬ Payday := fun h_payday => notMakeList_q (A4 h_payday q)
+      cases A5 with
+      | inl h_payday => contradiction
+      | inr h_priceUp => exact h_priceUp
+</lean>
+
+ANSWER: Yes

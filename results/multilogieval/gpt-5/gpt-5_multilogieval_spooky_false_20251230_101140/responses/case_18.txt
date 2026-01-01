@@ -1,0 +1,50 @@
+<lean>
+axiom obj : Type
+axiom Sam : obj
+axiom Emp : obj
+axiom Impressed : obj → Prop
+axiom Promotion : obj → Prop
+axiom Extra : obj → Prop
+axiom Experience : obj → Prop
+axiom Assigned : obj → Prop
+
+-- Premises about the specific employee
+axiom R1_emp : Impressed Emp → Promotion Emp
+axiom R2_emp : Extra Emp → Experience Emp
+axiom E_or_I : Impressed Emp ∨ Extra Emp
+
+-- Universal premise: experience implies being assigned to lead a new team
+axiom R3_all : ∀ x : obj, Experience x → Assigned x
+
+-- Given: Sam did not get a promotion
+axiom notProm_Sam : ¬Promotion Sam
+
+-- From these premises, we cannot derive ¬Assigned Sam.
+-- As a contrast, if Sam were the same as that employee and did not get a promotion,
+-- we could conclude Sam was assigned to lead a new team.
+theorem assigned_of_sam_is_emp_and_no_promotion :
+  Sam = Emp → ¬Promotion Sam → Assigned Sam :=
+by
+  intro hEq hNoProm
+  have R1_sam : Impressed Sam → Promotion Sam := by
+    have : Impressed Emp → Promotion Emp := R1_emp
+    simpa [hEq] using this
+  have R2_sam : Extra Sam → Experience Sam := by
+    have : Extra Emp → Experience Emp := R2_emp
+    simpa [hEq] using this
+  have E_or_I_sam : Impressed Sam ∨ Extra Sam := by
+    have : Impressed Emp ∨ Extra Emp := E_or_I
+    simpa [hEq] using this
+  have not_impressed_sam : ¬Impressed Sam := by
+    intro hImp
+    have : Promotion Sam := R1_sam hImp
+    exact hNoProm this
+  have extra_sam : Extra Sam :=
+    Or.elim E_or_I_sam
+      (fun hImp => False.elim (not_impressed_sam hImp))
+      (fun hExt => hExt)
+  have exp_sam : Experience Sam := R2_sam extra_sam
+  exact R3_all Sam exp_sam
+</lean>
+
+ANSWER: Failure

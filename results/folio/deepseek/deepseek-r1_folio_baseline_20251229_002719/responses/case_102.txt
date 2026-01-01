@@ -1,0 +1,76 @@
+First, I need to formalize the reasoning in Lean. Let me define the necessary types and predicates based on the context:
+
+- `obj` is the type of people.
+- `Luke` is a constant of type `obj`.
+- Predicates:
+  - `MultipleBirth`: for people born in a multiple birth.
+  - `SpendsTime`: for people who spend time with siblings.
+  - `HasSiblingsTogether`: for people who have siblings born together.
+  - `Complain`: for people who complain about siblings.
+  - `LiveAtHome`: for people living at home.
+  - `LiveWithStrangers`: for people living with strangers.
+
+Now, the axioms from the context:
+1. People born in multiple birth spend time with siblings: `∀x, MultipleBirth x → SpendsTime x`
+2. If someone has siblings born together, they were in a multiple birth: `∀x, HasSiblingsTogether x → MultipleBirth x`
+3. Complaining implies having siblings born together: `∀x, Complain x → HasSiblingsTogether x`
+4. Living at home implies not living with strangers: `∀x, LiveAtHome x → ¬ LiveWithStrangers x`
+5. Spending time with siblings implies living at home: `∀x, SpendsTime x → LiveAtHome x`
+6. Luke's case: `(MultipleBirth Luke ∧ LiveWithStrangers Luke) ∨ (¬MultipleBirth Luke ∧ ¬LiveWithStrangers Luke)`
+
+The question is whether Luke complains about siblings. To determine this, I'll try to prove or disprove `Complain Luke`.
+
+Key reasoning:
+- If Luke were in a multiple birth (first disjunct), then:
+  - He spends time with siblings (Axiom 1).
+  - Then he lives at home (Axiom 5).
+  - Then he doesn't live with strangers (Axiom 4).
+  - But if he lives with strangers (first disjunct), we have a contradiction.
+- Therefore, the first disjunct is impossible. Only the second disjunct holds: Luke was not born in a multiple birth and does not live with strangers.
+- Since Luke wasn't born in a multiple birth, and having siblings born together implies multiple birth (Axiom 2), by contraposition, Luke does not have siblings born together.
+- If Luke doesn't have siblings born together, and complaining requires that (Axiom 3), then Luke cannot complain.
+
+Thus, `Complain Luke` is false. This allows me to prove `¬Complain Luke` in Lean.
+
+<lean>
+axiom obj : Type
+axiom Luke : obj
+axiom MultipleBirth : obj → Prop
+axiom SpendsTime : obj → Prop
+axiom HasSiblingsTogether : obj → Prop
+axiom Complain : obj → Prop
+axiom LiveAtHome : obj → Prop
+axiom LiveWithStrangers : obj → Prop
+axiom A1 : ∀ x, MultipleBirth x → SpendsTime x
+axiom A2 : ∀ x, HasSiblingsTogether x → MultipleBirth x
+axiom A3 : ∀ x, Complain x → HasSiblingsTogether x
+axiom A4 : ∀ x, LiveAtHome x → ¬ LiveWithStrangers x
+axiom A5 : ∀ x, SpendsTime x → LiveAtHome x
+axiom Luke_case : (MultipleBirth Luke ∧ LiveWithStrangers Luke) ∨ (¬ MultipleBirth Luke ∧ ¬ LiveWithStrangers Luke)
+
+theorem not_complain : ¬ Complain Luke := by
+  intro h_complain
+  -- If Luke complains, then he has siblings born together
+  have has_siblings : HasSiblingsTogether Luke := A3 Luke h_complain
+  -- Then he was born in multiple birth
+  have mult_birth : MultipleBirth Luke := A2 Luke has_siblings
+  -- Then he spends time with siblings
+  have spends : SpendsTime Luke := A1 Luke mult_birth
+  -- Then he lives at home
+  have home : LiveAtHome Luke := A5 Luke spends
+  -- Then he does not live with strangers
+  have no_strangers : ¬ LiveWithStrangers Luke := A4 Luke home
+  -- Now consider Luke's disjunctive case
+  cases Luke_case with
+  | inl h => 
+      -- First case: MultipleBirth and LiveWithStrangers
+      have strangers := h.right
+      contradiction
+  | inr h => 
+      -- Second case: not MultipleBirth and not LiveWithStrangers
+      have not_mult := h.left
+      contradiction  -- since mult_birth contradicts not_mult
+</lean>
+
+ANSWER: False  
+*(Meaning the statement "Luke complains often about annoying siblings" is false)*

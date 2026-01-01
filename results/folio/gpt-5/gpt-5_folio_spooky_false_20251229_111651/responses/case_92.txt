@@ -1,0 +1,203 @@
+<lean>
+axiom Person : Type
+axiom Animal : Type
+axiom Building : Type
+
+axiom Tom : Person
+axiom Fluffy : Animal
+axiom OliveGarden : Building
+
+axiom Managed : Building → Prop
+axiom AllowsPets : Building → Prop
+axiom Pet : Animal → Prop
+axiom Cat : Animal → Prop
+axiom Owner : Person → Animal → Prop
+
+axiom AllowedWith : Person → Animal → Building → Prop
+axiom Rents : Person → Building → Prop
+
+axiom monthlyRent : Building → Nat
+axiom deposit : Building → Nat
+
+-- Premises
+axiom cats_are_pets : ∀ a : Animal, Cat a → Pet a
+axiom fluffy_is_cat : Cat Fluffy
+axiom tom_owns_fluffy : Owner Tom Fluffy
+
+axiom managed_OG : Managed OliveGarden
+axiom rent_OG_2000 : monthlyRent OliveGarden = 2000
+axiom two_thousand_gt_1500 : 2000 > 1500
+
+-- The security deposit is at least the monthly rent in any managed building
+axiom deposit_ge_rent : ∀ b : Building, Managed b → deposit b ≥ monthlyRent b
+
+-- Tom will rent a managed apartment if allowed with Fluffy and the deposit is ≤ 1500
+axiom tom_rent_rule :
+  ∀ b : Building, Managed b → AllowedWith Tom Fluffy b → deposit b ≤ 1500 → Rents Tom b
+
+-- If a managed building allows pets, then any person is allowed to move in with a pet
+axiom allows_pets_implies_allowed_with :
+  ∀ b : Building, ∀ p : Person, ∀ a : Animal,
+    Managed b → AllowsPets b → Pet a → AllowedWith p a b
+
+-- Some managed building allows pets
+axiom some_managed_allows_pets : ∃ b : Building, Managed b ∧ AllowsPets b
+
+-- Derived facts: the Olive Garden deposit is > 1500, so the antecedent of Tom's rule fails there
+theorem deposit_gt_1500_OG : deposit OliveGarden > 1500 := by
+  have hge : deposit OliveGarden ≥ monthlyRent OliveGarden := deposit_ge_rent OliveGarden managed_OG
+  have hge2 : 2000 ≤ deposit OliveGarden := by simpa [rent_OG_2000] using hge
+  have hlt : 1500 < deposit OliveGarden := lt_of_lt_of_le two_thousand_gt_1500 hge2
+  exact hlt
+
+theorem not_deposit_le_1500_OG : ¬ deposit OliveGarden ≤ 1500 := by
+  have hgt : deposit OliveGarden > 1500 := deposit_gt_1500_OG
+  exact not_le_of_gt hgt
+
+theorem antecedent_false_OG :
+  ¬ (AllowedWith Tom Fluffy OliveGarden ∧ deposit OliveGarden ≤ 1500) := by
+  intro h
+  exact not_deposit_le_1500_OG h.right
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom Person : Type
+axiom Animal : Type
+axiom Building : Type
+
+axiom Tom : Person
+axiom Fluffy : Animal
+axiom OliveGarden : Building
+
+axiom Managed : Building → Prop
+axiom AllowsPets : Building → Prop
+axiom Pet : Animal → Prop
+axiom Cat : Animal → Prop
+axiom Owner : Person → Animal → Prop
+
+axiom AllowedWith : Person → Animal → Building → Prop
+axiom Rents : Person → Building → Prop
+
+axiom monthlyRent : Building → Nat
+axiom deposit : Building → Nat
+
+-- Premises
+axiom cats_are_pets : ∀ a : Animal, Cat a → Pet a
+axiom fluffy_is_cat : Cat Fluffy
+axiom tom_owns_fluffy : Owner Tom Fluffy
+
+axiom managed_OG : Managed OliveGarden
+axiom rent_OG_2000 : monthlyRent OliveGarden = 2000
+
+-- 2000 is more than 1500, given as a "not ≤" axiom to avoid extra arithmetic lemmas
+axiom two_thousand_not_le_1500 : ¬ (2000 ≤ 1500)
+
+-- The security deposit is at least the monthly rent in any managed building
+axiom deposit_ge_rent : ∀ b : Building, Managed b → deposit b ≥ monthlyRent b
+
+-- Tom will rent a managed apartment if allowed with Fluffy and the deposit is ≤ 1500
+axiom tom_rent_rule :
+  ∀ b : Building, Managed b → AllowedWith Tom Fluffy b → deposit b ≤ 1500 → Rents Tom b
+
+-- If a managed building allows pets, then any person is allowed to move in with a pet
+axiom allows_pets_implies_allowed_with :
+  ∀ b : Building, ∀ p : Person, ∀ a : Animal,
+    Managed b → AllowsPets b → Pet a → AllowedWith p a b
+
+-- Some managed building allows pets
+axiom some_managed_allows_pets : ∃ b : Building, Managed b ∧ AllowsPets b
+
+-- Derived facts: the Olive Garden deposit is not ≤ 1500
+theorem not_deposit_le_1500_OG : ¬ deposit OliveGarden ≤ 1500 := by
+  intro hle
+  have h2000_le_deposit : 2000 ≤ deposit OliveGarden := by
+    have hge : monthlyRent OliveGarden ≤ deposit OliveGarden := deposit_ge_rent OliveGarden managed_OG
+    simpa [rent_OG_2000] using hge
+  have h2000_le_1500 : 2000 ≤ 1500 := le_trans h2000_le_deposit hle
+  exact two_thousand_not_le_1500 h2000_le_1500
+
+theorem antecedent_false_OG :
+  ¬ (AllowedWith Tom Fluffy OliveGarden ∧ deposit OliveGarden ≤ 1500) := by
+  intro h
+  exact not_deposit_le_1500_OG h.right
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+<lean>
+axiom Person : Type
+axiom Animal : Type
+axiom Building : Type
+
+axiom Tom : Person
+axiom Fluffy : Animal
+axiom OliveGarden : Building
+
+axiom Managed : Building → Prop
+axiom AllowsPets : Building → Prop
+axiom Pet : Animal → Prop
+axiom Cat : Animal → Prop
+axiom Owner : Person → Animal → Prop
+
+axiom AllowedWith : Person → Animal → Building → Prop
+axiom Rents : Person → Building → Prop
+
+axiom monthlyRent : Building → Nat
+axiom deposit : Building → Nat
+
+-- Basic transitivity for ≤ on Nat (declared explicitly to avoid missing lemma issues)
+axiom le_trans' : ∀ a b c : Nat, a ≤ b → b ≤ c → a ≤ c
+
+-- Premises
+axiom cats_are_pets : ∀ a : Animal, Cat a → Pet a
+axiom fluffy_is_cat : Cat Fluffy
+axiom tom_owns_fluffy : Owner Tom Fluffy
+
+axiom managed_OG : Managed OliveGarden
+axiom rent_OG_2000 : monthlyRent OliveGarden = 2000
+
+-- 2000 is not ≤ 1500 (captures “2000 is more than 1500”)
+axiom two_thousand_not_le_1500 : ¬ (2000 ≤ 1500)
+
+-- The security deposit is at least the monthly rent in any managed building
+axiom deposit_ge_rent : ∀ b : Building, Managed b → monthlyRent b ≤ deposit b
+
+-- Tom will rent a managed apartment if allowed with Fluffy and the deposit is ≤ 1500
+axiom tom_rent_rule :
+  ∀ b : Building, Managed b → AllowedWith Tom Fluffy b → deposit b ≤ 1500 → Rents Tom b
+
+-- If a managed building allows pets, then any person is allowed to move in with a pet
+axiom allows_pets_implies_allowed_with :
+  ∀ b : Building, ∀ p : Person, ∀ a : Animal,
+    Managed b → AllowsPets b → Pet a → AllowedWith p a b
+
+-- Some managed building allows pets
+axiom some_managed_allows_pets : ∃ b : Building, Managed b ∧ AllowsPets b
+
+-- Derived facts: the Olive Garden deposit is not ≤ 1500
+theorem not_deposit_le_1500_OG : ¬ deposit OliveGarden ≤ 1500 := by
+  intro hle
+  have hge : monthlyRent OliveGarden ≤ deposit OliveGarden := deposit_ge_rent OliveGarden managed_OG
+  have hmr_le_1500 : monthlyRent OliveGarden ≤ 1500 :=
+    le_trans' (monthlyRent OliveGarden) (deposit OliveGarden) 1500 hge hle
+  have h2000_le_1500 : 2000 ≤ 1500 := by
+    simpa [rent_OG_2000] using hmr_le_1500
+  exact two_thousand_not_le_1500 h2000_le_1500
+
+theorem antecedent_false_OG :
+  ¬ (AllowedWith Tom Fluffy OliveGarden ∧ deposit OliveGarden ≤ 1500) := by
+  intro h
+  exact not_deposit_le_1500_OG h.right
+</lean>
+
+ANSWER: Failure

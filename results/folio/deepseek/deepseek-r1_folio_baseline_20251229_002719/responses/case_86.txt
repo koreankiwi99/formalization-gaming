@@ -1,0 +1,47 @@
+<lean>
+axiom Movie : Type
+axiom Character : Type
+axiom digby_movie : Movie
+axiom digby : Character
+axiom nemesis : Character
+
+axiom SuperheroMovie : Movie → Prop
+axiom GoodGuy : Character → Prop
+axiom BadGuy : Character → Prop
+axiom Fights : Character → Character → Prop
+axiom WinsAgainst : Character → Character → Prop  -- WinsAgainst winner loser
+axiom NamedAfter : Movie → Character → Prop
+axiom FightInMovie : Movie → Character → Character → Prop
+
+axiom superhero_digby : SuperheroMovie digby_movie
+axiom named_after_digby : NamedAfter digby_movie digby
+axiom named_implies_good : ∀ m c, SuperheroMovie m → NamedAfter m c → GoodGuy c
+axiom fight_pairing : ∀ c1 c2, Fights c1 c2 → (GoodGuy c1 ∧ BadGuy c2) ∨ (GoodGuy c2 ∧ BadGuy c1)
+axiom win_exclusive : ∀ c1 c2, Fights c1 c2 → WinsAgainst c1 c2 → ¬ WinsAgainst c2 c1
+axiom good_always_wins : ∀ m c1 c2, SuperheroMovie m → FightInMovie m c1 c2 → 
+    (GoodGuy c1 → WinsAgainst c1 c2) ∧ (GoodGuy c2 → WinsAgainst c2 c1)
+axiom digby_fights : Fights digby nemesis
+axiom fight_in_movie : FightInMovie digby_movie digby nemesis
+axiom good_bad_exclusive : ∀ c, GoodGuy c → ¬ BadGuy c
+
+theorem digby_good : GoodGuy digby := 
+  named_implies_good digby_movie digby superhero_digby named_after_digby
+
+theorem nemesis_bad : BadGuy nemesis := by
+  have H := fight_pairing digby nemesis digby_fights
+  cases H with
+  | inl H1 => exact H1.2
+  | inr H2 => 
+      have H3 : BadGuy digby := H2.2
+      have H4 : ¬ BadGuy digby := good_bad_exclusive digby digby_good
+      contradiction
+
+theorem digby_wins : WinsAgainst digby nemesis := 
+  let H := good_always_wins digby_movie digby nemesis superhero_digby fight_in_movie
+  H.1 digby_good
+
+theorem nemesis_does_not_win : ¬ WinsAgainst nemesis digby := 
+  win_exclusive digby nemesis digby_fights digby_wins
+</lean>
+
+ANSWER: True

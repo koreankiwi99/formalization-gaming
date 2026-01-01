@@ -1,0 +1,106 @@
+The reasoning is formally verified using Lean. Below is the complete proof:
+
+<lean>
+axiom obj : Type
+axiom Luke : obj
+axiom BornMultiple : obj → Prop
+axiom HasSiblingsBornTogether : obj → Prop
+axiom ComplainAnnoyingSiblings : obj → Prop
+axiom LiveAtHome : obj → Prop
+axiom LiveWithStrangers : obj → Prop
+axiom SpendTimeWithSiblings : obj → Prop
+
+axiom P1 : ∀ x : obj, BornMultiple x → SpendTimeWithSiblings x
+axiom P2 : ∀ x : obj, HasSiblingsBornTogether x → BornMultiple x
+axiom P3 : ∀ x : obj, ComplainAnnoyingSiblings x → HasSiblingsBornTogether x
+axiom P4 : ∀ x : obj, LiveAtHome x → ¬ LiveWithStrangers x
+axiom P5 : ∀ x : obj, SpendTimeWithSiblings x → LiveAtHome x
+axiom LukeCase : (BornMultiple Luke ∧ LiveWithStrangers Luke) ∨ (¬ BornMultiple Luke ∧ ¬ LiveWithStrangers Luke)
+
+theorem luke_conclusion : ¬ BornMultiple Luke ∧ ¬ ComplainAnnoyingSiblings Luke := by
+  cases LukeCase with
+  | inl h => 
+      have step1 : SpendTimeWithSiblings Luke := P1 Luke h.1
+      have step2 : LiveAtHome Luke := P5 Luke step1
+      have step3 : ¬ LiveWithStrangers Luke := P4 Luke step2
+      contradiction
+  | inr h =>
+      have notBornMulti : ¬ BornMultiple Luke := h.1
+      have notComplain : ¬ ComplainAnnoyingSiblings Luke := by
+        intro assumeComplain
+        have siblingTogether : HasSiblingsBornTogether Luke := P3 Luke assumeComplain
+        have bornMultiFromSib : BornMultiple Luke := P2 Luke siblingTogether
+        exact notBornMulti bornMultiFromSib
+      exact ⟨notBornMulti, notComplain⟩
+</lean>
+
+ANSWER: True
+
+The proof demonstrates that:
+1. The first case (Luke is born in a multiple birth and lives with strangers) leads to a contradiction due to the incompatibility between living at home and living with strangers.
+2. In the second case (Luke is not born in a multiple birth and doesn't live with strangers), both parts of the conclusion hold:
+   - ¬BornMultiple Luke is directly given
+   - ¬ComplainAnnoyingSiblings Luke follows from the contrapositive of the chain P3 → P2, contradicting BornMultiple Luke
+Thus, the statement "Luke is neither born in a multiple birth nor complains often about annoying siblings" is proven true.
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation error occurred because the `contradiction` tactic was unable to automatically resolve the contradiction between `LiveWithStrangers Luke` (from `h.2`) and `¬LiveWithStrangers Luke` (from `step3`). This is fixed by explicitly constructing the contradiction with `step3 h.2`, then using `False.elim` to solve the case.
+
+Here's the corrected Lean 4 code:
+
+<lean>
+axiom obj : Type
+axiom Luke : obj
+axiom BornMultiple : obj → Prop
+axiom HasSiblingsBornTogether : obj → Prop
+axiom ComplainAnnoyingSiblings : obj → Prop
+axiom LiveAtHome : obj → Prop
+axiom LiveWithStrangers : obj → Prop
+axiom SpendTimeWithSiblings : obj → Prop
+
+axiom P1 : ∀ x : obj, BornMultiple x → SpendTimeWithSiblings x
+axiom P2 : ∀ x : obj, HasSiblingsBornTogether x → BornMultiple x
+axiom P3 : ∀ x : obj, ComplainAnnoyingSiblings x → HasSiblingsBornTogether x
+axiom P4 : ∀ x : obj, LiveAtHome x → ¬ LiveWithStrangers x
+axiom P5 : ∀ x : obj, SpendTimeWithSiblings x → LiveAtHome x
+axiom LukeCase : (BornMultiple Luke ∧ LiveWithStrangers Luke) ∨ (¬ BornMultiple Luke ∧ ¬ LiveWithStrangers Luke)
+
+theorem luke_conclusion : ¬ BornMultiple Luke ∧ ¬ ComplainAnnoyingSiblings Luke := by
+  cases LukeCase with
+  | inl h => 
+      have step1 : SpendTimeWithSiblings Luke := P1 Luke h.1
+      have step2 : LiveAtHome Luke := P5 Luke step1
+      have step3 : ¬ LiveWithStrangers Luke := P4 Luke step2
+      exact False.elim (step3 h.2)
+  | inr h =>
+      have notBornMulti : ¬ BornMultiple Luke := h.1
+      have notComplain : ¬ ComplainAnnoyingSiblings Luke := by
+        intro assumeComplain
+        have siblingTogether : HasSiblingsBornTogether Luke := P3 Luke assumeComplain
+        have bornMultiFromSib : BornMultiple Luke := P2 Luke siblingTogether
+        exact notBornMulti bornMultiFromSib
+      exact ⟨notBornMulti, notComplain⟩
+</lean>
+
+**Proof Explanation:**
+
+1. **Case 1: Luke is born in multiple birth and lives with strangers:**
+   - From `P1`, Luke spends time with siblings
+   - From `P5`, this implies he lives at home
+   - From `P4`, living at home means not living with strangers
+   - This directly contradicts the case's assumption that he lives with strangers (`h.2`)
+   - The contradiction proves this case is impossible (`False.elim`)
+
+2. **Case 2: Luke is not born in multiple birth and doesn't live with strangers:**
+   - We directly have `¬BornMultiple Luke` from the case
+   - To show `¬ComplainAnnoyingSiblings Luke`: assume the opposite and derive contradiction
+   - If Luke complained (`P3`), he would have siblings born together
+   - Having siblings born together (`P2`) implies being born in multiple birth
+   - This contradicts `¬BornMultiple Luke`
+
+Both cases lead to the conclusion: Luke is not born in multiple birth and doesn't complain about siblings.
+
+ANSWER: True

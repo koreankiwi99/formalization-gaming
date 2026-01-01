@@ -1,0 +1,80 @@
+The reasoning is valid. The premises lead to the conclusion that the Picuris Mountains must be in New Mexico, not Texas. This is because the presence of the donated Harding Pegmatite Mine in the Picuris Mountains contradicts the premise that Texas has no mountain ranges with donated mines. Therefore, Juan de Onate visited a mountain range in New Mexico.
+
+<lean>
+axiom State : Type
+axiom NewMexico Texas : State
+axiom MountainRange : Type
+axiom Mine : Type
+axiom Person : Type
+axiom Picuris : MountainRange
+axiom HardingMine : Mine
+axiom Juan : Person
+axiom LocatedInMR : Mine → MountainRange → Prop
+axiom InState : MountainRange → State → Prop
+axiom Donated : Mine → Prop
+axiom Visited : Person → MountainRange → Prop
+
+axiom P1 : InState Picuris NewMexico ∨ InState Picuris Texas
+axiom P2 : Visited Juan Picuris
+axiom P3 : LocatedInMR HardingMine Picuris ∧ Donated HardingMine
+axiom P4 : ¬ (∃ (mr: MountainRange), InState mr Texas ∧ (∃ (m: Mine), LocatedInMR m mr ∧ Donated m))
+
+theorem jack : ∃ mr, InState mr NewMexico ∧ Visited Juan mr := by
+  cases P1 with
+  | inl h =>
+      exists Picuris
+      exact ⟨h, P2⟩
+  | inr h_tx =>
+      have H : ∃ mr, InState mr Texas ∧ (∃ m, LocatedInMR m mr ∧ Donated m) :=
+          ⟨Picuris, ⟨h_tx, ⟨HardingMine, P3⟩⟩⟩
+      contradiction
+</lean>
+
+ANSWER: True
+
+======================================================================
+ITERATION 2
+======================================================================
+
+After analyzing the errors, I corrected the Lean code by making the `State` type inductive to properly define `NewMexico` and `Texas` as constants. This resolves the "unknown identifier" issue. The proof now correctly handles both cases:
+
+1. If the Picuris Mountains are in New Mexico, directly we can show Juan visited them.
+2. If in Texas, we get a contradiction because P4 asserts no Texas mountain range has a donated mine, but the Harding Mine in Picuris Mountains is donated.
+
+The explicit contradiction in the Texas case is handled with `False.elim (P4 H)` since `contradiction` was unreliable.
+
+Here's the corrected Lean code:
+
+<lean>
+inductive State where
+  | newMexico
+  | texas
+
+axiom MountainRange : Type
+axiom Mine : Type
+axiom Person : Type
+axiom Picuris : MountainRange
+axiom HardingMine : Mine
+axiom Juan : Person
+axiom LocatedInMR : Mine → MountainRange → Prop
+axiom InState : MountainRange → State → Prop
+axiom Donated : Mine → Prop
+axiom Visited : Person → MountainRange → Prop
+
+axiom P1 : InState Picuris State.newMexico ∨ InState Picuris State.texas
+axiom P2 : Visited Juan Picuris
+axiom P3 : LocatedInMR HardingMine Picuris ∧ Donated HardingMine
+axiom P4 : ¬(∃ (mr: MountainRange), InState mr State.texas ∧ (∃ (m: Mine), LocatedInMR m mr ∧ Donated m))
+
+theorem jack : ∃ mr, InState mr State.newMexico ∧ Visited Juan mr := by
+  cases P1 with
+  | inl h =>
+      exists Picuris
+      exact ⟨h, P2⟩
+  | inr h_tx =>
+      have H : ∃ mr, InState mr State.texas ∧ (∃ m, LocatedInMR m mr ∧ Donated m) :=
+          ⟨Picuris, ⟨h_tx, ⟨HardingMine, P3⟩⟩⟩
+      exact False.elim (P4 H)
+</lean>
+
+ANSWER: True

@@ -1,0 +1,128 @@
+<lean>
+axiom obj : Type
+
+-- Constants for specific entities
+axiom Colorectal : obj
+
+-- Predicates
+axiom Deadly : obj → Prop
+axiom LowSurvival : obj → Prop
+axiom Severe : obj → Prop
+axiom BileDuct : obj → Prop
+axiom Cholangiocarcinoma : obj → Prop
+axiom MildFlu : obj → Prop
+
+-- Premises
+axiom P1 : ∀ x : obj, Deadly x → LowSurvival x                    -- Deadly → Low survival
+axiom P2 : ∀ x : obj, Severe x → Deadly x                         -- Severe → Deadly
+axiom P3 : ∀ x : obj, BileDuct x → Severe x                       -- Bile duct → Severe
+axiom P4 : ∀ x : obj, Cholangiocarcinoma x → BileDuct x           -- Cholangiocarcinoma → Bile duct
+axiom P5 : ∀ x : obj, MildFlu x → LowSurvival x                   -- Mild flu → Low survival
+axiom P6 : ¬ (BileDuct Colorectal ∧ LowSurvival Colorectal)       -- Colorectal is not both bile duct and low survival
+
+-- Useful derived lemma: bile duct implies low survival
+lemma bileduct_low (x : obj) : BileDuct x → LowSurvival x :=
+by
+  intro hbd
+  have hs : Severe x := P3 x hbd
+  have hd : Deadly x := P2 x hs
+  exact P1 x hd
+
+-- From P6 and the chain BileDuct → LowSurvival, we get ¬ BileDuct Colorectal
+lemma not_bileduct_colorectal : ¬ BileDuct Colorectal :=
+by
+  intro hbd
+  have hlow : LowSurvival Colorectal := bileduct_low Colorectal hbd
+  exact P6 ⟨hbd, hlow⟩
+
+-- Hence also ¬ Cholangiocarcinoma Colorectal (since Cholangiocarcinoma → BileDuct)
+lemma not_chol_colorectal : ¬ Cholangiocarcinoma Colorectal :=
+by
+  intro hchol
+  have hbd : BileDuct Colorectal := P4 Colorectal hchol
+  exact not_bileduct_colorectal hbd
+
+-- The statement to evaluate
+def Statement : Prop :=
+  (Cholangiocarcinoma Colorectal ∧ (MildFlu Colorectal ∨ BileDuct Colorectal))
+  ∨ (Cholangiocarcinoma Colorectal ∧ MildFlu Colorectal ∧ BileDuct Colorectal)
+
+-- We can show the statement is false from the premises
+theorem statement_false : ¬ Statement :=
+by
+  intro h
+  have hchol : Cholangiocarcinoma Colorectal :=
+    Or.elim h
+      (fun h1 => h1.left)
+      (fun h2 => h2.left)
+  exact not_chol_colorectal hchol
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom obj : Type
+
+-- Constants for specific entities
+axiom Colorectal : obj
+
+-- Predicates
+axiom Deadly : obj → Prop
+axiom LowSurvival : obj → Prop
+axiom Severe : obj → Prop
+axiom BileDuct : obj → Prop
+axiom Cholangiocarcinoma : obj → Prop
+axiom MildFlu : obj → Prop
+
+-- Premises
+axiom P1 : ∀ x : obj, Deadly x → LowSurvival x
+axiom P2 : ∀ x : obj, Severe x → Deadly x
+axiom P3 : ∀ x : obj, BileDuct x → Severe x
+axiom P4 : ∀ x : obj, Cholangiocarcinoma x → BileDuct x
+axiom P5 : ∀ x : obj, MildFlu x → LowSurvival x
+axiom P6 : ¬ (BileDuct Colorectal ∧ LowSurvival Colorectal)
+
+-- Derived: bile duct implies low survival
+theorem bileduct_low (x : obj) : BileDuct x → LowSurvival x :=
+by
+  intro hbd
+  have hs : Severe x := P3 x hbd
+  have hd : Deadly x := P2 x hs
+  exact P1 x hd
+
+-- From P6 and the chain, we get ¬ BileDuct Colorectal
+theorem not_bileduct_colorectal : ¬ BileDuct Colorectal :=
+by
+  intro hbd
+  have hlow : LowSurvival Colorectal := bileduct_low Colorectal hbd
+  have hconj : BileDuct Colorectal ∧ LowSurvival Colorectal := And.intro hbd hlow
+  exact P6 hconj
+
+-- Hence also ¬ Cholangiocarcinoma Colorectal
+theorem not_chol_colorectal : ¬ Cholangiocarcinoma Colorectal :=
+by
+  intro hchol
+  have hbd : BileDuct Colorectal := P4 Colorectal hchol
+  exact not_bileduct_colorectal hbd
+
+-- The statement to evaluate
+def Statement : Prop :=
+  (Cholangiocarcinoma Colorectal ∧ (MildFlu Colorectal ∨ BileDuct Colorectal))
+  ∨ (Cholangiocarcinoma Colorectal ∧ MildFlu Colorectal ∧ BileDuct Colorectal)
+
+-- We can show the statement is false from the premises
+theorem statement_false : ¬ Statement :=
+by
+  intro h
+  cases h with
+  | inl h1 =>
+      exact not_chol_colorectal h1.left
+  | inr h2 =>
+      exact not_chol_colorectal h2.left
+</lean>
+
+ANSWER: Failure

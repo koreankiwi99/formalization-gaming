@@ -1,0 +1,60 @@
+<lean>
+axiom obj : Type
+axiom mixture : obj
+
+axiom Hydrocarbon : obj → Prop
+axiom Organic : obj → Prop
+axiom Chemical : obj → Prop
+axiom ContainsCarbon : obj → Prop
+axiom OnlyOneElement : obj → Prop
+axiom Alkane : obj → Prop
+
+-- Context axioms
+axiom A1 : ∀ x : obj, Hydrocarbon x → Organic x
+axiom A2 : ∀ x : obj, Alkane x → Hydrocarbon x
+axiom A3 : ∀ x : obj, Organic x → Chemical x
+axiom A4 : ∀ x : obj, Organic x → ContainsCarbon x
+axiom A5 : ∀ x : obj, Chemical x → ¬OnlyOneElement x
+axiom A6 : (Chemical mixture ∧ OnlyOneElement mixture) ∨ (¬Chemical mixture ∧ ¬OnlyOneElement mixture)
+
+-- From the context, the mixture is neither a chemical compound nor one-element
+theorem mixture_neither : ¬Chemical mixture ∧ ¬OnlyOneElement mixture := by
+  have not_both : ¬(Chemical mixture ∧ OnlyOneElement mixture) := by
+    intro h
+    have hc : Chemical mixture := And.left h
+    have ho : OnlyOneElement mixture := And.right h
+    have hc_not_one : ¬OnlyOneElement mixture := A5 mixture hc
+    exact hc_not_one ho
+  cases A6 with
+  | inl hboth =>
+      exact False.elim (not_both hboth)
+  | inr hneither =>
+      exact hneither
+
+-- Alkanes imply chemicals
+theorem alkane_implies_chemical : ∀ x : obj, Alkane x → Chemical x := by
+  intro x hA
+  have hH : Hydrocarbon x := A2 x hA
+  have hO : Organic x := A1 x hH
+  exact A3 x hO
+
+-- So the mixture is not an alkane
+theorem mixture_not_alkane : ¬Alkane mixture := by
+  intro hA
+  have hChem : Chemical mixture := alkane_implies_chemical mixture hA
+  have hNotChem : ¬Chemical mixture := And.left mixture_neither
+  exact hNotChem hChem
+
+-- The queried statement (it actually holds from the context)
+def Statement : Prop := (OnlyOneElement mixture ∨ ContainsCarbon mixture) → (¬Chemical mixture ∧ ¬Alkane mixture)
+
+theorem statement_true : Statement := by
+  intro _
+  apply And.intro
+  · exact And.left mixture_neither
+  · exact mixture_not_alkane
+
+-- Cannot prove ¬Statement from given axioms (since Statement is provable)
+</lean>
+
+ANSWER: Failure

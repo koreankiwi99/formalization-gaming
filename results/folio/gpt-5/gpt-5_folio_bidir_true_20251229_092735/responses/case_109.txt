@@ -1,0 +1,52 @@
+<lean>
+axiom obj : Type
+axiom Peter : obj
+
+axiom Spill : obj → Prop
+axiom Tidy : obj → Prop
+axiom Cleanly : obj → Prop
+axiom ValueOS : obj → Prop
+axiom FamilyPriorOS : obj → Prop
+axiom ClumsyFoodieExplorer : obj → Prop
+
+-- If people spill a lot of food on their clothing, then they are not notably tidy.
+axiom R1 : ∀ x : obj, Spill x → ¬ Tidy x
+-- All clumsy foodies who go out frequently to find new food restaurants to try spill a lot of food on their clothing.
+axiom R2 : ∀ x : obj, ClumsyFoodieExplorer x → Spill x
+-- If people are cleanly, then they are notably tidy.
+axiom R3 : ∀ x : obj, Cleanly x → Tidy x
+-- If people value order and spotlessness, then they are cleanly.
+axiom R4 : ∀ x : obj, ValueOS x → Cleanly x
+-- All people whose families prioritize order and spotlessness themselves value order and spotlessness.
+axiom R5 : ∀ x : obj, FamilyPriorOS x → ValueOS x
+
+-- Peter is either (spills ∧ cleanly) or (¬spills ∧ ¬cleanly)
+axiom P0 : (Spill Peter ∧ Cleanly Peter) ∨ (¬ Spill Peter ∧ ¬ Cleanly Peter)
+
+theorem peter_statement :
+  (ClumsyFoodieExplorer Peter ∧ FamilyPriorOS Peter) ∨
+  (¬ ClumsyFoodieExplorer Peter ∧ ¬ FamilyPriorOS Peter) := by
+  -- From P0 and incompatibility of Spill and Cleanly, obtain ¬Spill ∧ ¬Cleanly for Peter
+  have hnc_nc : (¬ Spill Peter ∧ ¬ Cleanly Peter) := by
+    cases P0 with
+    | inl hsc =>
+        have ns : ¬ Tidy Peter := R1 Peter hsc.left
+        have t  : Tidy Peter := R3 Peter hsc.right
+        exact False.elim (ns t)
+    | inr h => exact h
+  have hns : ¬ Spill Peter := hnc_nc.left
+  have hnc : ¬ Cleanly Peter := hnc_nc.right
+  -- From ¬Spill and (ClumsyFoodieExplorer → Spill), get ¬ClumsyFoodieExplorer
+  have h_not_cfe : ¬ ClumsyFoodieExplorer Peter := by
+    intro hcfe
+    exact hns (R2 Peter hcfe)
+  -- From ¬Cleanly and (FamilyPriorOS → ValueOS → Cleanly), get ¬FamilyPriorOS
+  have h_not_fpos : ¬ FamilyPriorOS Peter := by
+    intro hfpos
+    have vos : ValueOS Peter := R5 Peter hfpos
+    have cl : Cleanly Peter := R4 Peter vos
+    exact hnc cl
+  exact Or.inr (And.intro h_not_cfe h_not_fpos)
+</lean>
+
+ANSWER: True

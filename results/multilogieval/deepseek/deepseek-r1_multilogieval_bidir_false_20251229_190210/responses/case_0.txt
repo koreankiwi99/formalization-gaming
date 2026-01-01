@@ -1,0 +1,121 @@
+<lean>
+axiom Person : Type
+axiom SaveAggressively : Person → Prop
+axiom AffordDown : Person → Prop
+axiom ImproveCredit : Person → Prop
+axiom QualifyMortgage : Person → Prop
+axiom BuyDream : Person → Prop
+
+variables (someone : Person)
+
+axiom T1 : SaveAggressively someone → AffordDown someone
+axiom T2 : ImproveCredit someone → QualifyMortgage someone
+axiom T3 : SaveAggressively someone ∨ ImproveCredit someone
+axiom T4 : QualifyMortgage someone → BuyDream someone
+
+-- Given condition
+premise given : ¬ AffordDown someone
+
+-- Attempt to prove "someone did NOT buy their dream home" (¬BuyDream someone)
+theorem goal : ¬ BuyDream someone := by
+  have h_not_save : ¬ SaveAggressively someone := fun h_save => given (T1 h_save)
+  have h_improve : ImproveCredit someone := by
+    cases T3 with
+    | inl h_save => exact False.elim (h_not_save h_save)
+    | inr h_improve => exact h_improve
+  have h_qualify : QualifyMortgage someone := T2 h_improve
+  have h_buy : BuyDream someone := T4 h_qualify
+  exact fun not_buy => not_buy h_buy
+-- The proof actually shows BuyDream someone follows, so we try to show ¬BuyDream leads to contradiction
+-- But we end up proving BuyDream instead, meaning we cannot obtain ¬BuyDream from premises
+-- Therefore we cannot prove the negation
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The errors in the initial Lean code were due to incorrect scoping and quantification of axioms. The axioms must be universally quantified over `Person`, and the given premise must be properly introduced. After correction, we can see that the premises lead to the conclusion that the person buys their dream home, making it impossible to prove the negation.
+
+Here is the corrected Lean code:
+
+<lean>
+axiom Person : Type
+axiom SaveAggressively : Person → Prop
+axiom AffordDown : Person → Prop
+axiom ImproveCredit : Person → Prop
+axiom QualifyMortgage : Person → Prop
+axiom BuyDream : Person → Prop
+
+axiom T1 : ∀ (p : Person), SaveAggressively p → AffordDown p
+axiom T2 : ∀ (p : Person), ImproveCredit p → QualifyMortgage p
+axiom T3 : ∀ (p : Person), SaveAggressively p ∨ ImproveCredit p
+axiom T4 : ∀ (p : Person), QualifyMortgage p → BuyDream p
+
+variable (p : Person)
+premise given : ¬ AffordDown p
+
+-- Prove that they buy their dream home (showing ¬BuyDream p is unprovable)
+example : BuyDream p := by
+  have not_save : ¬ SaveAggressively p := fun h_save => given (T1 p h_save)
+  cases T3 p with
+  | inl h_save => contradiction
+  | inr h_imp => exact T4 p (T2 p h_imp)
+
+-- Attempt to prove ¬BuyDream p fails since we've proven BuyDream p
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The initial Lean code had errors due to incorrect syntax and scoping. The key issues were:
+1. Using `→` instead of `->` in disjunction and implication definitions
+2. Using Unicode ∨ instead of `\/` for disjunction
+3. Attempting to use `given` as an identifier (which is a reserved word in Lean 4)
+4. Not properly scoping the premises
+
+The corrected code properly defines all axioms using formal syntax and avoids reserved keywords. We attempt to prove the negation (that "someone" did not buy their dream home) from the premises. However, the proof shows that the premises and given condition (¬AffordDown someone) actually imply BuyDream someone. This means we cannot prove the negation.
+
+<lean>
+axiom Person : Type
+
+axiom SaveAggressively : Person -> Prop
+axiom AffordDown : Person -> Prop
+axiom ImproveCredit : Person -> Prop
+axiom QualifyMortgage : Person -> Prop
+axiom BuyDream : Person -> Prop
+
+axiom T1 : forall (p : Person), SaveAggressively p -> AffordDown p
+axiom T2 : forall (p : Person), ImproveCredit p -> QualifyMortgage p
+axiom T3 : forall (p : Person), SaveAggressively p \/ ImproveCredit p
+axiom T4 : forall (p : Person), QualifyMortgage p -> BuyDream p
+
+variable (someone : Person)
+
+axiom given : not (AffordDown someone)
+
+theorem prove_negation : not (BuyDream someone) := by
+  -- Attempt to prove they did NOT buy home
+  have not_save : not (SaveAggressively someone) := 
+    fun h_save => given (T1 someone h_save)
+  cases (T3 someone) with
+  | inl h_save => 
+      -- Save case leads to contradiction
+      exact not_save h_save
+  | inr h_improve => 
+      -- If they improved credit, they qualify and then buy home
+      have qual : QualifyMortgage someone := T2 someone h_improve
+      have buy : BuyDream someone := T4 someone qual
+      -- Our goal is ¬BuyDream, but we have BuyDream proof
+      exact (fun h_not_buy => h_not_buy buy)
+
+-- This produces error because constructor type mismatch 
+-- Shows we depend on but structurally cannot prove \
+</lean>
+
+ANSWER: Failure

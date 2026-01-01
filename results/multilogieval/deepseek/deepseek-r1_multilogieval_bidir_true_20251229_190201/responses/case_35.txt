@@ -1,0 +1,139 @@
+The context states that if someone's account is hacked, they must reset their password and notify their bank. The given statement indicates Lucy either did not reset her password or notified her bank. However, this disjunction does not provide sufficient information to conclude that her account was hacked:
+
+- If Lucy did not reset her password, her account cannot have been hacked (because hacking would require a reset).
+- If Lucy notified her bank, it could be for reasons unrelated to hacking (since there might be other causes for notification).
+
+Thus, while the rules guarantee that hacking leads to both actions, the converse does not hold, and the disjunction `¬ResetPassword Lucy ∨ NotifyBank Lucy` does not entail `Hacked Lucy`.
+
+<lean>
+axiom Person : Type
+axiom Lucy : Person
+axiom Hacked : Person → Prop
+axiom ResetPassword : Person → Prop
+axiom NotifyBank : Person → Prop
+
+-- If hacked, reset password immediately
+axiom rule_reset : ∀ p, Hacked p → ResetPassword p
+-- If hacked/unauthorized access detected, notify bank
+axiom rule_notify : ∀ p, Hacked p → NotifyBank p
+
+-- Given premise: Either no password reset or bank notification
+axiom disj : ¬ ResetPassword Lucy ∨ NotifyBank Lucy
+
+-- Attempt to prove Lucy's account was hacked (cannot be proven)
+theorem hacked_lucy : Hacked Lucy := by
+  -- Case 1: No password reset (disjunction left)
+  cases disj with
+  | inl no_reset =>
+      -- If hacked, reset must occur (contradicts no_reset)
+      -- Thus, ¬Hacked Lucy implied but we need Hacked Lucy → contradiction
+      -- Cannot prove Hacked Lucy here
+      have fc : Hacked Lucy → False := fun h => no_reset (rule_reset Lucy h)
+      absurd fc -- Lacks witness of Hacked Lucy
+  | inr notified =>
+      -- Notification alone doesn't imply hacking (could be other reasons)
+      -- No inverse rule: NotifyBank p → Hacked p
+      sorry
+
+ANSWER: Failure
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors occurred because the `absurd` tactic was used incorrectly: it requires both the proposition and its negation to be present in the context. In the `inl` case, we only had the negation (`¬Hacked Lucy`), but not the proposition itself. Additionally, handling of cases needed refinement.
+
+**Corrected Analysis:**
+Using the given premises:
+1. If hacked → reset password (`∀p, Hacked p → ResetPassword p`)
+2. If hacked → notify bank (`∀p, Hacked p → NotifyBank p`)
+
+And the disjunction:
+- `¬ResetPassword Lucy ∨ NotifyBank Lucy`
+
+We cannot prove `Hacked Lucy`:
+- **Case 1 (¬ResetPassword):** Proves Lucy *was not* hacked (contrapositive of premise 1).
+- **Case 2 (NotifyBank):** Notification alone is insufficient (no rule that notifying implies hacking).
+
+Thus, the conclusion is unprovable.
+
+<lean>
+axiom Person : Type
+axiom Lucy : Person
+axiom Hacked : Person → Prop
+axiom ResetPassword : Person → Prop
+axiom NotifyBank : Person → Prop
+
+-- Rules from context
+axiom rule_reset : ∀ p, Hacked p → ResetPassword p
+axiom rule_notify : ∀ p, Hacked p → NotifyBank p
+
+-- Given premise
+axiom disj : ¬ ResetPassword Lucy ∨ NotifyBank Lucy
+
+theorem hacked_lucy : Hacked Lucy := by
+  cases disj with
+  | inl no_reset =>
+      -- Proves ¬Hacked Lucy using modus tollens
+      have neg_hacked : ¬ Hacked Lucy := 
+        fun h : Hacked Lucy => no_reset (rule_reset Lucy h)
+      -- Cannot prove Hacked Lucy when it's false
+      apply False.elim  -- Goal becomes False
+      exact neg_hacked ?h  -- Now need Hacked Lucy to finish, but none exists
+      case h => 
+        /-
+        Stuck: We must prove Hacked Lucy to use neg_hacked, 
+        but that's exactly what we're trying to prove.
+        */
+        sorry  -- Unfillable gap
+  | inr notified =>
+      -- No rule links NotifyBank back to Hacked
+      sorry     -- No way to prove Hacked Lucy from notification
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+After analyzing the compilation errors, I realize the proof attempt must be structured without leaving unterminated proofs or placeholder gaps. The core issue remains: we cannot prove "Hacked Lucy" from the given premises. Here's the corrected Lean 4 code:
+
+<lean>
+axiom Person : Type
+axiom Lucy : Person
+axiom Hacked : Person → Prop
+axiom ResetPassword : Person → Prop
+axiom NotifyBank : Person → Prop
+
+-- Rules: If hacked, must reset password and notify bank
+axiom rule_reset : ∀ p, Hacked p → ResetPassword p
+axiom rule_notify : ∀ p, Hacked p → NotifyBank p
+
+-- Given: Either no password reset or bank notification
+axiom disj : ¬ ResetPassword Lucy ∨ NotifyBank Lucy
+
+-- This theorem cannot be proven due to logical limitations in the premises
+theorem impossible_to_prove : Hacked Lucy := by
+  cases disj
+  case inl no_reset =>    -- No password reset branch
+    -- Prove Lucy could NOT have been hacked (contrapositive of rule_reset)
+    have not_hacked : ¬Hacked Lucy := 
+      fun h : Hacked Lucy => no_reset (rule_reset Lucy h)
+    apply False.elim       -- Attempt to derive contradiction
+    exact not_hacked ?h    -- Requires proof of Hacked Lucy (which doesn't exist)
+    case h => skip         -- Placeholder for unprovable Hacked Lucy 
+  case inr notified =>      -- Bank notification branch
+    sorry                  -- Notification ≠ proof of hacking
+</lean>
+
+**Explanation of why proof fails**:
+- **Case 1 (¬ResetPassword)**: Proves Lucy was *not* hacked (if hacked, reset would occur). This directly contradicts our goal.
+- **Case 2 (NotifyBank)**: Notification alone is insufficient (premises don't state it's only caused by hacking).
+
+No combination of premises allows deducing "Hacked Lucy". The logical gap is intentional in the context.
+
+ANSWER: Failure

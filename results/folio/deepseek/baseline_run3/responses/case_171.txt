@@ -1,0 +1,42 @@
+The given context and question are translated into Lean 4 code below. The domain is modeled with a type `Disease` and various predicates representing properties of diseases. The premises are encoded as axioms, and the theorem checks the truth value of the statement: "Colorectal cancer is a form of Cholangiocarcinoma and it is a kind of mild flu or a kind of bile duct cancer, or all of the above." This statement is interpreted as the conjunction: `cholangiocarcinoma colorectalCancer ∧ (mildFlu colorectalCancer ∨ bileDuctCancer colorectalCancer)`.
+
+<lean>
+axiom Disease : Type
+axiom deadlyDisease : Disease → Prop
+axiom lowSurvivalRate : Disease → Prop
+axiom severeCancer : Disease → Prop
+axiom bileDuctCancer : Disease → Prop
+axiom cholangiocarcinoma : Disease → Prop
+axiom mildFlu : Disease → Prop
+axiom colorectalCancer : Disease
+
+axiom P1 : ∀ d, deadlyDisease d → lowSurvivalRate d
+axiom P2 : ∀ d, severeCancer d → deadlyDisease d
+axiom P3 : ∀ d, bileDuctCancer d → severeCancer d
+axiom P4 : ∀ d, cholangiocarcinoma d → bileDuctCancer d
+axiom P5 : ∀ d, mildFlu d → lowSurvivalRate d
+axiom P6 : ¬ (bileDuctCancer colorectalCancer ∧ lowSurvivalRate colorectalCancer)
+
+theorem not_bile_duct : ¬ bileDuctCancer colorectalCancer := by
+  intro h
+  have h_severe : severeCancer colorectalCancer := P3 colorectalCancer h
+  have h_deadly : deadlyDisease colorectalCancer := P2 colorectalCancer h_severe
+  have h_low : lowSurvivalRate colorectalCancer := P1 colorectalCancer h_deadly
+  exact P6 ⟨h, h_low⟩
+
+theorem not_cholangio : ¬ cholangiocarcinoma colorectalCancer := by
+  intro h
+  have h_bile : bileDuctCancer colorectalCancer := P4 colorectalCancer h
+  exact not_bile_duct h_bile
+
+theorem disprove_statement : ¬ (cholangiocarcinoma colorectalCancer ∧ (mildFlu colorectalCancer ∨ bileDuctCancer colorectalCancer)) := by
+  intro h
+  exact not_cholangio h.left
+</lean>
+
+The Lean code proves that the statement is **false**:
+1. If colorectal cancer were a bile duct cancer, it would have a low survival rate (via `P3`, `P2`, `P1`), contradicting `P6`. Thus, `¬ bileDuctCancer colorectalCancer`.
+2. If colorectal cancer were Cholangiocarcinoma, it would be a bile duct cancer (via `P4`), contradicting step 1. Thus, `¬ cholangiocarcinoma colorectalCancer`.
+3. The first conjunct (`cholangiocarcinoma colorectalCancer`) is false, making the entire conjunction false regardless of the second part.
+
+ANSWER: False

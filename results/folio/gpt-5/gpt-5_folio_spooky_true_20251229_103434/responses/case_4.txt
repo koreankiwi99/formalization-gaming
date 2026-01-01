@@ -1,0 +1,67 @@
+<lean>
+axiom Person : Type
+axiom James : Person
+
+-- Predicates
+axiom Employee : Person → Prop
+axiom Manager : Person → Prop
+axiom LunchInBuilding : Person → Prop
+axiom LunchAtHome : Person → Prop
+axiom RemoteFromHome : Person → Prop
+axiom InOtherCountries : Person → Prop
+axiom SchedulesWithCustomers : Person → Prop
+axiom GoToCompanyBuildingToday : Person → Prop
+axiom AppearsInCompanyToday : Person → Prop
+
+-- Axioms from the text
+-- 1. All employees who schedule a meeting with their customers will go to the company building today.
+axiom A1 : ∀ x : Person, Employee x → SchedulesWithCustomers x → GoToCompanyBuildingToday x
+
+-- 2. Everyone who has lunch in the company building schedules meetings with their customers.
+axiom A2 : ∀ x : Person, LunchInBuilding x → SchedulesWithCustomers x
+
+-- 3. Employees have lunch either in the company building or at home.
+axiom A3 : ∀ x : Person, Employee x → (LunchInBuilding x ∨ LunchAtHome x)
+
+-- 4. If an employee has lunch at home, they are working remotely from home.
+axiom A4 : ∀ x : Person, Employee x → LunchAtHome x → RemoteFromHome x
+
+-- 5. All employees who are in other countries work remotely from home.
+axiom A5 : ∀ x : Person, Employee x → InOtherCountries x → RemoteFromHome x
+
+-- 6. No managers work remotely from home.
+axiom A6 : ∀ x : Person, Manager x → ¬ RemoteFromHome x
+
+-- 7. James will appear in the company today iff he is a manager.
+axiom A7 : AppearsInCompanyToday James ↔ Manager James
+
+-- Bridge: going to the company building today implies appearing in the company today.
+axiom A8 : ∀ x : Person, GoToCompanyBuildingToday x → AppearsInCompanyToday x
+
+-- Useful derived lemmas
+
+-- If James is an employee and has lunch in the company building, then he is a manager.
+theorem lunch_in_building_employee_implies_manager :
+  LunchInBuilding James → Employee James → Manager James := by
+  intro hLunch hEmp
+  have hSched : SchedulesWithCustomers James := A2 James hLunch
+  have hGo : GoToCompanyBuildingToday James := A1 James hEmp hSched
+  have hAppear : AppearsInCompanyToday James := A8 James hGo
+  have hIff : AppearsInCompanyToday James ↔ Manager James := A7
+  exact (Iff.mp hIff) hAppear
+
+-- If James is an employee and not a manager, then he does not have lunch in the company building.
+theorem James_not_lunch_if_employee_and_not_manager :
+  Employee James → ¬ Manager James → ¬ LunchInBuilding James := by
+  intro hEmp hNotMan hLunch
+  have hMan : Manager James := lunch_in_building_employee_implies_manager hLunch hEmp
+  exact hNotMan hMan
+
+-- Managers being remote leads to contradiction.
+theorem manager_remote_contradiction (x : Person) :
+  Manager x → RemoteFromHome x → False := by
+  intro hM hR
+  exact (A6 x hM) hR
+</lean>
+
+ANSWER: Failure

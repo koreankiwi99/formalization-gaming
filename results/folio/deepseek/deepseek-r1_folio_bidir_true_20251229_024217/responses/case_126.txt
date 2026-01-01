@@ -1,0 +1,112 @@
+<lean>
+axiom obj : Type
+axiom Rock : obj
+axiom PeterPet : obj → Prop
+axiom Mammal : obj → Prop
+axiom Animal : obj → Prop
+axiom Monkey : obj → Prop
+axiom Bird : obj → Prop
+axiom CanFly : obj → Prop
+axiom CanBreathe : obj → Prop
+axiom HasWings : obj → Prop
+
+-- All of Peter's pets that are mammals are also animals.
+axiom A1 : ∀ x : obj, PeterPet x → Mammal x → Animal x
+-- All monkeys are mammals.
+axiom A2 : ∀ x : obj, Monkey x → Mammal x
+-- Peter's pets are all either monkeys or birds.
+axiom A3 : ∀ x : obj, PeterPet x → Monkey x ∨ Bird x
+-- Peter's birds can fly.
+axiom A4 : ∀ x : obj, PeterPet x → Bird x → CanFly x
+-- All animals that are Peter's pets can breathe.
+axiom A5 : ∀ x : obj, PeterPet x → Animal x → CanBreathe x
+-- If Peter's pet can fly, then it has wings.
+axiom A6 : ∀ x : obj, PeterPet x → CanFly x → HasWings x
+-- Rock is Peter's pet.
+axiom A7 : PeterPet Rock
+-- Rock can fly, or Rock is a bird, or Rock cannot breathe.
+axiom A8 : CanFly Rock ∨ Bird Rock ∨ ¬ CanBreathe Rock
+
+-- Attempt to prove ¬HasWings Rock
+theorem rock_no_wings : ¬ HasWings Rock := by
+  intro h_wings
+  -- We will show this leads to contradiction
+  have no_fly : ¬ CanFly Rock := by
+    intro fly
+    exact h_wings (A6 Rock A7 fly)
+
+  -- Process disjunction in A8
+  cases A8 with
+  | inl fly => exact no_fly fly
+  | inr rest =>
+    cases rest with
+    | inl bird =>
+        have fly : CanFly Rock := A4 Rock A7 bird
+        exact no_fly fly
+    | inr no_breathe =>
+        -- Explore Rock's type via A3
+        have types := A3 Rock A7
+        cases types with
+        | inl monkey =>
+            have mammal : Mammal Rock := A2 Rock monkey
+            have animal : Animal Rock := A1 Rock A7 mammal
+            have breathe : CanBreathe Rock := A5 Rock A7 animal
+            exact no_breathe breathe
+        | inr bird =>
+            have fly : CanFly Rock := A4 Rock A7 bird
+            exact no_fly fly
+
+-- This produces an error because our derivation leads to contradiction in all cases
+-- Indicating that ¬HasWings Rock cannot be proven
+
+</lean>
+
+The Lean code demonstrates that assuming ¬HasWings Rock leads to contradictions in all cases:
+1. If Rock can fly, it must have wings by A6, contradicting ¬HasWings Rock.
+2. If Rock is a bird, A4 requires it to fly, again leading to wings and contradiction.
+3. If Rock cannot breathe, but:
+   - As a monkey: mammal→animal→must breathe (A5), contradiction with not breathing.
+   - As a bird: must fly (A4), leading to case (2) contradiction.
+
+This shows the initial assumption ¬HasWings Rock is untenable. However, we weren't able to successfully prove ¬HasWings Rock; instead, our proof shows the opposite is true. Since the evaluated statement ("Rock does not have wings") cannot be proven from the premises, we return Failure.
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The initial Lean code contained a logical error in the proof attempt for the theorem `rock_no_wings`. Specifically, the term `h_wings` (of type `HasWings Rock`) was incorrectly used as a function in the context of deriving a contradiction. Subsequent analysis reveals that the premises actually imply `HasWings Rock` (Rock has wings), making it impossible to prove the requested statement "Rock does not have wings" (¬HasWings Rock). Here is the corrected Lean code:
+
+<lean>
+axiom obj : Type
+axiom Rock : obj
+axiom PeterPet : obj → Prop
+axiom Mammal : obj → Prop
+axiom Animal : obj → Prop
+axiom Monkey : obj → Prop
+axiom Bird : obj → Prop
+axiom CanFly : obj → Prop
+axiom CanBreathe : obj → Prop
+axiom HasWings : obj → Prop
+
+axiom A1 : ∀ x : obj, PeterPet x → Mammal x → Animal x
+axiom A2 : ∀ x : obj, Monkey x → Mammal x
+axiom A3 : ∀ x : obj, PeterPet x → Monkey x ∨ Bird x
+axiom A4 : ∀ x : obj, PeterPet x → Bird x → CanFly x
+axiom A5 : ∀ x : obj, PeterPet x → Animal x → CanBreathe x
+axiom A6 : ∀ x : obj, PeterPet x → CanFly x → HasWings x
+axiom A7 : PeterPet Rock
+axiom A8 : CanFly Rock ∨ Bird Rock ∨ ¬CanBreathe Rock
+
+-- We cannot prove ¬HasWings Rock because:
+-- 1. If Rock can fly (first disjunct of A8), A6 implies HasWings Rock.
+-- 2. If Rock is a bird (second disjunct of A8), A4 implies CanFly Rock, then A6 implies HasWings Rock.
+-- 3. If Rock cannot breathe (third disjunct of A8):
+--    - By A3, Rock is monkey or bird.
+--    - If monkey: A2/A1/A5 force CanBreathe Rock → contradicts ¬CanBreathe Rock.
+--    - If bird: As in #2, forces HasWings Rock.
+-- Thus, all cases imply HasWings Rock, making ¬HasWings Rock unprovable.
+</lean>
+
+ANSWER: Failure

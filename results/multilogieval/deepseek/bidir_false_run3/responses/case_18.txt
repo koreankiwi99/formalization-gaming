@@ -1,0 +1,77 @@
+<lean>
+axiom obj : Type
+axiom Sam : obj
+axiom ImpressedManager : obj → Prop
+axiom TookExtraResponsibilities : obj → Prop
+axiom Promotion : obj → Prop
+axiom GainExperience : obj → Prop
+axiom LeadNewTeam : obj → Prop
+
+axiom premise1 : ∀ x : obj, ImpressedManager x → Promotion x
+axiom premise2 : ∀ x : obj, TookExtraResponsibilities x → GainExperience x
+axiom premise3 : ImpressedManager Sam ∨ TookExtraResponsibilities Sam
+axiom premise4 : ∀ x : obj, GainExperience x → LeadNewTeam x
+axiom given : ¬ Promotion Sam
+
+-- Attempt to prove ¬LeadNewTeam Sam fails because:
+-- 1. ¬Promotion Sam and premise1 imply ¬ImpressedManager Sam (by contraposition)
+-- 2. premise3 and ¬ImpressedManager Sam imply TookExtraResponsibilities Sam
+-- 3. premise2 and TookExtraResponsibilities Sam imply GainExperience Sam
+-- 4. premise4 and GainExperience Sam imply LeadNewTeam Sam
+
+-- Therefore, we can actually prove LeadNewTeam Sam:
+theorem sam_leads : LeadNewTeam Sam := by
+  cases premise3 with
+  | inl h => 
+    have := premise1 Sam h
+    contradiction
+  | inr h => 
+    exact premise4 Sam (premise2 Sam h)
+
+-- Since we proved LeadNewTeam Sam, we cannot prove ¬LeadNewTeam Sam
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation error occurred because the `contradiction` tactic in the `inl` branch didn't automatically resolve the case where we had both `Promotion Sam` and `¬Promotion Sam` in the context, while the goal was `LeadNewTeam Sam`. This is fixed by explicitly using `False.elim` to leverage the contradiction and prove any goal.
+
+Here's the corrected Lean code:
+
+<lean>
+axiom obj : Type
+axiom Sam : obj
+axiom ImpressedManager : obj → Prop
+axiom TookExtraResponsibilities : obj → Prop
+axiom Promotion : obj → Prop
+axiom GainExperience : obj → Prop
+axiom LeadNewTeam : obj → Prop
+
+axiom premise1 : ∀ x : obj, ImpressedManager x → Promotion x
+axiom premise2 : ∀ x : obj, TookExtraResponsibilities x → GainExperience x
+axiom premise3 : ImpressedManager Sam ∨ TookExtraResponsibilities Sam
+axiom premise4 : ∀ x : obj, GainExperience x → LeadNewTeam x
+axiom given : ¬ Promotion Sam
+
+-- Attempt to prove ¬LeadNewTeam Sam fails because:
+-- From ¬Promotion Sam and premise1, we get ¬ImpressedManager Sam (contraposition)
+-- From premise3 and ¬ImpressedManager Sam, we get TookExtraResponsibilities Sam
+-- From premise2 and TookExtraResponsibilities Sam, we get GainExperience Sam
+-- From premise4 and GainExperience Sam, we get LeadNewTeam Sam
+
+-- Proof that Sam leads a new team:
+theorem sam_leads : LeadNewTeam Sam := by
+  cases premise3 with
+  | inl h => 
+    have p : Promotion Sam := premise1 Sam h
+    exact False.elim (given p)  -- Explicit contradiction handling
+  | inr h => 
+    exact premise4 Sam (premise2 Sam h)
+
+-- Since we've proven LeadNewTeam Sam, we cannot prove ¬LeadNewTeam Sam
+</lean>
+
+ANSWER: Failure

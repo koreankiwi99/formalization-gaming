@@ -1,0 +1,48 @@
+<lean>
+axiom obj : Type
+axiom mixture : obj
+
+axiom Hydrocarbon : obj → Prop
+axiom Organic : obj → Prop
+axiom Alkane : obj → Prop
+axiom Chemical : obj → Prop
+axiom ContainsCarbon : obj → Prop
+axiom SingleElement : obj → Prop
+
+-- All hydrocarbons are organic compounds.
+axiom A1 : ∀ x : obj, Hydrocarbon x → Organic x
+-- All alkanes are hydrocarbons.
+axiom A2 : ∀ x : obj, Alkane x → Hydrocarbon x
+-- All organic compounds are chemical compounds.
+axiom A3 : ∀ x : obj, Organic x → Chemical x
+-- All organic compounds contain carbon.
+axiom A4 : ∀ x : obj, Organic x → ContainsCarbon x
+-- No chemical compounds contain only one element.
+axiom A5 : ∀ x : obj, Chemical x → ¬ SingleElement x
+-- The mixture either both is a chemical compound and contains only one element, or neither.
+axiom A6 : (Chemical mixture ∧ SingleElement mixture) ∨ (¬ Chemical mixture ∧ ¬ SingleElement mixture)
+
+theorem target :
+  (SingleElement mixture ∨ ContainsCarbon mixture) → (¬ Chemical mixture ∧ ¬ Alkane mixture) := by
+  intro _
+  -- From A6 and A5, deduce that the mixture is neither a chemical compound nor single-element.
+  have hneither : ¬ Chemical mixture ∧ ¬ SingleElement mixture := by
+    cases A6 with
+    | inl hboth =>
+        have hc : Chemical mixture := hboth.left
+        have hs : SingleElement mixture := hboth.right
+        have nhs : ¬ SingleElement mixture := A5 mixture hc
+        exact False.elim (nhs hs)
+    | inr hneither' =>
+        exact hneither'
+  have nchem : ¬ Chemical mixture := hneither.left
+  have nalk : ¬ Alkane mixture := by
+    intro halk
+    have hhyd : Hydrocarbon mixture := A2 mixture halk
+    have horg : Organic mixture := A1 mixture hhyd
+    have hchem : Chemical mixture := A3 mixture horg
+    exact nchem hchem
+  exact And.intro nchem nalk
+</lean>
+
+ANSWER: True

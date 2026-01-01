@@ -1,0 +1,305 @@
+======================================================================
+STAGE 1: TRANSLATION
+======================================================================
+
+--- Iteration 1 ---
+
+<lean>
+axiom obj : Type
+axiom Peter : obj
+axiom Rock : obj
+
+axiom PetOf : obj → obj → Prop
+axiom Mammal : obj → Prop
+axiom Animal : obj → Prop
+axiom Monkey : obj → Prop
+axiom Bird : obj → Prop
+axiom CanFly : obj → Prop
+axiom CanBreathe : obj → Prop
+axiom HasWings : obj → Prop
+
+-- All of Peter's pets that are mammals are also animals.
+axiom P1 : ∀ x : obj, (PetOf x Peter ∧ Mammal x) → Animal x
+-- All monkeys are mammals.
+axiom P2 : ∀ x : obj, Monkey x → Mammal x
+-- Peter's pets are all either monkeys or birds.
+axiom P3 : ∀ x : obj, PetOf x Peter → (Monkey x ∨ Bird x)
+-- Peter's birds can fly.
+axiom P4 : ∀ x : obj, (PetOf x Peter ∧ Bird x) → CanFly x
+-- All animals that are Peter's pets can breathe.
+axiom P5 : ∀ x : obj, (Animal x ∧ PetOf x Peter) → CanBreathe x
+-- If Peter's pet can fly, then it has wings.
+axiom P6 : ∀ x : obj, (PetOf x Peter ∧ CanFly x) → HasWings x
+-- Rock is Peter's pet.
+axiom P7 : PetOf Rock Peter
+-- Rock can fly, or Rock is a bird, or Rock cannot breathe.
+axiom P8 : (CanFly Rock) ∨ (Bird Rock) ∨ (¬ CanBreathe Rock)
+
+-- Conclusion: Rock does not have wings.
+theorem goal : ¬ HasWings Rock := sorry
+</lean>
+
+
+======================================================================
+STAGE 2: PROVING
+======================================================================
+
+--- Iteration 1 ---
+
+<lean>
+axiom obj : Type
+axiom Peter : obj
+axiom Rock : obj
+
+axiom PetOf : obj → obj → Prop
+axiom Mammal : obj → Prop
+axiom Animal : obj → Prop
+axiom Monkey : obj → Prop
+axiom Bird : obj → Prop
+axiom CanFly : obj → Prop
+axiom CanBreathe : obj → Prop
+axiom HasWings : obj → Prop
+
+-- All of Peter's pets that are mammals are also animals.
+axiom P1 : ∀ x : obj, (PetOf x Peter ∧ Mammal x) → Animal x
+-- All monkeys are mammals.
+axiom P2 : ∀ x : obj, Monkey x → Mammal x
+-- Peter's pets are all either monkeys or birds.
+axiom P3 : ∀ x : obj, PetOf x Peter → (Monkey x ∨ Bird x)
+-- Peter's birds can fly.
+axiom P4 : ∀ x : obj, (PetOf x Peter ∧ Bird x) → CanFly x
+-- All animals that are Peter's pets can breathe.
+axiom P5 : ∀ x : obj, (Animal x ∧ PetOf x Peter) → CanBreathe x
+-- If Peter's pet can fly, then it has wings.
+axiom P6 : ∀ x : obj, (PetOf x Peter ∧ CanFly x) → HasWings x
+-- Rock is Peter's pet.
+axiom P7 : PetOf Rock Peter
+-- Rock can fly, or Rock is a bird, or Rock cannot breathe.
+axiom P8 : (CanFly Rock) ∨ (Bird Rock) ∨ (¬ CanBreathe Rock)
+
+-- We can actually derive that Rock has wings.
+theorem hasWingsRock : HasWings Rock := by
+  have pet : PetOf Rock Peter := P7
+  have disj1 : CanFly Rock ∨ Bird Rock ∨ ¬ CanBreathe Rock := P8
+  -- From P8 and P3 we can derive CanFly Rock ∨ Bird Rock
+  have cf_or_b : CanFly Rock ∨ Bird Rock := by
+    cases disj1 with
+    | inl cf => exact Or.inl cf
+    | inr rest =>
+      cases rest with
+      | inl b => exact Or.inr b
+      | inr nb =>
+        have mb : Monkey Rock ∨ Bird Rock := P3 Rock pet
+        have notMonkey : ¬ Monkey Rock := by
+          intro m
+          have mam : Mammal Rock := P2 Rock m
+          have an : Animal Rock := P1 Rock ⟨pet, mam⟩
+          have br : CanBreathe Rock := P5 Rock ⟨an, pet⟩
+          exact nb br
+        exact Or.resolve_left mb notMonkey
+  -- From that, derive CanFly Rock
+  have cf : CanFly Rock := by
+    cases cf_or_b with
+    | inl cf => exact cf
+    | inr b => exact P4 Rock ⟨pet, b⟩
+  -- Then HasWings by P6
+  exact P6 Rock ⟨pet, cf⟩
+
+-- Conclusion: Rock does not have wings. (This does not follow from the premises.)
+theorem goal : ¬ HasWings Rock := by
+  -- This goal is not derivable from the given axioms. In fact, we have hasWingsRock above.
+  intro h
+  have hw : HasWings Rock := hasWingsRock
+  -- h : HasWings Rock, hw : HasWings Rock; there is no contradiction to derive False.
+  -- We cannot derive False from these premises.
+  cases hw
+</lean>
+
+ANSWER: False
+
+[LEAN ERROR]: Application type mismatch: The argument
+  mb
+has type
+  Monkey Rock ∨ Bird Rock
+but is expected to have type
+  Monkey Rock ∨ CanFly Rock ∨ Bird Rock
+in the application
+  Or.resolve_left mb
+Tactic `cases` failed: major premise type is not an inductive type
+  HasWings Rock
+
+Explanation: the `cases` tactic is for constructor-based reasoning as well as for applying custom cases principles with a 'using' clause or a registered '@[cases_eliminator]' theorem. The above type neither is an inductive type nor has a registered theorem.
+
+h hw : HasWings Rock
+⊢ False
+
+--------------------------------------------------
+--- Iteration 2 ---
+
+<lean>
+axiom obj : Type
+axiom Peter : obj
+axiom Rock : obj
+
+axiom PetOf : obj → obj → Prop
+axiom Mammal : obj → Prop
+axiom Animal : obj → Prop
+axiom Monkey : obj → Prop
+axiom Bird : obj → Prop
+axiom CanFly : obj → Prop
+axiom CanBreathe : obj → Prop
+axiom HasWings : obj → Prop
+
+-- All of Peter's pets that are mammals are also animals.
+axiom P1 : ∀ x : obj, (PetOf x Peter ∧ Mammal x) → Animal x
+-- All monkeys are mammals.
+axiom P2 : ∀ x : obj, Monkey x → Mammal x
+-- Peter's pets are all either monkeys or birds.
+axiom P3 : ∀ x : obj, PetOf x Peter → (Monkey x ∨ Bird x)
+-- Peter's birds can fly.
+axiom P4 : ∀ x : obj, (PetOf x Peter ∧ Bird x) → CanFly x
+-- All animals that are Peter's pets can breathe.
+axiom P5 : ∀ x : obj, (Animal x ∧ PetOf x Peter) → CanBreathe x
+-- If Peter's pet can fly, then it has wings.
+axiom P6 : ∀ x : obj, (PetOf x Peter ∧ CanFly x) → HasWings x
+-- Rock is Peter's pet.
+axiom P7 : PetOf Rock Peter
+-- Rock can fly, or Rock is a bird, or Rock cannot breathe.
+axiom P8 : (CanFly Rock) ∨ (Bird Rock) ∨ (¬ CanBreathe Rock)
+
+-- From the premises we can derive that Rock has wings.
+theorem hasWingsRock : HasWings Rock := by
+  have pet : PetOf Rock Peter := P7
+  -- From P8, get CanFly Rock ∨ Bird Rock
+  have cf_or_b : CanFly Rock ∨ Bird Rock := by
+    -- P8 is right-associative: CanFly Rock ∨ (Bird Rock ∨ ¬CanBreathe Rock)
+    cases P8 with
+    | inl cf =>
+      exact Or.inl cf
+    | inr rest =>
+      cases rest with
+      | inl b =>
+        exact Or.inr b
+      | inr nb =>
+        -- Use P3 to get Monkey Rock ∨ Bird Rock
+        have mb : Monkey Rock ∨ Bird Rock := P3 Rock pet
+        -- Show Rock is not a monkey (else it would breathe, contradict nb)
+        have notMonkey : ¬ Monkey Rock := by
+          intro m
+          have mam : Mammal Rock := P2 Rock m
+          have an : Animal Rock := P1 Rock ⟨pet, mam⟩
+          have br : CanBreathe Rock := P5 Rock ⟨an, pet⟩
+          exact nb br
+        -- Therefore Bird Rock, hence CanFly Rock ∨ Bird Rock
+        exact Or.inr (Or.resolve_left mb notMonkey)
+  -- From CanFly Rock ∨ Bird Rock, deduce CanFly Rock
+  have cf : CanFly Rock := by
+    cases cf_or_b with
+    | inl cf => exact cf
+    | inr b => exact P4 Rock ⟨pet, b⟩
+  -- Hence Rock has wings by P6
+  exact P6 Rock ⟨pet, cf⟩
+
+-- The stated conclusion is not derivable; in fact, it contradicts hasWingsRock.
+-- Therefore, this theorem cannot be proved from the given axioms.
+theorem goal : ¬ HasWings Rock := by
+  -- Impossible given the premises; showing a contradiction if assumed.
+  intro h
+  exact (h hasWingsRock)
+</lean>
+
+ANSWER: False
+
+[LEAN ERROR]: Function expected at
+  h
+but this term has type
+  HasWings Rock
+
+Note: Expected a function because this term is being applied to the argument
+  hasWingsRock
+
+--------------------------------------------------
+--- Iteration 3 ---
+
+<lean>
+axiom obj : Type
+axiom Peter : obj
+axiom Rock : obj
+
+axiom PetOf : obj → obj → Prop
+axiom Mammal : obj → Prop
+axiom Animal : obj → Prop
+axiom Monkey : obj → Prop
+axiom Bird : obj → Prop
+axiom CanFly : obj → Prop
+axiom CanBreathe : obj → Prop
+axiom HasWings : obj → Prop
+
+-- All of Peter's pets that are mammals are also animals.
+axiom P1 : ∀ x : obj, (PetOf x Peter ∧ Mammal x) → Animal x
+-- All monkeys are mammals.
+axiom P2 : ∀ x : obj, Monkey x → Mammal x
+-- Peter's pets are all either monkeys or birds.
+axiom P3 : ∀ x : obj, PetOf x Peter → (Monkey x ∨ Bird x)
+-- Peter's birds can fly.
+axiom P4 : ∀ x : obj, (PetOf x Peter ∧ Bird x) → CanFly x
+-- All animals that are Peter's pets can breathe.
+axiom P5 : ∀ x : obj, (Animal x ∧ PetOf x Peter) → CanBreathe x
+-- If Peter's pet can fly, then it has wings.
+axiom P6 : ∀ x : obj, (PetOf x Peter ∧ CanFly x) → HasWings x
+-- Rock is Peter's pet.
+axiom P7 : PetOf Rock Peter
+-- Rock can fly, or Rock is a bird, or Rock cannot breathe.
+axiom P8 : (CanFly Rock) ∨ (Bird Rock) ∨ (¬ CanBreathe Rock)
+
+-- From the premises we can derive that Rock has wings.
+theorem hasWingsRock : HasWings Rock := by
+  have pet : PetOf Rock Peter := P7
+  -- From P8, get CanFly Rock ∨ Bird Rock
+  have cf_or_b : CanFly Rock ∨ Bird Rock := by
+    cases P8 with
+    | inl cf =>
+      exact Or.inl cf
+    | inr rest =>
+      cases rest with
+      | inl b =>
+        exact Or.inr b
+      | inr nb =>
+        -- Use P3 to get Monkey Rock ∨ Bird Rock
+        have mb : Monkey Rock ∨ Bird Rock := P3 Rock pet
+        -- Show Rock is not a monkey (else it would breathe, contradict nb)
+        have notMonkey : ¬ Monkey Rock := by
+          intro m
+          have mam : Mammal Rock := P2 Rock m
+          have an : Animal Rock := P1 Rock ⟨pet, mam⟩
+          have br : CanBreathe Rock := P5 Rock ⟨an, pet⟩
+          exact nb br
+        -- Therefore Bird Rock, hence CanFly Rock ∨ Bird Rock
+        exact Or.inr (Or.resolve_left mb notMonkey)
+  -- From CanFly Rock ∨ Bird Rock, deduce CanFly Rock
+  have cf : CanFly Rock := by
+    cases cf_or_b with
+    | inl cf => exact cf
+    | inr b => exact P4 Rock ⟨pet, b⟩
+  -- Hence Rock has wings by P6
+  exact P6 Rock ⟨pet, cf⟩
+
+-- The provided conclusion is not derivable from the axioms (indeed, the opposite holds).
+-- We cannot construct a proof of ¬ HasWings Rock; the correct consequence is HasWings Rock.
+-- Therefore, the statement is false.
+theorem goal : ¬ HasWings Rock := by
+  -- This is unprovable given the axioms; we include a placeholder contradiction from hasWingsRock.
+  intro h
+  have hw : HasWings Rock := hasWingsRock
+  exact (False.elim (h hw))
+</lean>
+
+ANSWER: False
+
+[LEAN ERROR]: Function expected at
+  h
+but this term has type
+  HasWings Rock
+
+Note: Expected a function because this term is being applied to the argument
+  hw

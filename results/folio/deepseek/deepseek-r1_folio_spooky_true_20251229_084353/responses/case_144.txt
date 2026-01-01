@@ -1,0 +1,64 @@
+After translating the natural language reasoning into Lean 4, we formalize the predicates and premises as follows:
+
+- `Person` is the type of individuals.
+- `vladimir` and `ekaterina` are specific persons.
+- Predicates represent properties like citizenship, voting eligibility, and official status.
+- Premises are converted into axioms.
+
+The goal is to prove `IsRussianFedOfficial vladimir`. The reasoning proceeds:
+
+1. **Vladimir's citizenship**: Premise 5 states Vladimir lacks Taiwanese citizenship. Premise 3 requires every person to have US or Taiwanese citizenship. Thus, Vladimir must have US citizenship (by case analysis, eliminating the Taiwanese option via contradiction).
+2. **Vladimir's voting eligibility**: US citizenship (Premise 2) implies Vladimir can register to vote, and thus can participate in the election (Premise 1). However, this provides no information about Russian official status.
+3. **Ekaterina's case**: Premise 6 states she can register to vote or is a Russian official. Analysis shows she must be able to register regardless of citizenship (US citizenship directly allows registration; Taiwanese citizenship forces registration via Premise 6 and Premise 4's contradiction). This does not involve Vladimir.
+4. **No link to Russian official status**: Premise 4 prohibits Russian officials from holding Taiwanese citizenship, but Vladimir's US citizenship is consistent with both being and not being a Russian official. Premise 5 only negates Taiwanese citizenship and Gazprom management, offering no constraint on official status.
+
+Since no premise connects Vladimir's attributes to Russian official status, the proof fails.
+
+<lean>
+axiom Person : Type
+axiom vladimir : Person
+axiom ekaterina : Person
+
+axiom CanRegisterToVoteInUS : Person → Prop
+axiom CanParticipateIn2024Election : Person → Prop
+axiom HasUSCitizenship : Person → Prop
+axiom HasTaiwaneseCitizenship : Person → Prop
+axiom IsRussianFedOfficial : Person → Prop
+axiom IsManagerAtGazprom : Person → Prop
+
+axiom Premise1 : ∀ p : Person, CanRegisterToVoteInUS p → CanParticipateIn2024Election p
+axiom Premise2 : ∀ p : Person, HasUSCitizenship p → CanRegisterToVoteInUS p
+axiom Premise3 : ∀ p : Person, HasUSCitizenship p ∨ HasTaiwaneseCitizenship p
+axiom Premise4 : ∀ p : Person, IsRussianFedOfficial p → ¬ HasTaiwaneseCitizenship p
+axiom Premise5 : ¬ HasTaiwaneseCitizenship vladimir ∧ ¬ IsManagerAtGazprom vladimir
+axiom Premise6 : CanRegisterToVoteInUS ekaterina ∨ IsRussianFedOfficial ekaterina
+
+theorem vladimir_russian : IsRussianFedOfficial vladimir := by
+  -- Extract Vladimir's lack of Taiwanese citizenship from Premise5
+  have vlad_no_taiwan : ¬ HasTaiwaneseCitizenship vladimir := Premise5.left
+  -- Apply citizenship dichotomy (Premise3) to Vladimir
+  have vlad_citizenship : HasUSCitizenship vladimir ∨ HasTaiwaneseCitizenship vladimir := Premise3 vladimir
+  -- Eliminate Taiwanese option using contradiction, proving US citizenship
+  have vlad_US : HasUSCitizenship vladimir := by
+    cases vlad_citizenship with
+    | inl us => exact us
+    | inr tai => contradiction
+  -- Prove Vladimir can register and participate (Premise2 and Premise1)
+  have vlad_can_register : CanRegisterToVoteInUS vladimir := Premise2 vladimir vlad_US
+  have vlad_can_participate : CanParticipateIn2024Election vladimir := Premise1 vladimir vlad_can_register
+  -- Analyze Ekaterina's case to show she must be able to register
+  have ekaterina_can_register : CanRegisterToVoteInUS ekaterina := by
+    cases Premise3 ekaterina with
+    | inl ek_us => exact Premise2 ekaterina ek_us
+    | inr ek_taiwan =>
+        cases Premise6 with
+        | inl reg => exact reg
+        | inr official =>
+            have no_taiwan : ¬ HasTaiwaneseCitizenship ekaterina := Premise4 ekaterina official
+            contradiction
+  -- No further progress: Vladimir's attributes do not force Russian official status
+  -- Attempting to prove the goal fails here
+  sorry
+</lean>
+
+ANSWER: Failure

@@ -1,0 +1,88 @@
+<lean>
+axiom Person : Type
+axiom Sam : Person
+
+axiom KitchenHot : Prop
+axiom StoveOn : Prop
+
+axiom Hungry : Person → Prop
+axiom MakePancakes : Person → Prop
+axiom UseStove : Person → Prop
+axiom AteDinner : Person → Prop
+
+-- If the stove is on, the kitchen gets hot
+axiom R_on_hot : StoveOn → KitchenHot
+-- If someone makes pancakes, they use the stove
+axiom R_make_use : ∀ x : Person, MakePancakes x → UseStove x
+-- Either the stove was on, or Sam did not use the stove
+axiom R_on_or_notuse : StoveOn ∨ ¬ UseStove Sam
+-- If someone is hungry, they make pancakes
+axiom R_hungry_make : ∀ x : Person, Hungry x → MakePancakes x
+-- If Sam did not eat dinner last night, he was hungry this morning
+axiom R_notEat_hungry : ¬ AteDinner Sam → Hungry Sam
+
+open Classical
+
+theorem sam_ate_from_not_hot (nh : ¬ KitchenHot) : AteDinner Sam :=
+by
+  by_contra hNotEat
+  have hHungry : Hungry Sam := R_notEat_hungry hNotEat
+  have hMake : MakePancakes Sam := R_hungry_make Sam hHungry
+  have hUse : UseStove Sam := R_make_use Sam hMake
+  have hOn : StoveOn :=
+    by
+      cases R_on_or_notuse with
+      | inl hon => exact hon
+      | inr hnotuse =>
+        exact False.elim (hnotuse hUse)
+  have hHot : KitchenHot := R_on_hot hOn
+  exact nh hHot
+</lean>
+
+ANSWER: Yes
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom Person : Type
+axiom Sam : Person
+
+axiom KitchenHot : Prop
+axiom StoveOn : Prop
+
+axiom Hungry : Person → Prop
+axiom MakePancakes : Person → Prop
+axiom UseStove : Person → Prop
+axiom AteDinner : Person → Prop
+
+-- If the stove is on, the kitchen gets hot
+axiom R_on_hot : StoveOn → KitchenHot
+-- If someone makes pancakes, they use the stove
+axiom R_make_use : ∀ x : Person, MakePancakes x → UseStove x
+-- Either the stove was on, or Sam did not use the stove
+axiom R_on_or_notuse : StoveOn ∨ ¬ UseStove Sam
+-- If someone is hungry, they make pancakes
+axiom R_hungry_make : ∀ x : Person, Hungry x → MakePancakes x
+-- If Sam did not eat dinner last night, he was hungry this morning
+axiom R_notEat_hungry : ¬ AteDinner Sam → Hungry Sam
+
+theorem sam_ate_from_not_hot (nh : ¬ KitchenHot) : AteDinner Sam :=
+by
+  classical
+  by_cases hAte : AteDinner Sam
+  · exact hAte
+  ·
+    have hHungry : Hungry Sam := R_notEat_hungry hAte
+    have hMake : MakePancakes Sam := R_hungry_make Sam hHungry
+    have hUse : UseStove Sam := R_make_use Sam hMake
+    have hOn : StoveOn :=
+      Or.elim R_on_or_notuse
+        (fun hon => hon)
+        (fun hnotuse => False.elim (hnotuse hUse))
+    have hHot : KitchenHot := R_on_hot hOn
+    exact False.elim (nh hHot)
+</lean>
+
+ANSWER: Yes

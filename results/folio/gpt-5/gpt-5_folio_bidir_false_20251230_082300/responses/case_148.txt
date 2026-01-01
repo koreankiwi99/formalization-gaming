@@ -1,0 +1,117 @@
+<lean>
+axiom Person : Type
+axiom Ekaterina : Person
+axiom Vladimir : Person
+
+axiom CanRegisterUS : Person → Prop
+axiom CanParticipate2024 : Person → Prop
+axiom USCitizenship : Person → Prop
+axiom TaiwaneseCitizenship : Person → Prop
+axiom RussianOfficial : Person → Prop
+axiom ManagerGazprom : Person → Prop
+
+-- Premises
+axiom P1 : ∀ x : Person, CanRegisterUS x → CanParticipate2024 x
+axiom P2 : ∀ x : Person, USCitizenship x → CanRegisterUS x
+axiom P3 : ∀ x : Person, USCitizenship x ∨ TaiwaneseCitizenship x
+axiom P4 : ∀ x : Person, RussianOfficial x → ¬TaiwaneseCitizenship x
+axiom P5a : ¬TaiwaneseCitizenship Vladimir
+axiom P5b : ¬ManagerGazprom Vladimir
+axiom P6 : CanRegisterUS Ekaterina ∨ RussianOfficial Ekaterina
+
+-- Derivations
+lemma vlad_US : USCitizenship Vladimir :=
+  Or.elim (P3 Vladimir)
+    (fun hUS => hUS)
+    (fun hTW => False.elim (P5a hTW))
+
+lemma vlad_reg : CanRegisterUS Vladimir := P2 Vladimir vlad_US
+lemma vlad_participate : CanParticipate2024 Vladimir := P1 Vladimir vlad_reg
+
+lemma ek_reg : CanRegisterUS Ekaterina :=
+  Or.elim P6
+    (fun hreg => hreg)
+    (fun hOff =>
+      -- From being a Russian official, not Taiwanese citizen
+      have hnotTW : ¬TaiwaneseCitizenship Ekaterina := P4 Ekaterina hOff
+      -- From US or TW and not TW, deduce US
+      have hUS : USCitizenship Ekaterina :=
+        Or.elim (P3 Ekaterina)
+          (fun hUS => hUS)
+          (fun hTW => False.elim (hnotTW hTW))
+      -- Hence can register
+      P2 Ekaterina hUS
+    )
+
+-- We can exhibit both conjuncts
+lemma conj_AB : CanRegisterUS Ekaterina ∧ CanParticipate2024 Vladimir :=
+  And.intro ek_reg vlad_participate
+
+-- Negation of the statement to evaluate: not (not (A and B))
+theorem negate_statement :
+  ¬(¬(CanRegisterUS Ekaterina ∧ CanParticipate2024 Vladimir)) :=
+  fun h => h conj_AB
+</lean>
+
+ANSWER: False
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom Person : Type
+axiom Ekaterina : Person
+axiom Vladimir : Person
+
+axiom CanRegisterUS : Person → Prop
+axiom CanParticipate2024 : Person → Prop
+axiom USCitizenship : Person → Prop
+axiom TaiwaneseCitizenship : Person → Prop
+axiom RussianOfficial : Person → Prop
+axiom ManagerGazprom : Person → Prop
+
+-- Premises
+axiom P1 : ∀ x : Person, CanRegisterUS x → CanParticipate2024 x
+axiom P2 : ∀ x : Person, USCitizenship x → CanRegisterUS x
+axiom P3 : ∀ x : Person, USCitizenship x ∨ TaiwaneseCitizenship x
+axiom P4 : ∀ x : Person, RussianOfficial x → ¬TaiwaneseCitizenship x
+axiom P5a : ¬TaiwaneseCitizenship Vladimir
+axiom P5b : ¬ManagerGazprom Vladimir
+axiom P6 : (CanRegisterUS Ekaterina) ∨ (RussianOfficial Ekaterina)
+
+-- We can derive both conjuncts: Ekaterina can register, and Vladimir can participate
+theorem both : CanRegisterUS Ekaterina ∧ CanParticipate2024 Vladimir := by
+  -- Vladimir participates
+  have v_us : USCitizenship Vladimir := by
+    have h := P3 Vladimir
+    cases h with
+    | inl hUS => exact hUS
+    | inr hTW => exact False.elim (P5a hTW)
+  have v_reg : CanRegisterUS Vladimir := P2 Vladimir v_us
+  have v_part : CanParticipate2024 Vladimir := P1 Vladimir v_reg
+  -- Ekaterina can register
+  have e_reg : CanRegisterUS Ekaterina := by
+    have h := P6
+    cases h with
+    | inl hreg => exact hreg
+    | inr hOff =>
+      have hnotTW : ¬TaiwaneseCitizenship Ekaterina := P4 Ekaterina hOff
+      have e_us : USCitizenship Ekaterina := by
+        have disj := P3 Ekaterina
+        cases disj with
+        | inl hUS => exact hUS
+        | inr hTW => exact False.elim (hnotTW hTW)
+      exact P2 Ekaterina e_us
+  constructor
+  · exact e_reg
+  · exact v_part
+
+-- Negation of the statement to evaluate: not (not (A and B))
+theorem negate_statement :
+  ¬(¬(CanRegisterUS Ekaterina ∧ CanParticipate2024 Vladimir)) := by
+  intro h
+  exact h both
+</lean>
+
+ANSWER: False

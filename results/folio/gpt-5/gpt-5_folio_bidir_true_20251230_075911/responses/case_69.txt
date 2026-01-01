@@ -1,0 +1,53 @@
+<lean>
+axiom obj : Type
+
+-- Entities and predicates
+axiom Badults : obj
+axiom PappysMember : obj → Prop
+axiom StarredIn : obj → obj → Prop
+axiom PilotedOnBBCTwo : obj → Prop
+axiom PilotedOnBBCThree : obj → Prop
+
+-- Context facts
+axiom badults_has_pappys_star : ∃ x : obj, PappysMember x ∧ StarredIn x Badults
+axiom badults_piloted_bbc_three : PilotedOnBBCThree Badults
+
+-- The statement to evaluate (as a Prop):
+-- "No members of Pappy's have starred in a show piloting on BBC Two or BBC Three."
+def NoMembersStarInBBCTwoOrThree : Prop :=
+  ∀ x : obj, PappysMember x → ¬ ∃ s : obj, StarredIn x s ∧ (PilotedOnBBCTwo s ∨ PilotedOnBBCThree s)
+
+-- We can derive a counterexample: there exists a Pappy's member who starred in a show piloted on BBC Three.
+theorem exists_member_starred_in_bbc_three_pilot :
+  ∃ x : obj, PappysMember x ∧ ∃ s : obj, StarredIn x s ∧ (PilotedOnBBCTwo s ∨ PilotedOnBBCThree s) := by
+  cases badults_has_pappys_star with
+  | intro x hx =>
+    cases hx with
+    | intro hx_mem hx_star =>
+      have hb3 : PilotedOnBBCThree Badults := badults_piloted_bbc_three
+      apply Exists.intro x
+      apply And.intro
+      · exact hx_mem
+      · apply Exists.intro Badults
+        apply And.intro
+        · exact hx_star
+        · exact Or.inr hb3
+
+-- Therefore, the evaluated statement is false:
+theorem not_NoMembersStarInBBCTwoOrThree : ¬ NoMembersStarInBBCTwoOrThree := by
+  intro h
+  cases badults_has_pappys_star with
+  | intro x hx =>
+    have hx_mem : PappysMember x := And.left hx
+    have hx_star : StarredIn x Badults := And.right hx
+    have hb3 : PilotedOnBBCThree Badults := badults_piloted_bbc_three
+    have ex : ∃ s : obj, StarredIn x s ∧ (PilotedOnBBCTwo s ∨ PilotedOnBBCThree s) := by
+      apply Exists.intro Badults
+      apply And.intro
+      · exact hx_star
+      · exact Or.inr hb3
+    have contra := h x hx_mem
+    exact contra ex
+</lean>
+
+ANSWER: Failure

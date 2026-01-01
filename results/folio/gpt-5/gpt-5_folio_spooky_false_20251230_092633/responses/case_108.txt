@@ -1,0 +1,62 @@
+<lean>
+axiom obj : Type
+axiom Peter : obj
+
+axiom Spills : obj → Prop
+axiom Tidy : obj → Prop
+axiom Cleanly : obj → Prop
+axiom ValuesOrder : obj → Prop
+axiom FamilyPrior : obj → Prop
+axiom ClumsyFoodieOuts : obj → Prop
+
+-- If people spill a lot of food on their clothing, then they are not notably tidy.
+axiom A1 : ∀ x : obj, Spills x → ¬ Tidy x
+-- All clumsy foodies who go out frequently to find new food restaurants to try spill a lot of food.
+axiom A2 : ∀ x : obj, ClumsyFoodieOuts x → Spills x
+-- If people are cleanly, then they are notably tidy.
+axiom A3 : ∀ x : obj, Cleanly x → Tidy x
+-- If people value order and spotlessness, then they are cleanly.
+axiom A4 : ∀ x : obj, ValuesOrder x → Cleanly x
+-- All people whose families prioritize order and spotlessness themselves value order and spotlessness.
+axiom A5 : ∀ x : obj, FamilyPrior x → ValuesOrder x
+-- Peter is either (spills and cleanly) or (not spills and not cleanly)
+axiom A6 : (Spills Peter ∧ Cleanly Peter) ∨ (¬ Spills Peter ∧ ¬ Cleanly Peter)
+
+theorem peter_not_either_CF_or_family :
+  ¬ (ClumsyFoodieOuts Peter ∨ FamilyPrior Peter) := by
+  -- First, the left disjunct in A6 is impossible (spills ∧ cleanly leads to a contradiction)
+  have h_not_sc : ¬ (Spills Peter ∧ Cleanly Peter) := by
+    intro h
+    cases h with
+    | intro hS hC =>
+      have hT : Tidy Peter := A3 Peter hC
+      have hnT : ¬ Tidy Peter := A1 Peter hS
+      exact hnT hT
+  -- Therefore obtain ¬Spills Peter ∧ ¬Cleanly Peter from A6
+  have h_nS_nC : ¬ Spills Peter ∧ ¬ Cleanly Peter := by
+    cases A6 with
+    | inl hsc =>
+      exact False.elim (h_not_sc hsc)
+    | inr hnc =>
+      exact hnc
+  have h_nS : ¬ Spills Peter := h_nS_nC.left
+  have h_nC : ¬ Cleanly Peter := h_nS_nC.right
+  -- From ¬Spills and ClumsyFoodieOuts → Spills, get ¬ClumsyFoodieOuts
+  have h_not_CFO : ¬ ClumsyFoodieOuts Peter := by
+    intro hCFO
+    have hS : Spills Peter := A2 Peter hCFO
+    exact h_nS hS
+  -- From ¬Cleanly and FamilyPrior → ValuesOrder → Cleanly, get ¬FamilyPrior
+  have h_not_Fam : ¬ FamilyPrior Peter := by
+    intro hFam
+    have hVO : ValuesOrder Peter := A5 Peter hFam
+    have hC : Cleanly Peter := A4 Peter hVO
+    exact h_nC hC
+  -- Conclude ¬(ClumsyFoodieOuts Peter ∨ FamilyPrior Peter)
+  intro h
+  cases h with
+  | inl hCFO => exact h_not_CFO hCFO
+  | inr hFam => exact h_not_Fam hFam
+</lean>
+
+ANSWER: False

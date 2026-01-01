@@ -1,0 +1,59 @@
+<lean>
+axiom obj : Type
+axiom DriedThaiChilies : obj
+
+axiom BakedSweet : obj → Prop
+axiom Spicy : obj → Prop
+axiom Cupcake : obj → Prop
+axiom MalaHotpot : obj → Prop
+axiom FromBBM : obj → Prop
+
+-- No baked sweets are spicy.
+axiom R1 : ∀ x : obj, BakedSweet x → ¬Spicy x
+-- All cupcakes are baked sweets.
+axiom R2 : ∀ x : obj, Cupcake x → BakedSweet x
+-- All mala hotpots are spicy.
+axiom R3 : ∀ x : obj, MalaHotpot x → Spicy x
+-- All products from Baked by Melissa are cupcakes.
+axiom R4 : ∀ x : obj, FromBBM x → Cupcake x
+-- Dried Thai chilies are spicy or mala hotpots or not baked sweets.
+axiom T1 : Spicy DriedThaiChilies ∨ MalaHotpot DriedThaiChilies ∨ ¬BakedSweet DriedThaiChilies
+
+-- Useful lemma: from R1 we also get Spicy x → ¬BakedSweet x
+theorem spicy_implies_not_baked : ∀ x : obj, Spicy x → ¬BakedSweet x := by
+  intro x
+  intro hxSpicy
+  intro hxBaked
+  have hnotSpicy : ¬Spicy x := R1 x hxBaked
+  exact hnotSpicy hxSpicy
+
+-- From the trichotomy T1, we can derive ¬BakedSweet for DriedThaiChilies
+theorem dtc_not_baked : ¬BakedSweet DriedThaiChilies := by
+  have hS : ∀ x : obj, Spicy x → ¬BakedSweet x := spicy_implies_not_baked
+  cases T1 with
+  | inl hSpicy =>
+      exact hS DriedThaiChilies hSpicy
+  | inr hrest =>
+      cases hrest with
+      | inl hMala =>
+          have hSpicy := R3 DriedThaiChilies hMala
+          exact hS DriedThaiChilies hSpicy
+      | inr hNotBaked =>
+          exact hNotBaked
+
+-- Using ¬BakedSweet and the implication FromBBM → Cupcake → BakedSweet, we get ¬FromBBM
+theorem dtc_not_frombbm : ¬FromBBM DriedThaiChilies := by
+  intro hFrom
+  have hCup : Cupcake DriedThaiChilies := R4 DriedThaiChilies hFrom
+  have hBaked : BakedSweet DriedThaiChilies := R2 DriedThaiChilies hCup
+  exact dtc_not_baked hBaked
+
+-- The statement is actually provable:
+theorem statement_true : ¬FromBBM DriedThaiChilies ∧ ¬BakedSweet DriedThaiChilies :=
+  And.intro dtc_not_frombbm dtc_not_baked
+
+-- Therefore, we cannot prove its negation (FromBBM DriedThaiChilies ∨ BakedSweet DriedThaiChilies) from the premises.
+-- Attempting to prove the negation would contradict the derived theorems above.
+</lean>
+
+ANSWER: Failure

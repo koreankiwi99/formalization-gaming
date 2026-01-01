@@ -1,0 +1,57 @@
+The context provides several implications and a disjunction. The key elements are:
+- Enough water leads to crops growing well.
+- Pests invasion leads to crops destruction.
+- A disjunction: farmer watered adequately OR no crop destruction OR (enough water AND crop destruction).
+- Crops growing well lead to bountiful harvest, which leads to good profit.
+
+The question asks: If pests invaded, did the farmer make good profit?
+
+In Lean, we formalize the propositions and axioms. When attempting to prove "PestsInvade → GoodProfit", we consider:
+1. If pests invade, crops are destroyed (A2).
+2. The disjunction (A3) simplifies to FarmerWatered ∨ EnoughWater (since ¬CropsDestroyed is false).
+3. If EnoughWater holds, we get GoodProfit via A1, A4, A5.
+4. If FarmerWatered holds, there is no axiom linking it to EnoughWater or directly to GoodProfit. Thus, we cannot prove GoodProfit in this case.
+
+Since one branch (FarmerWatered) does not lead to GoodProfit, the theorem cannot be proven. Conversely, we cannot prove the negation because there exists a scenario (EnoughWater) where pests invade and GoodProfit holds. Thus, neither the statement nor its negation is provable.
+
+<lean>
+axiom EnoughWater : Prop
+axiom CropsGrowWell : Prop
+axiom PestsInvade : Prop
+axiom CropsDestroyed : Prop
+axiom FarmerWatered : Prop
+axiom BountifulHarvest : Prop
+axiom GoodProfit : Prop
+
+axiom A1 : EnoughWater → CropsGrowWell
+axiom A2 : PestsInvade → CropsDestroyed
+axiom A3 : FarmerWatered ∨ ¬CropsDestroyed ∨ (EnoughWater ∧ CropsDestroyed)
+axiom A4 : CropsGrowWell → BountifulHarvest
+axiom A5 : BountifulHarvest → GoodProfit
+
+theorem Q : PestsInvade → GoodProfit :=
+  fun hP : PestsInvade =>
+  have hD : CropsDestroyed := A2 hP
+  have hDisj : FarmerWatered ∨ ¬CropsDestroyed ∨ (EnoughWater ∧ CropsDestroyed) := A3
+  Or.elim hDisj
+    (fun hFW : FarmerWatered => 
+      -- No axiom links FarmerWatered to EnoughWater or GoodProfit
+      sorry) 
+    (fun hOr : ¬CropsDestroyed ∨ (EnoughWater ∧ CropsDestroyed) =>
+      Or.elim hOr
+        (fun hNoD : ¬CropsDestroyed => 
+          False.elim (hNoD hD))
+        (fun hEW : EnoughWater ∧ CropsDestroyed =>
+          have hEW' : EnoughWater := hEW.left
+          have hCrop : CropsGrowWell := A1 hEW'
+          have hBountiful : BountifulHarvest := A4 hCrop
+          A5 hBountiful))
+
+-- Countermodel exists where pests invade and profit fails:
+-- PestsInvade = true, CropsDestroyed = true, FarmerWatered = true, EnoughWater = false
+-- Then GoodProfit = false (since no EnoughWater → no CropsGrowWell → no GoodProfit)
+-- But another model has EnoughWater = true and GoodProfit = true
+-- Thus, neither Q nor ¬Q is provable from axioms.
+</lean>
+
+ANSWER: Uncertain

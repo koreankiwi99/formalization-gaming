@@ -1,0 +1,89 @@
+<lean>
+axiom Person : Type
+axiom Exam : Type
+axiom Alex : Person
+axiom BiologyExam : Exam
+axiom HistoryExam : Exam
+axiom StudiesHard : Person → Exam → Prop
+axiom FeelsConfident : Person → Exam → Prop
+axiom SevereWeather : Prop
+axiom ClassCanceled : Prop
+axiom DoesWell : Person → Exam → Prop
+axiom Satisfied : Person → Exam → Prop
+
+-- Context axioms:
+axiom A1 : ∀ (p : Person) (e : Exam), StudiesHard p e → FeelsConfident p e
+axiom A2 : SevereWeather → ClassCanceled  -- Interpretation of "may cancel" as implication
+axiom A3 : StudiesHard Alex BiologyExam ∨ ¬ClassCanceled
+axiom A4 : ∀ (p : Person) (e : Exam), FeelsConfident p e → DoesWell p e
+axiom A5 : ∀ (p : Person) (e : Exam), DoesWell p e → Satisfied p e
+
+-- Prove negation: SevereWeather → ¬Satisfied Alex HistoryExam
+theorem goal : SevereWeather → ¬Satisfied Alex HistoryExam :=
+  fun h_sw : SevereWeather =>
+  -- From severe weather, class was canceled (A2)
+  have h_cancel : ClassCanceled := A2 h_sw
+  -- From A3: Alex studied for biology OR class not canceled
+  -- But class was canceled (h_cancel), so ¬ClassCanceled is false → must have studied biology
+  have h_studied_bio : StudiesHard Alex BiologyExam := by
+    cases A3 with
+    | inl h => exact h
+    | inr not_cancel => contradiction  -- h_cancel contradicts not_cancel
+  -- Alex feels confident for biology (A1)
+  have h_conf_bio : FeelsConfident Alex BiologyExam := A1 Alex BiologyExam h_studied_bio
+  -- Alex does well on biology (A4)
+  have h_well_bio : DoesWell Alex BiologyExam := A4 Alex BiologyExam h_conf_bio
+  -- Alex satisfied with biology (A5)
+  have h_sat_bio : Satisfied Alex BiologyExam := A5 Alex BiologyExam h_well_bio
+  -- No information connects biology to history exam or severe weather to history satisfaction
+  show ¬Satisfied Alex HistoryExam from ?_
+  -- Cannot prove negation of history satisfaction from existing premises
+  sorry
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation error occurred due to improper use of the `show` tactic with an undefined metavariable. The corrected approach directly constructs the implication without using `show`, and properly handles the case where we cannot prove the negation.
+
+<lean>
+axiom Person : Type
+axiom Exam : Type
+axiom Alex : Person
+axiom BiologyExam : Exam
+axiom HistoryExam : Exam
+axiom StudiesHard : Person → Exam → Prop
+axiom FeelsConfident : Person → Exam → Prop
+axiom SevereWeather : Prop
+axiom ClassCanceled : Prop
+axiom DoesWell : Person → Exam → Prop
+axiom Satisfied : Person → Exam → Prop
+
+-- Context axioms:
+axiom A1 : ∀ (p : Person) (e : Exam), StudiesHard p e → FeelsConfident p e
+axiom A2 : SevereWeather → ClassCanceled
+axiom A3 : StudiesHard Alex BiologyExam ∨ ¬ClassCanceled
+axiom A4 : ∀ (p : Person) (e : Exam), FeelsConfident p e → DoesWell p e
+axiom A5 : ∀ (p : Person) (e : Exam), DoesWell p e → Satisfied p e
+
+-- Attempt to prove: SevereWeather → ¬Satisfied Alex HistoryExam
+theorem goal : SevereWeather → ¬Satisfied Alex HistoryExam :=
+fun h_sw : SevereWeather =>
+fun h_sat_hist : Satisfied Alex HistoryExam =>  -- Assume satisfaction for contradiction
+  have h_cancel : ClassCanceled := A2 h_sw
+  have h_studied_bio : StudiesHard Alex BiologyExam := by
+    cases A3 with
+    | inl h => exact h
+    | inr not_cancel => contradiction  -- h_cancel contradicts not_cancel
+  have h_conf_bio : FeelsConfident Alex BiologyExam := A1 Alex BiologyExam h_studied_bio
+  have h_well_bio : DoesWell Alex BiologyExam := A4 Alex BiologyExam h_conf_bio
+  have h_sat_bio : Satisfied Alex BiologyExam := A5 Alex BiologyExam h_well_bio
+  -- No contradiction: Biology satisfaction doesn't affect History satisfaction
+  -- Cannot derive False from these premises
+  sorry  -- Proof incomplete
+</lean>
+
+ANSWER: Failure

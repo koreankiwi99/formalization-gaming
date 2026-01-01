@@ -1,0 +1,64 @@
+The reasoning involves deriving a contradiction from the premises and Peter's condition. Premise 1 states that spilling food implies not being notably tidy. Premise 3 states that being cleanly implies being notably tidy. If Peter spills food and is cleanly, this creates a contradiction: he would be both notably tidy (from cleanly) and not notably tidy (from spilling food). Thus, the first case of the disjunction in Peter's condition (spills food and cleanly) is impossible. Therefore, Peter must not spill food and not be cleanly. 
+
+Given ¬SpillsFood Peter, by premise 2 (if clumsy foodie and goes out frequently, then spills food), Peter cannot be both a clumsy foodie and go out frequently (otherwise contradiction). Thus, ¬(ClumsyFoodie Peter ∧ GoesOutFrequently Peter).
+
+Given ¬Cleanly Peter, by premises 4 and 5 (if family prioritizes order/spotlessness, then values it, then cleanly), if Peter's family prioritized order and spotlessness, he would be cleanly (contradiction). Thus, ¬FamilyPrioritizesOrderSpotlessness Peter.
+
+Having both ¬(ClumsyFoodie Peter ∧ GoesOutFrequently Peter) and ¬FamilyPrioritizesOrderSpotlessness Peter, the second disjunct of the target statement holds. Therefore, the statement is true.
+
+<lean>
+axiom obj : Type
+axiom Peter : obj
+
+-- Predicates
+axiom SpillsFood : obj → Prop
+axiom NotablyTidy : obj → Prop
+axiom Cleanly : obj → Prop
+axiom ValuesOrderSpotlessness : obj → Prop
+axiom FamilyPrioritizesOrderSpotlessness : obj → Prop
+axiom ClumsyFoodie : obj → Prop
+axiom GoesOutFrequently : obj → Prop
+
+-- Premises
+axiom T1 : ∀x, SpillsFood x → ¬ (NotablyTidy x)
+axiom T2 : ∀x, (ClumsyFoodie x ∧ GoesOutFrequently x) → SpillsFood x
+axiom T3 : ∀x, Cleanly x → NotablyTidy x
+axiom T4 : ∀x, ValuesOrderSpotlessness x → Cleanly x
+axiom T5 : ∀x, FamilyPrioritizesOrderSpotlessness x → ValuesOrderSpotlessness x
+axiom T6 : (SpillsFood Peter ∧ Cleanly Peter) ∨ (¬ SpillsFood Peter ∧ ¬ Cleanly Peter)
+
+theorem peter_case : 
+    ((ClumsyFoodie Peter ∧ GoesOutFrequently Peter) ∧ FamilyPrioritizesOrderSpotlessness Peter) ∨ 
+    (¬ (ClumsyFoodie Peter ∧ GoesOutFrequently Peter) ∧ ¬ FamilyPrioritizesOrderSpotlessness Peter) := by
+  -- Show first case (spills and cleanly) is impossible due to contradiction
+  have no_case1 : ¬(SpillsFood Peter ∧ Cleanly Peter) := by
+    intro h
+    have spills := h.left
+    have clean := h.right
+    have not_tidy := T1 Peter spills
+    have tidy := T3 Peter clean
+    exact not_tidy tidy
+  -- Thus, Peter must be in second case: not spills and not cleanly
+  have case2 : ¬SpillsFood Peter ∧ ¬Cleanly Peter := by
+    cases T6 with
+    | inl h => exact False.elim (no_case1 h)
+    | inr h => exact h
+  -- Unpack case2
+  let h_no_spills := case2.left
+  let h_no_cleanly := case2.right
+  -- Show ¬(ClumsyFoodie Peter ∧ GoesOutFrequently Peter)
+  have no_A : ¬ (ClumsyFoodie Peter ∧ GoesOutFrequently Peter) := by 
+    intro h_A
+    have spills := T2 Peter h_A
+    exact h_no_spills spills
+  -- Show ¬FamilyPrioritizesOrderSpotlessness Peter
+  have no_B : ¬ FamilyPrioritizesOrderSpotlessness Peter := by 
+    intro h_B
+    have values := T5 Peter h_B
+    have cleanly := T4 Peter values
+    exact h_no_cleanly cleanly
+  -- Goal is second disjunct since both ¬A and ¬B hold
+  exact Or.inr ⟨no_A, no_B⟩
+</lean>
+
+ANSWER: True

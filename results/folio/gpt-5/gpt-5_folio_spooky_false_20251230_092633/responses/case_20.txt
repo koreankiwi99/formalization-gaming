@@ -1,0 +1,64 @@
+<lean>
+axiom obj : Type
+axiom Rockie : obj
+
+axiom Rabbit : obj → Prop
+axiom Squirrel : obj → Prop
+axiom Turtle : obj → Prop
+axiom Skittish : obj → Prop
+axiom Calm : obj → Prop
+axiom Cute : obj → Prop
+axiom Near : obj → Prop
+
+-- All rabbits that can be spotted near the campus are cute.
+axiom A1 : ∀ x : obj, Rabbit x ∧ Near x → Cute x
+-- Some turtles can be spotted near the campus.
+axiom A2 : ∃ x : obj, Turtle x ∧ Near x
+-- The only animals that can be spotted near the campus are rabbits and squirrels.
+axiom A3 : ∀ x : obj, Near x → Rabbit x ∨ Squirrel x
+-- If something is skittish, then it is not calm.
+axiom A4 : ∀ x : obj, Skittish x → ¬Calm x
+-- All the squirrels that can be spotted near the campus are skittish.
+axiom A5 : ∀ x : obj, Squirrel x ∧ Near x → Skittish x
+-- Rockie can be spotted near the campus, and it is calm.
+axiom A6 : Near Rockie ∧ Calm Rockie
+
+theorem statement_false :
+  ¬((Cute Rockie ∧ Calm Rockie) → (Skittish Rockie ∧ Turtle Rockie)) := by
+  have hNear : Near Rockie := And.left A6
+  have hCalm : Calm Rockie := And.right A6
+  -- Rockie is not a squirrel (since Near and Calm, squirrels near are skittish, skittish implies not calm)
+  have hNotSquirrel : ¬ Squirrel Rockie := by
+    intro hSq
+    have hSk : Skittish Rockie := A5 Rockie (And.intro hSq hNear)
+    have hNotCalm : ¬ Calm Rockie := A4 Rockie hSk
+    exact hNotCalm hCalm
+  -- From Near, Rockie is either a rabbit or a squirrel; but not a squirrel, so a rabbit.
+  have hRabOrSq : Rabbit Rockie ∨ Squirrel Rockie := A3 Rockie hNear
+  have hRabbit : Rabbit Rockie := by
+    cases hRabOrSq with
+    | inl hr => exact hr
+    | inr hs =>
+        have hFalse : False := hNotSquirrel hs
+        cases hFalse
+  -- Therefore Rockie is cute.
+  have hCute : Cute Rockie := A1 Rockie (And.intro hRabbit hNear)
+  -- Rockie is not skittish (since Calm and Skittish → ¬Calm).
+  have hNotSk : ¬ Skittish Rockie := by
+    intro hSk
+    have hNotCalm : ¬ Calm Rockie := A4 Rockie hSk
+    exact hNotCalm hCalm
+  -- The antecedent holds.
+  have hAnte : Cute Rockie ∧ Calm Rockie := And.intro hCute hCalm
+  -- The consequent is false.
+  have hNotConseq : ¬ (Skittish Rockie ∧ Turtle Rockie) := by
+    intro h
+    apply hNotSk
+    exact And.left h
+  -- Conclude the implication is false.
+  intro hImp
+  have hConseq : Skittish Rockie ∧ Turtle Rockie := hImp hAnte
+  exact hNotConseq hConseq
+</lean>
+
+ANSWER: False

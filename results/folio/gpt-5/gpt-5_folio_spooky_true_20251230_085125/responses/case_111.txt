@@ -1,0 +1,59 @@
+<lean>
+axiom obj : Type
+
+-- constants for entities
+axiom Picuris : obj
+axiom Juan : obj
+axiom Harding : obj
+
+-- predicates
+axiom MountainRange : obj → Prop
+axiom InNewMexico : obj → Prop
+axiom InTexas : obj → Prop
+axiom Mine : obj → Prop
+axiom Donated : obj → Prop
+axiom LocatedIn : obj → obj → Prop
+axiom Visited : obj → obj → Prop
+
+-- premises
+axiom PM_is_mountain : MountainRange Picuris
+axiom PM_in_NM_or_TX : InNewMexico Picuris ∨ InTexas Picuris
+axiom Juan_visited_PM : Visited Juan Picuris
+axiom Harding_is_mine : Mine Harding
+axiom Harding_located_in_PM : LocatedIn Harding Picuris
+axiom Harding_donated : Donated Harding
+axiom no_TX_mtn_with_donated_mine :
+  ∀ r : obj, MountainRange r → InTexas r → ¬ ∃ m : obj, Mine m ∧ LocatedIn m r ∧ Donated m
+
+-- goal: Juan de Onate visited a mountain range in New Mexico.
+-- Formalized as: ∃ r, MountainRange r ∧ InNewMexico r ∧ Visited Juan r
+theorem claim : ∃ r : obj, MountainRange r ∧ InNewMexico r ∧ Visited Juan r := by
+  -- there exists a donated mine located in Picuris
+  have hexists : ∃ m : obj, Mine m ∧ LocatedIn m Picuris ∧ Donated m := by
+    refine Exists.intro Harding ?_
+    apply And.intro
+    · exact Harding_is_mine
+    · apply And.intro
+      · exact Harding_located_in_PM
+      · exact Harding_donated
+  -- therefore Picuris is not in Texas
+  have not_TX_PM : ¬ InTexas Picuris := by
+    intro htx
+    have hneg : ¬ ∃ m : obj, Mine m ∧ LocatedIn m Picuris ∧ Donated m :=
+      no_TX_mtn_with_donated_mine Picuris PM_is_mountain htx
+    exact hneg hexists
+  -- from NM or TX and not TX, deduce NM
+  have PM_in_NM : InNewMexico Picuris := by
+    cases PM_in_NM_or_TX with
+    | inl hnm => exact hnm
+    | inr htx => exact False.elim (not_TX_PM htx)
+  -- build the existential witness with Picuris
+  refine Exists.intro Picuris ?_
+  apply And.intro
+  · exact PM_is_mountain
+  · apply And.intro
+    · exact PM_in_NM
+    · exact Juan_visited_PM
+</lean>
+
+ANSWER: True

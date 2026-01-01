@@ -1,0 +1,156 @@
+The reasoning involves analyzing the premises and Luke's situation. The premises establish:
+
+1. Born in a multiple birth → Spend time with siblings → Live at home → Not live with strangers.
+2. Complain about annoying siblings → Have siblings born together → Born in multiple birth.
+3. Luke's case: (Born multiple ∧ Live with strangers) ∨ (¬Born multiple ∧ ¬Live with strangers).
+
+Case 1 (Born multiple ∧ Live with strangers) leads to contradiction because born multiple implies not living with strangers (from premises 1 and 4). Thus, only Case 2 (¬Born multiple ∧ ¬Live with strangers) holds. From ¬Born multiple and the chain (complain → siblings born together → born multiple), Luke cannot complain about annoying siblings. Therefore, the statement "Luke is neither born in a multiple birth nor complains often" is true, and its negation cannot be proven.
+
+<lean>
+axiom obj : Type
+axiom Luke : obj
+
+axiom BornMultiple : obj → Prop
+axiom SpendTimeWithSiblings : obj → Prop
+axiom HasSiblingsBornTogether : obj → Prop
+axiom ComplainAnnoyingSiblings : obj → Prop
+axiom LiveAtHome : obj → Prop
+axiom LiveWithStrangers : obj → Prop
+
+axiom Premise1 : ∀ x, BornMultiple x → SpendTimeWithSiblings x
+axiom Premise2 : ∀ x, HasSiblingsBornTogether x → BornMultiple x
+axiom Premise3 : ∀ x, ComplainAnnoyingSiblings x → HasSiblingsBornTogether x
+axiom Premise4 : ∀ x, LiveAtHome x → ¬ LiveWithStrangers x
+axiom Premise5 : ∀ x, SpendTimeWithSiblings x → LiveAtHome x
+axiom LukeCase : (BornMultiple Luke ∧ LiveWithStrangers Luke) ∨ (¬ BornMultiple Luke ∧ ¬ LiveWithStrangers Luke)
+
+lemma Case1Contradiction : BornMultiple Luke ∧ LiveWithStrangers Luke → False :=
+  fun h =>
+    have h_spend : SpendTimeWithSiblings Luke := Premise1 Luke h.1
+    have h_home : LiveAtHome Luke := Premise5 Luke h_spend
+    have h_no_strangers : ¬ LiveWithStrangers Luke := Premise4 Luke h_home
+    h_no_strangers h.2
+
+lemma LukeNotMultiple : ¬ BornMultiple Luke := by
+  cases LukeCase with
+  | inl h => exact Case1Contradiction h
+  | inr h => exact h.1
+
+lemma LukeNotComplain : ¬ ComplainAnnoyingSiblings Luke :=
+  fun h_complain =>
+    have h_siblings : HasSiblingsBornTogether Luke := Premise3 Luke h_complain
+    have h_multiple : BornMultiple Luke := Premise2 Luke h_siblings
+    LukeNotMultiple h_multiple
+
+-- The statement "¬BornMultiple Luke ∧ ¬ComplainAnnoyingSiblings Luke" holds
+-- Thus, its negation (BornMultiple Luke ∨ ComplainAnnoyingSiblings Luke) cannot be proven
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors were due to the use of `¬` in the axiom `LukeCase` without proper handling. The issue was resolved by reformulating `LukeCase` using a biconditional (`↔`) instead of disjunction, which simplifies the logical structure and avoids parsing ambiguities.
+
+The corrected Lean code:
+<lean>
+axiom obj : Type
+axiom Luke : obj
+
+axiom BornMultiple : obj → Prop
+axiom SpendTimeWithSiblings : obj → Prop
+axiom HasSiblingsBornTogether : obj → Prop
+axiom ComplainAnnoyingSiblings : obj → Prop
+axiom LiveAtHome : obj → Prop
+axiom LiveWithStrangers : obj → Prop
+
+axiom Premise1 : ∀ x, BornMultiple x → SpendTimeWithSiblings x
+axiom Premise2 : ∀ x, HasSiblingsBornTogether x → BornMultiple x
+axiom Premise3 : ∀ x, ComplainAnnoyingSiblings x → HasSiblingsBornTogether x
+axiom Premise4 : ∀ x, LiveAtHome x → ¬ LiveWithStrangers x
+axiom Premise5 : ∀ x, SpendTimeWithSiblings x → LiveAtHome x
+axiom LukeCase : BornMultiple Luke ↔ LiveWithStrangers Luke
+
+lemma LukeNotMultiple : ¬ BornMultiple Luke :=
+  fun h_mult =>
+    have h_strangers : LiveWithStrangers Luke := LukeCase.1 h_mult
+    have not_strangers : ¬ LiveWithStrangers Luke := 
+      let h_spend := Premise1 Luke h_mult
+      let h_home := Premise5 Luke h_spend
+      Premise4 Luke h_home
+    not_strangers h_strangers
+
+lemma LukeNotComplain : ¬ ComplainAnnoyingSiblings Luke :=
+  fun h_complain =>
+    have h_siblings : HasSiblingsBornTogether Luke := Premise3 Luke h_complain
+    have h_multiple : BornMultiple Luke := Premise2 Luke h_siblings
+    LukeNotMultiple h_multiple
+
+-- Attempt to prove the conclusion is False (i.e., ¬(¬BornMultiple ∧ ¬Complain))
+theorem neg_conclusion : ¬(¬BornMultiple Luke ∧ ¬ComplainAnnoyingSiblings Luke) → False :=
+  fun h =>
+    have not_both_false : BornMultiple Luke ∨ ComplainAnnoyingSiblings Luke :=
+      by
+        intro h_concl
+        exact h_concl ⟨LukeNotMultiple, LukeNotComplain⟩
+    not_both_false (fun h => h)
+</lean>
+
+The conclusion "Luke is neither born in a multiple birth nor complains often" is proven true in the code (via `LukeNotMultiple` and `LukeNotComplain`). Therefore, its negation cannot be proven, and attempting to prove the conclusion false leads to a contradiction. The theorem `neg_conclusion` demonstrates that assuming the negation of the conclusion results in false, confirming that the conclusion must be true. Since we cannot prove the conclusion false, the result is Failure.
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The compilation errors were resolved by using proper syntax for the disjunction in `LukeCase` and restructuring the proofs with correct pattern matching and application of premises. Here's the corrected Lean code:
+
+<lean>
+axiom obj : Type
+axiom Luke : obj
+
+axiom BornMultiple : obj → Prop
+axiom SpendTimeWithSiblings : obj → Prop
+axiom HasSiblingsBornTogether : obj → Prop
+axiom ComplainAnnoyingSiblings : obj → Prop
+axiom LiveAtHome : obj → Prop
+axiom LiveWithStrangers : obj → Prop
+
+axiom Premise1 : ∀ x, BornMultiple x → SpendTimeWithSiblings x
+axiom Premise2 : ∀ x, HasSiblingsBornTogether x → BornMultiple x
+axiom Premise3 : ∀ x, ComplainAnnoyingSiblings x → HasSiblingsBornTogether x
+axiom Premise4 : ∀ x, LiveAtHome x → ¬LiveWithStrangers x
+axiom Premise5 : ∀ x, SpendTimeWithSiblings x → LiveAtHome x
+axiom LukeCase : (BornMultiple Luke ∧ LiveWithStrangers Luke) ∨ (¬BornMultiple Luke ∧ ¬LiveWithStrangers Luke)
+
+lemma LukeNotMultiple : ¬BornMultiple Luke :=
+  fun h : BornMultiple Luke =>
+    match LukeCase with
+    | Or.inl ⟨bm, lw⟩ => 
+        have h_spend := Premise1 Luke h
+        have h_home := Premise5 Luke h_spend
+        have no_strangers := Premise4 Luke h_home
+        no_strangers lw
+    | Or.inr ⟨not_bm, _⟩ => not_bm h
+
+lemma LukeNotComplain : ¬ComplainAnnoyingSiblings Luke :=
+  fun h : ComplainAnnoyingSiblings Luke =>
+    have h_siblings := Premise3 Luke h
+    have h_multiple := Premise2 Luke h_siblings
+    LukeNotMultiple h_multiple
+
+</lean>
+
+### Explanation:
+1. **Disjunction Handling**: `LukeCase` is retained as a disjunction (∨) instead of biconditional (↔). Pattern matching (`match`) is used to handle both cases directly.
+2. **Direct Proof Construction**:
+   - `LukeNotMultiple` uses pattern matching to extract the relevant proofs from each case of `LukeCase`. When the first case is matched, it derives a contradiction using premises 1, 5, and 4. The second case directly provides the required negation.
+   - `LukeNotComplain` follows the logical chain: complaining → has siblings born together → born multiple, contradicting `LukeNotMultiple`.
+3. **Conclusion Validity**: The lemmas collectively prove the conclusion "Luke is neither born in multiple birth nor complains about siblings" is *true*. Therefore, we cannot prove it false.
+
+Since the Lean code proves the conclusion true, it's impossible to prove the conclusion false (i.e., a contradiction can't be derived). 
+
+ANSWER: Failure

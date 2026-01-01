@@ -1,0 +1,61 @@
+<lean>
+axiom obj : Type
+axiom Peter : obj
+
+axiom Spill : obj → Prop
+axiom Tidy : obj → Prop
+axiom Cleanly : obj → Prop
+axiom ValueOrder : obj → Prop
+axiom FamilyPrioritize : obj → Prop
+axiom CFG : obj → Prop  -- clumsy foodie who goes out frequently to find new food restaurants to try
+
+-- If people spill a lot of food on their clothing, then they are not notably tidy.
+axiom A1 : ∀ x : obj, Spill x → ¬ Tidy x
+-- All clumsy foodies who go out frequently to find new food restaurants to try spill a lot of food.
+axiom A2 : ∀ x : obj, CFG x → Spill x
+-- If people are cleanly, then they are notably tidy.
+axiom A3 : ∀ x : obj, Cleanly x → Tidy x
+-- If people value order and spotlessness, then they are cleanly.
+axiom A4 : ∀ x : obj, ValueOrder x → Cleanly x
+-- All people whose families prioritize order and spotlessness themselves value order and spotlessness.
+axiom A5 : ∀ x : obj, FamilyPrioritize x → ValueOrder x
+-- Peter is either (spill ∧ cleanly) or (¬spill ∧ ¬cleanly).
+axiom A6 : (Spill Peter ∧ Cleanly Peter) ∨ (¬ Spill Peter ∧ ¬ Cleanly Peter)
+
+theorem peter_either_both_or_neither :
+  (CFG Peter ∧ FamilyPrioritize Peter) ∨ (¬ CFG Peter ∧ ¬ FamilyPrioritize Peter) := by
+  -- Show Peter cannot both spill and be cleanly
+  have hNotBoth : ¬ (Spill Peter ∧ Cleanly Peter) := by
+    intro h
+    have hs : Spill Peter := h.left
+    have hc : Cleanly Peter := h.right
+    have ht : Tidy Peter := A3 Peter hc
+    have hnt : ¬ Tidy Peter := A1 Peter hs
+    exact hnt ht
+  -- From A6 and impossibility of the left disjunct, deduce ¬Spill Peter ∧ ¬Cleanly Peter
+  have hnsnc : ¬ Spill Peter ∧ ¬ Cleanly Peter := by
+    apply Or.elim A6
+    · intro h
+      exact False.elim (hNotBoth h)
+    · intro h
+      exact h
+  have hns : ¬ Spill Peter := hnsnc.left
+  have hnc : ¬ Cleanly Peter := hnsnc.right
+  -- From CFG → Spill and ¬Spill, deduce ¬CFG
+  have notCFG : ¬ CFG Peter := by
+    intro hcfg
+    have hs : Spill Peter := A2 Peter hcfg
+    exact hns hs
+  -- From FamilyPrioritize → ValueOrder → Cleanly and ¬Cleanly, deduce ¬FamilyPrioritize
+  have fp_to_clean : FamilyPrioritize Peter → Cleanly Peter := by
+    intro hfp
+    have hv : ValueOrder Peter := A5 Peter hfp
+    exact A4 Peter hv
+  have notFP : ¬ FamilyPrioritize Peter := by
+    intro hfp
+    exact hnc (fp_to_clean hfp)
+  -- Conclude the right disjunct
+  exact Or.inr (And.intro notCFG notFP)
+</lean>
+
+ANSWER: True

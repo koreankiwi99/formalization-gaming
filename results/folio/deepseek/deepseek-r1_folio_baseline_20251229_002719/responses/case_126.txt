@@ -1,0 +1,78 @@
+The context provides several statements about Peter's pets, including Rock. The goal is to determine if the statement "Rock does not have wings" is true, false, or uncertain based on the given information.
+
+### Lean Formalization
+The axioms and relations are translated into Lean as follows:
+
+<lean>
+axiom obj : Type
+axiom Rock : obj
+axiom PeterPet : obj → Prop
+axiom Mammal : obj → Prop
+axiom Animal : obj → Prop
+axiom Monkey : obj → Prop
+axiom Bird : obj → Prop
+axiom CanFly : obj → Prop
+axiom CanBreathe : obj → Prop
+axiom HasWings : obj → Prop
+
+-- All Peter's pets that are mammals are animals
+axiom A1 : ∀x, PeterPet x ∧ Mammal x → Animal x
+-- All monkeys are mammals
+axiom A2 : ∀x, Monkey x → Mammal x
+-- Peter's pets are monkeys or birds
+axiom A3 : ∀x, PeterPet x → Monkey x ∨ Bird x
+-- Peter's birds can fly
+axiom A4 : ∀x, PeterPet x ∧ Bird x → CanFly x
+-- Animals that are Peter's pets can breathe
+axiom A5 : ∀x, Animal x ∧ PeterPet x → CanBreathe x
+-- If Peter's pet can fly, it has wings
+axiom A6 : ∀x, PeterPet x ∧ CanFly x → HasWings x
+-- Rock is Peter's pet
+axiom A7 : PeterPet Rock
+-- Rock can fly, is a bird, or cannot breathe
+axiom A8 : CanFly Rock ∨ Bird Rock ∨ ¬CanBreathe Rock
+
+-- Prove that Rock must have wings
+theorem rock_has_wings : HasWings Rock := by
+  -- Since Rock is Peter's pet, it must be a monkey or bird (A3)
+  have hRockType := A3 Rock A7
+  cases hRockType
+  -- Case 1: Rock is a monkey
+  case inl monkeyRock =>
+    have mammalRock : Mammal Rock := A2 Rock monkeyRock
+    have animalRock : Animal Rock := A1 Rock ⟨A7, mammalRock⟩
+    have breathRock : CanBreathe Rock := A5 Rock ⟨animalRock, A7⟩
+    -- Disjunctive cases from A8
+    cases A8 with
+    | inl canFly => exact A6 Rock ⟨A7, canFly⟩ -- If Rock can fly → wings
+    | inr rest =>
+      cases rest with
+      | inl birdRock => -- If Rock is a bird
+        have flyRock : CanFly Rock := A4 Rock ⟨A7, birdRock⟩
+        exact A6 Rock ⟨A7, flyRock⟩
+      | inr noBreath => contradiction -- Contradicts proven breathing
+  -- Case 2: Rock is a bird
+  case inr birdRock =>
+    have flyRock : CanFly Rock := A4 Rock ⟨A7, birdRock⟩
+    exact A6 Rock ⟨A7, flyRock⟩
+
+-- The negation of "Rock does not have wings" (HasWings Rock) is proven,
+-- so the statement "Rock does not have wings" is false
+</lean>
+
+### Explanation
+- **Axioms A1-A8** perfectly capture all contextual premises.
+- The theorem `rock_has_wings` proves that Rock must have wings:
+  1. As Peter's pet (A7), Rock is either a monkey or bird (A3).
+  2. **If Rock is a monkey**:
+     - It is a mammal (A2) and thus an animal (A1).
+     - As an animal pet, it can breathe (A5).
+     - By A8: 
+       - If Rock can fly → has wings (A6).
+       - If Rock is a bird → it can fly (A4) → has wings.
+       - "Cannot breathe" contradicts proven breathing → not possible.
+  3. **If Rock is a bird**:
+     - It can fly (A4) → has wings (A6).
+- Since no case allows Rock to lack wings, `HasWings Rock` is true, making "Rock does not have wings" **false**.
+
+ANSWER: False

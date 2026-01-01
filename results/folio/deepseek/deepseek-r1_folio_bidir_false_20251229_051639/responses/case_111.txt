@@ -1,0 +1,204 @@
+<lean>
+axiom obj : Type
+axiom PicurisMountains : obj
+axiom HardingPegmatiteMine : obj
+axiom JuanDeOnate : obj
+axiom nm : obj  -- New Mexico
+axiom tx : obj  -- Texas
+
+axiom MountainRange : obj → Prop
+axiom LocatedIn : obj → obj → Prop
+axiom Donated : obj → Prop
+axiom Visited : obj → obj → Prop
+
+-- The Picuris Mountains are a mountain range in New Mexico or Texas.
+axiom T1 : MountainRange PicurisMountains
+axiom T2 : LocatedIn PicurisMountains nm ∨ LocatedIn PicurisMountains tx
+
+-- Juan de Onate visited the Picuris Mountains.
+axiom T3 : Visited JuanDeOnate PicurisMountains
+
+-- The Harding Pegmatite Mine, located in the Picuris Mountains, was donated.
+axiom T4 : LocatedIn HardingPegmatiteMine PicurisMountains
+axiom T5 : Donated HardingPegmatiteMine
+
+-- There are no mountain ranges in Texas that have mines that have been donated.
+axiom R1 : ∀ mr : obj, MountainRange mr → LocatedIn mr tx → 
+           ∀ mine : obj, LocatedIn mine mr → ¬ Donated mine
+
+-- We try to prove the NEGATION of the conclusion:
+-- ¬ (∃ mr, MountainRange mr ∧ LocatedIn mr nm ∧ Visited JuanDeOnate mr)
+theorem disprove_conclusion : 
+    ¬ (∃ (mr : obj), MountainRange mr ∧ LocatedIn mr nm ∧ Visited JuanDeOnate mr) :=
+by
+  -- Attempt proof by contradiction. Assume the existential (unnegated).
+  intro h_ex
+  -- We know Juan visited PicurisMountains and they are in either nm or tx.
+  cases T2 with
+  | inl pic_in_nm =>
+      -- If PicurisMountains are in New Mexico, use them as witness for existential.
+      let h : MountainRange PicurisMountains ∧ LocatedIn PicurisMountains nm ∧ Visited JuanDeOnate PicurisMountains := 
+          ⟨T1, pic_in_nm, T3⟩ 
+      exact h_ex (Exists.intro PicurisMountains h)  -- Contradicts our assumed negation
+  | inr pic_in_tx =>
+      -- If PicurisMountains are in Texas, apply R1 to get contradiction on mine donation.
+      have no_donated_mines : ∀ (mine : obj), LocatedIn mine PicurisMountains → ¬ Donated mine := 
+          R1 PicurisMountains T1 pic_in_tx
+      -- Apply to HardingPegmatiteMine
+      have mine_contradiction : ¬ Donated HardingPegmatiteMine := no_donated_mines HardingPegmatiteMine T4
+      -- But mine was donated (T5)
+      exact mine_contradiction T5
+
+-- The above proof shows that regardless of whether Picuris is in nm or tx, we get contradiction
+-- when assuming the negation of the conclusion? Actually, we could NOT prove the negation.
+-- In the first branch (pic_in_nm) we derived the conclusion inside our refutation proof!
+-- This indicates our initial goal (proving negation) is impossible since the conclusion holds.
+-- Therefore, we must admit failure in proving the negation.
+
+-- Since the 'theorem' actually fails (we can only prove the opposite), we delete the attempted proof
+-- and admit we cannot prove the negation of the conclusion.
+
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation error occurred because in the left branch (`pic_in_nm` case), `h_ex` (of type `∃ mr, ...`) was incorrectly used as a function when applying `Exists.intro` arguments. The proof strategy itself is flawed because in the `pic_in_nm` case, we can construct a witness for the existential statement, which *contradicts* our initial assumption `h_ex` that such an existential is impossible.
+
+After careful analysis:
+1. In the `texas` branch (`pic_in_tx`), we get a direct contradiction between R1 (no donated mines in Texas ranges) and the mine donation (T5).
+2. In the `New Mexico` branch (`pic_in_nm`), we can prove the conclusion directly using the witness (PicurisMountains meets all criteria).
+3. The context forces the mountains to be in New Mexico (since the Texas branch leads to contradiction), making the conclusion true.
+
+Therefore, the negation of the conclusion ("Juan de Onate visited a mountain range in New Mexico") cannot be proven and is in fact false. The correct output is "Failure".
+
+Here is the corrected Lean code:
+
+<lean>
+axiom obj : Type
+axiom PicurisMountains : obj
+axiom HardingPegmatiteMine : obj
+axiom JuanDeOnate : obj
+axiom nm : obj  -- New Mexico
+axiom tx : obj  -- Texas
+
+axiom MountainRange : obj → Prop
+axiom LocatedIn : obj → obj → Prop
+axiom Donated : obj → Prop
+axiom Visited : obj → obj → Prop
+
+-- The Picuris Mountains are a mountain range in New Mexico or Texas.
+axiom T1 : MountainRange PicurisMountains
+axiom T2 : LocatedIn PicurisMountains nm ∨ LocatedIn PicurisMountains tx
+
+-- Juan de Onate visited the Picuris Mountains.
+axiom T3 : Visited JuanDeOnate PicurisMountains
+
+-- The Harding Pegmatite Mine, located in the Picuris Mountains, was donated.
+axiom T4 : LocatedIn HardingPegmatiteMine PicurisMountains
+axiom T5 : Donated HardingPegmatiteMine
+
+-- There are no mountain ranges in Texas that have mines that have been donated.
+axiom R1 : ∀ mr : obj, MountainRange mr → LocatedIn mr tx → 
+           ∀ mine : obj, LocatedIn mine mr → ¬ Donated mine
+
+-- We try to prove the NEGATION of the conclusion:
+-- ¬ (∃ mr, MountainRange mr ∧ LocatedIn mr nm ∧ Visited JuanDeOnate mr)
+theorem disprove_conclusion : 
+    ¬ (∃ (mr : obj), MountainRange mr ∧ LocatedIn mr nm ∧ Visited JuanDeOnate mr) :=
+by
+  intro h_ex  -- Assume the conclusion (existential) holds
+  -- Prove mountains must be in New Mexico (texas branch impossible)
+  have not_texas : ¬ LocatedIn PicurisMountains tx := by
+    intro assume_tx
+    have no_donation := R1 PicurisMountains T1 assume_tx HardingPegmatiteMine T4
+    exact no_donation T5
+  cases T2 with
+  | inl in_nm => 
+      -- Directly prove the existential with our witness
+      have witness : MountainRange PicurisMountains ∧ LocatedIn PicurisMountains nm ∧ Visited JuanDeOnate PicurisMountains := 
+        ⟨T1, in_nm, T3⟩
+      -- This contradicts our assumption h_ex that no such mr exists
+      exact h_ex (Exists.intro PicurisMountains witness)
+  | inr in_tx => 
+      -- Texas case directly contradicts not_texas proof
+      exact not_texas in_tx
+
+-- Since we can construct a witness when mountains are in nm (and must be),
+-- we get a contradiction. Thus the negation cannot hold.
+</lean> 
+
+However, note that in this code, the theorem `disprove_conclusion` is actually provable, but only because the context is inconsistent under the assumption that the negation is true. In reality:
+- The proof uses the witness construction in the `in_nm` branch
+- This leads to `h_ex` (assumed negation) contradicting the proven witness
+- This means we *cannot consistently maintain the negation*
+- The Lean code demonstrates this technical proof
+
+But philosophically:
+- The context entails the *truth* of the conclusion
+- We were asked to prove the *negation* is false from premises
+- Since the context actually proves the *conclusion is true*, we fail to prove the negation
+
+Final Answer: Failure
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The error occurred because the proof attempt for the negation of the conclusion was flawed. The Picuris Mountains must be in New Mexico (since the Texas branch leads to a contradiction), which directly proves the conclusion (Juan de Onate visited a mountain range in New Mexico). Therefore, we cannot prove the negation of this conclusion. The existential in the `in_nm` branch confirms the conclusion rather than refuting it, and there is no contradiction in this branch. The code reflects this by providing the axioms and an incomplete proof that must be abandoned.
+
+Below is the corrected Lean code:
+
+<lean>
+axiom obj : Type
+axiom PicurisMountains : obj
+axiom HardingPegmatiteMine : obj
+axiom JuanDeOnate : obj
+axiom nm : obj  -- New Mexico
+axiom tx : obj  -- Texas
+
+axiom MountainRange : obj → Prop
+axiom LocatedIn : obj → obj → Prop
+axiom Donated : obj → Prop
+axiom Visited : obj → obj → Prop
+
+-- The Picuris Mountains are a mountain range in New Mexico or Texas.
+axiom T1 : MountainRange PicurisMountains
+axiom T2 : LocatedIn PicurisMountains nm ∨ LocatedIn PicurisMountains tx
+
+-- Juan de Onate visited the Picuris Mountains.
+axiom T3 : Visited JuanDeOnate PicurisMountains
+
+-- The Harding Pegmatitemite Mine, located in the Picuris Mountains, was donated.
+axiom T4 : LocatedIn HardingPegmatiteMine PicurisMountains
+axiom T5 : Donated HardingPegmatiteMine
+
+-- There are no mountain ranges in Texas that have mines that have been donated.
+axiom R1 : ∀ mr : obj, MountainRange mr → LocatedIn mr tx → 
+           ∀ mine : obj, LocatedIn mine mr → ¬ Donated mine
+
+-- Attempt to prove the negation: It is not true that there exists a mountain range in New Mexico visited by Juan.
+theorem disprove_conclusion : 
+    ¬ (∃ mr, MountainRange mr ∧ Locatedin mr nm ∧ Visited JuanDeOnate mr) := by
+  intro h  -- Assume the conclusion holds (for contradiction)
+  have : ¬ LocatedIn PicurisMountains tx := by
+    intro htx
+    apply R1 PicurisMountains T1 htx HardingPegmatiteMine T4
+    exact T5
+  cases T2 with
+  | inl in_nm =>
+      -- This branch proves the conclusion true (Picuris is in NM and visited by Juan)
+      -- We need to show False, but there's no contradiction since the conclusion is consistent
+      -- Proof fails here
+      sorry
+  | inr in_tx => 
+      exact this in_tx  -- Texas branch is eliminated
+  -- The remaining case (NM) cannot yield a contradiction
+</lean>
+
+ANSWER: Failure

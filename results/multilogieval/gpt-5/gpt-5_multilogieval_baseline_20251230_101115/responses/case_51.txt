@@ -1,0 +1,68 @@
+<lean>
+axiom obj : Type
+axiom Mary : obj
+
+axiom Sale : Prop
+axiom PricesUp : Prop
+axiom Payday : Prop
+
+axiom StockUp : obj → Prop
+axiom MakeList : obj → Prop
+axiom Plan : obj → Prop
+
+-- If the supermarket has a sale, then people will stock up on groceries.
+axiom A1 : ∀ x : obj, Sale → StockUp x
+-- If someone makes a shopping list, then they plan what to buy.
+axiom A2 : ∀ x : obj, MakeList x → Plan x
+-- Either the store has a sale, or people (each person) don't plan what to buy, or there's a sale and they don't plan ahead.
+axiom A3 : ∀ x : obj, Sale ∨ ¬Plan x ∨ (Sale ∧ ¬Plan x)
+-- If payday was this week, then people make a shopping list.
+axiom A4 : ∀ x : obj, Payday → MakeList x
+-- Either it was payday this week, or prices went up recently, or both.
+axiom A5 : Payday ∨ PricesUp ∨ (Payday ∧ PricesUp)
+
+theorem mary_not_stock_implies_prices_up : ¬StockUp Mary → PricesUp := by
+  intro hNotStock
+  -- From ¬StockUp Mary and (Sale → StockUp Mary), derive ¬Sale
+  have hNotSale : ¬Sale := by
+    intro hSale
+    have hSM : StockUp Mary := A1 Mary hSale
+    exact hNotStock hSM
+  -- From the disjunction A3 Mary and ¬Sale, derive ¬Plan Mary
+  have hNotPlan : ¬Plan Mary := by
+    have hdisj := A3 Mary
+    apply Or.elim hdisj
+    · intro hSale
+      exact False.elim (hNotSale hSale)
+    · intro h
+      apply Or.elim h
+      · intro hnp
+        exact hnp
+      · intro hSnp
+        exact And.right hSnp
+  -- From Payday → MakeList Mary and MakeList Mary → Plan Mary, get Payday → Plan Mary
+  have hPay_to_Plan : Payday → Plan Mary := by
+    intro hPay
+    have hm : MakeList Mary := A4 Mary hPay
+    exact A2 Mary hm
+  -- Contrapose to get ¬Payday from ¬Plan Mary
+  have hNotPay : ¬Payday := by
+    intro hPay
+    have hplan : Plan Mary := hPay_to_Plan hPay
+    exact hNotPlan hplan
+  -- From Payday ∨ PricesUp ∨ (Payday ∧ PricesUp) and ¬Payday, conclude PricesUp
+  have hPrices : PricesUp := by
+    have hdisj2 := A5
+    apply Or.elim hdisj2
+    · intro hPay
+      exact False.elim (hNotPay hPay)
+    · intro h
+      apply Or.elim h
+      · intro hp
+        exact hp
+      · intro hboth
+        exact And.right hboth
+  exact hPrices
+</lean>
+
+ANSWER: Yes
