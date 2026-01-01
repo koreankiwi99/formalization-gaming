@@ -7,7 +7,9 @@ STAGE 1: TRANSLATION
 <lean>
 axiom obj : Type
 
-axiom PeterPet : obj → Prop
+-- Objects and predicates
+axiom Rock : obj
+axiom PetersPet : obj → Prop
 axiom Mammal : obj → Prop
 axiom Animal : obj → Prop
 axiom Monkey : obj → Prop
@@ -16,18 +18,153 @@ axiom CanFly : obj → Prop
 axiom HasWings : obj → Prop
 axiom CanBreathe : obj → Prop
 
-axiom Rock : obj
-
 -- Premises
-axiom P1 : ∀ x : obj, PeterPet x ∧ Mammal x → Animal x
+axiom P1 : ∀ x : obj, PetersPet x → Mammal x → Animal x
 axiom P2 : ∀ x : obj, Monkey x → Mammal x
-axiom P3 : ∀ x : obj, PeterPet x → (Monkey x ∨ Bird x)
-axiom P4 : ∀ x : obj, PeterPet x ∧ Bird x → CanFly x
-axiom P5 : ∀ x : obj, Animal x ∧ PeterPet x → CanBreathe x
-axiom P6 : ∀ x : obj, PeterPet x ∧ CanFly x → HasWings x
-axiom P7 : PeterPet Rock
-axiom P8 : CanFly Rock ∨ Bird Rock ∨ ¬ CanBreathe Rock
+axiom P3 : ∀ x : obj, PetersPet x → (Monkey x ∨ Bird x)
+axiom P4 : ∀ x : obj, PetersPet x → Bird x → CanFly x
+axiom P5 : ∀ x : obj, PetersPet x → Animal x → CanBreathe x
+axiom P6 : ∀ x : obj, PetersPet x → CanFly x → HasWings x
+axiom P7 : PetersPet Rock
+axiom P8 : (CanFly Rock) ∨ (Bird Rock) ∨ (¬ CanBreathe Rock)
 
 -- Conclusion to formalize
 theorem goal : ¬ HasWings Rock := sorry
 </lean>
+
+
+======================================================================
+STAGE 2: PROVING
+======================================================================
+
+--- Iteration 1 ---
+
+<lean>
+axiom obj : Type
+
+-- Objects and predicates
+axiom Rock : obj
+axiom PetersPet : obj → Prop
+axiom Mammal : obj → Prop
+axiom Animal : obj → Prop
+axiom Monkey : obj → Prop
+axiom Bird : obj → Prop
+axiom CanFly : obj → Prop
+axiom HasWings : obj → Prop
+axiom CanBreathe : obj → Prop
+
+-- Premises
+axiom P1 : ∀ x : obj, PetersPet x → Mammal x → Animal x
+axiom P2 : ∀ x : obj, Monkey x → Mammal x
+axiom P3 : ∀ x : obj, PetersPet x → (Monkey x ∨ Bird x)
+axiom P4 : ∀ x : obj, PetersPet x → Bird x → CanFly x
+axiom P5 : ∀ x : obj, PetersPet x → Animal x → CanBreathe x
+axiom P6 : ∀ x : obj, PetersPet x → CanFly x → HasWings x
+axiom P7 : PetersPet Rock
+axiom P8 : (CanFly Rock) ∨ (Bird Rock) ∨ (¬ CanBreathe Rock)
+
+-- Conclusion to formalize
+theorem goal : ¬ HasWings Rock := by
+  -- We derive that Rock has wings from the premises, contradicting the desired conclusion.
+  -- From P8, analyze cases to derive CanFly or Bird or ¬CanBreathe.
+  have hpet : PetersPet Rock := P7
+  have hwings : HasWings Rock := by
+    have hP8 := P8
+    cases hP8 with
+    | inl hfly =>
+        exact P6 Rock hpet hfly
+    | inr hrest =>
+        cases hrest with
+        | inl hbird =>
+            have hfly : CanFly Rock := P4 Rock hpet hbird
+            exact P6 Rock hpet hfly
+        | inr hnbreathe =>
+            -- Use P3 to split Monkey/Bird
+            have hmon_or_bird := P3 Rock hpet
+            cases hmon_or_bird with
+            | inl hmonkey =>
+                have hmammal : Mammal Rock := P2 Rock hmonkey
+                have hanimal : Animal Rock := P1 Rock hpet hmammal
+                have hbreathe : CanBreathe Rock := P5 Rock hpet hanimal
+                exact False.elim (hnbreathe hbreathe)
+            | inr hbird =>
+                have hfly : CanFly Rock := P4 Rock hpet hbird
+                exact P6 Rock hpet hfly
+  -- Now attempt to prove ¬ HasWings Rock by contradiction using the obtained HasWings Rock
+  intro h
+  exact h hwings
+</lean>
+ANSWER: False
+
+[LEAN ERROR]: Function expected at
+  h
+but this term has type
+  HasWings Rock
+
+Note: Expected a function because this term is being applied to the argument
+  hwings
+
+--------------------------------------------------
+--- Iteration 2 ---
+
+<lean>
+axiom obj : Type
+
+-- Objects and predicates
+axiom Rock : obj
+axiom PetersPet : obj → Prop
+axiom Mammal : obj → Prop
+axiom Animal : obj → Prop
+axiom Monkey : obj → Prop
+axiom Bird : obj → Prop
+axiom CanFly : obj → Prop
+axiom HasWings : obj → Prop
+axiom CanBreathe : obj → Prop
+
+-- Premises
+axiom P1 : ∀ x : obj, PetersPet x → Mammal x → Animal x
+axiom P2 : ∀ x : obj, Monkey x → Mammal x
+axiom P3 : ∀ x : obj, PetersPet x → (Monkey x ∨ Bird x)
+axiom P4 : ∀ x : obj, PetersPet x → Bird x → CanFly x
+axiom P5 : ∀ x : obj, PetersPet x → Animal x → CanBreathe x
+axiom P6 : ∀ x : obj, PetersPet x → CanFly x → HasWings x
+axiom P7 : PetersPet Rock
+axiom P8 : (CanFly Rock) ∨ (Bird Rock) ∨ (¬ CanBreathe Rock)
+
+-- From the premises we can actually derive that Rock has wings.
+-- This shows the original natural-language conclusion is not derivable.
+theorem wingsRock : HasWings Rock := by
+  have hpet : PetersPet Rock := P7
+  -- Case split on P8
+  cases P8 with
+  | inl hfly =>
+      exact P6 Rock hpet hfly
+  | inr hrest =>
+      cases hrest with
+      | inl hbird =>
+          have hfly : CanFly Rock := P4 Rock hpet hbird
+          exact P6 Rock hpet hfly
+      | inr hnbreathe =>
+          -- Use P3 to analyze Monkey or Bird
+          cases P3 Rock hpet with
+          | inl hmonkey =>
+              have hmammal : Mammal Rock := P2 Rock hmonkey
+              have hanimal : Animal Rock := P1 Rock hpet hmammal
+              have hbreathe : CanBreathe Rock := P5 Rock hpet hanimal
+              exact False.elim (hnbreathe hbreathe)
+          | inr hbird =>
+              have hfly : CanFly Rock := P4 Rock hpet hbird
+              exact P6 Rock hpet hfly
+
+-- The requested goal (¬ HasWings Rock) is not provable from the given premises.
+-- Therefore we cannot provide a valid proof of it in Lean.
+theorem goal : ¬ HasWings Rock := by
+  -- This goal is false under the given axioms, since we can prove HasWings Rock.
+  -- No proof exists without contradicting the premises.
+  -- We include this placeholder to keep the file syntactically complete,
+  -- but it cannot be completed with a valid proof.
+  -- To see the contradiction, note wingsRock : HasWings Rock above.
+  -- One cannot derive False from HasWings Rock using the premises.
+  sorry
+</lean>
+ANSWER: False

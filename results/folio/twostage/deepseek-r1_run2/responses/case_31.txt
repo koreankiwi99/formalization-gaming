@@ -2,3 +2,400 @@
 STAGE 1: TRANSLATION
 ======================================================================
 
+--- Iteration 1 ---
+
+=== REASONING ===
+We are given several premises and a conclusion. We need to formalize the logical structure in Lean without proving it.
+
+ Entities and predicates:
+ - We have a type for people (or entities) at the mixer. Let's call it `Person`.
+ - We are told about Djokovic, so we can have a constant `Djokovic : Person`.
+ - Predicates:
+   * `GrandSlamChampion : Person → Prop`
+   * `OscarNominatedActor : Person → Prop`
+   * `ProfessionalTennisPlayer : Person → Prop`
+   * `Celebrity : Person → Prop`
+   * `Athlete : Person → Prop`
+   * `WellPaid : Person → Prop`
+   * `Famous : Person → Prop`
+   * `LivesInTaxHaven : Person → Prop`
+   * `AtMixer : Person → Prop`   (since the premises specify "at the mixer", we need this predicate)
+
+ However, note: The premises are all about people "at the mixer". We can handle this by having a predicate `AtMixer` and then stating the premises only for those at the mixer.
+
+ Alternatively, we can define a set (or type) of people at the mixer? But the problem says "Everyone at the mixer", so we are quantifying over people who are at the mixer.
+
+ Let's do:
+
+   `axiom Person : Type`
+   `axiom Djokovic : Person`
+
+   and then
+
+   `axiom AtMixer : Person → Prop`
+
+ But note: we are also told "Djokovic is at the mixer", so we have:
+
+   `axiom Djokovic_at_mixer : AtMixer Djokovic`
+
+ Now premises:
+
+1. Everyone at the mixer is a Grand Slam champion or an Oscar-nominated actor.
+
+   `axiom P1 : ∀ (p : Person), AtMixer p → GrandSlamChampion p ∨ OscarNominatedActor p`
+
+2. Every Grand Slam champion at the mixer is a professional tennis player.
+
+   `axiom P2 : ∀ (p : Person), AtMixer p → GrandSlamChampion p → ProfessionalTennisPlayer p`
+
+   Alternatively, we can say more naturally:
+
+   `axiom P2 : ∀ (p : Person), AtMixer p ∧ GrandSlamChampion p → ProfessionalTennisPlayer p`
+
+   But note: the premise says "Every Grand Slam champion at the mixer", meaning if someone is both at the mixer and a Grand Slam champion, then they are a professional tennis player. So the second form is more direct.
+
+   However, it is also acceptable to use:
+
+   `axiom P2 : ∀ (p : Person), AtMixer p → GrandSlamChampion p → ProfessionalTennisPlayer p`
+
+   because if we have `AtMixer p` and `GrandSlamChampion p`, then we can apply the implication to get `ProfessionalTennisPlayer p`.
+
+   Similarly for the others.
+
+3. All Oscar-nominated actors at the mixer are celebrities.
+
+   `axiom P3 : ∀ (p : Person), AtMixer p → OscarNominatedActor p → Celebrity p`
+
+4. All professional tennis players at the mixer are athletes.
+
+   `axiom P4 : ∀ (p : Person), AtMixer p → ProfessionalTennisPlayer p → Athlete p`
+
+5. If a person at the mixer is a celebrity, then they are well paid.
+
+   `axiom P5 : ∀ (p : Person), AtMixer p → Celebrity p → WellPaid p`
+
+6. If a person at the mixer is an athlete, then they are famous.
+
+   `axiom P6 : ∀ (p : Person), AtMixer p → Athlete p → Famous p`
+
+7. All well-paid people at the mixer live in tax havens.
+
+   `axiom P7 : ∀ (p : Person), AtMixer p → WellPaid p → LivesInTaxHaven p`
+
+8. Djokovic is at the mixer: if Djokovic is a famous athlete, then Djokovic is well-paid.
+
+   This premise is a bit tricky. Note that it says: 
+        "Djokovic is at the mixer: if Djokovic is a famous athlete, then Djokovic is well-paid."
+
+   I think the colon might be a separator: we are told two things? Actually, the problem says:
+
+        "Djokovic is at the mixer: if Djokovic is a famous athlete, then Djokovic is well-paid."
+
+   This can be interpreted as:
+        (Djokovic is at the mixer) AND 
+        (if Djokovic is a famous athlete then Djokovic is well-paid)
+
+   But let me read the original: "Djokovic is at the mixer: if Djokovic is a famous athlete, then Djokovic is well-paid."
+
+   The colon may be a typo? Or it might be introducing a statement. In logical terms, it might be:
+
+        AtMixer Djokovic ∧ (Famous Djokovic ∧ Athlete Djokovic → WellPaid Djokovic)
+
+   However, we already have `Djokovic_at_mixer` as an axiom. So the second part might be:
+
+        (AtMixer Djokovic) → ( (Famous Djokovic ∧ Athlete Djokovic) → WellPaid Djokovic )
+
+   But note: we already have that Djokovic is at the mixer, so the antecedent `AtMixer Djokovic` is true, hence we get:
+
+        (Famous Djokovic ∧ Athlete Djokovic) → WellPaid Djokovic
+
+   Alternatively, the premise might be:
+
+        AtMixer Djokovic → (Famous Djokovic ∧ Athlete Djokovic → WellPaid Djokovic)
+
+   But we already know `AtMixer Djokovic` (from the previous axiom), so we can then have:
+
+        Famous Djokovic ∧ Athlete Djokovic → WellPaid Djokovic
+
+   How about we formalize the premise as:
+
+        axiom P8 : Famous Djokovic ∧ Athlete Djokovic → WellPaid Djokovic
+
+   Why? Because the premise says: "if Djokovic is a famous athlete" (which we interpret as being both famous AND an athlete) then he is well-paid.
+
+   However, note: the context of the mixer. The premise does not explicitly say "at the mixer" again, but it's about Djokovic who we know is at the mixer.
+
+   Also, note that the properties (like Famous, Athlete) are being attributed to Djokovic, and we know he is at the mixer so the context holds.
+
+   Therefore, we can have:
+
+        axiom P8 : Famous Djokovic ∧ Athlete Djokovic → WellPaid Djokovic
+
+ Conclusion:
+
+        Djokovic lives in a tax haven.
+
+        theorem goal : LivesInTaxHaven Djokovic
+
+ Now, let's write the entire code.
+
+ IMPORTANT: We must declare all the predicates and the type.
+
+ However, note: the premise 8 is only about Djokovic, so we don't need a general axiom.
+
+ Let's code accordingly.
+
+ Also note: We already have an axiom for Djokovic being at the mixer.
+
+ We will have:
+
+   axioms: Person, Djokovic, AtMixer, GrandSlamChampion, OscarNominatedActor, ProfessionalTennisPlayer, Celebrity, Athlete, WellPaid, Famous, LivesInTaxHaven
+
+   and then the premises P1 to P8.
+
+ But note that premise 8 is only about Djokovic. We also have the fact that Djokovic is at the mixer.
+
+ Let me write the code:
+
+<lean>
+axiom Person : Type
+axiom Djokovic : Person
+
+axiom AtMixer : Person → Prop
+axiom GrandSlamChampion : Person → Prop
+axiom OscarNominatedActor : Person → Prop
+axiom ProfessionalTennisPlayer : Person → Prop
+axiom Celebrity : Person → Prop
+axiom Athlete : Person → Prop
+axiom WellPaid : Person → Prop
+axiom Famous : Person → Prop
+axiom LivesInTaxHaven : Person → Prop
+
+axiom Djokovic_at_mixer : AtMixer Djokovic
+
+axiom P1 : ∀ (p : Person), AtMixer p → GrandSlamChampion p ∨ OscarNominatedActor p
+axiom P2 : ∀ (p : Person), AtMixer p → GrandSlamChampion p → ProfessionalTennisPlayer p
+axiom P3 : ∀ (p : Person), AtMixer p → OscarNominatedActor p → Celebrity p
+axiom P4 : ∀ (p : Person), AtMixer p → ProfessionalTennisPlayer p → Athlete p
+axiom P5 : ∀ (p : Person), AtMixer p → Celebrity p → WellPaid p
+axiom P6 : ∀ (p : Person), AtMixer p → Athlete p → Famous p
+axiom P7 : ∀ (p : Person), AtMixer p → WellPaid p → LivesInTaxHaven p
+axiom P8 : Famous Djokovic ∧ Athlete Djokovic → WellPaid Djokovic
+
+theorem goal : LivesInTaxHaven Djokovic := sorry
+</lean>
+
+But note: in P2, P3, etc. we are using two hypotheses: `AtMixer p` and the specific property (like `GrandSlamChampion p`). We can also write them with one hypothesis:
+
+   `axiom P2 : ∀ (p : Person), AtMixer p → GrandSlamChampion p → ProfessionalTennisPlayer p`
+
+is equivalent to
+
+   `axiom P2 : ∀ (p : Person), AtMixer p ∧ GrandSlamChampion p → ProfessionalTennisPlayer p`
+
+but in Lean, we usually use the curried form because it's easier to use with implications.
+
+We choose the curried form.
+
+This should be complete.
+
+Let me double-check the premise 8: The original says "if Djokovic is a famous athlete", which we interpret as being both famous and an athlete. So `Famous Djokovic ∧ Athlete Djokovic` is the antecedent.
+
+All good.
+
+
+=== RESPONSE ===
+To formalize the given premises and conclusion in Lean 4, we define the necessary types and predicates, then express each premise as an axiom. The conclusion is declared as a theorem with a placeholder proof (`sorry`).
+
+<lean>
+axiom Person : Type
+axiom Djokovic : Person
+
+-- Predicates for attributes and locations
+axiom AtMixer : Person → Prop
+axiom GrandSlamChampion : Person → Prop
+axiom OscarNominatedActor : Person → Prop
+axiom ProfessionalTennisPlayer : Person → Prop
+axiom Celebrity : Person → Prop
+axiom Athlete : Person → Prop
+axiom WellPaid : Person → Prop
+axiom Famous : Person → Prop
+axiom LivesInTaxHaven : Person → Prop
+
+-- Premises
+axiom Djokovic_at_mixer : AtMixer Djokovic
+axiom P1 : ∀ (p : Person), AtMixer p → GrandSlamChampion p ∨ OscarNominatedActor p
+axiom P2 : ∀ (p : Person), AtMixer p → GrandSlamChampion p → ProfessionalTennisPlayer p
+axiom P3 : ∀ (p : Person), AtMixer p → OscarNominatedActor p → Celebrity p
+axiom P4 : ∀ (p : Person), AtMixer p → ProfessionalTennisPlayer p → Athlete p
+axiom P5 : ∀ (p : Person), AtMixer p → Celebrity p → WellPaid p
+axiom P6 : ∀ (p : Person), AtMixer p → Athlete p → Famous p
+axiom P7 : ∀ (p : Person), AtMixer p → WellPaid p → LivesInTaxHaven p
+axiom P8 : Famous Djokovic ∧ Athlete Djokovic → WellPaid Djokovic
+
+-- Conclusion
+theorem goal : LivesInTaxHaven Djokovic := sorry
+</lean>
+
+**Key decisions:**
+- `Person` is the base type with `Djokovic` as a constant
+- Predicates like `AtMixer`, `GrandSlamChampion`, etc. capture attributes
+- Premises are expressed as axioms with implications:
+  - Mixer-related constraints use curried hypotheses (e.g., `AtMixer p → ...`)
+  - Premise 8 handles Djokovic-specific conditions using conjunction
+- Conclusion `goal` states `LivesInTaxHaven Djokovic` without proof
+
+
+======================================================================
+STAGE 2: PROVING
+======================================================================
+
+--- Iteration 1 ---
+
+=== REASONING ===
+We are given that Djokovic is at the mixer (Djokovic_at_mixer). We must show that LivesInTaxHaven Djokovic.
+
+ The premises:
+ P1: Everyone at the mixer is a Grand Slam champion or an Oscar-nominated actor.
+ P2: Every Grand Slam champion at the mixer is a professional tennis player.
+ P3: Every Oscar-nominated actor at the mixer is a celebrity.
+ P4: Every professional tennis player at the mixer is an athlete.
+ P5: Every celebrity at the mixer is well paid.
+ P6: Every athlete at the mixer is famous.
+ P7: Every well-paid person at the mixer lives in a tax haven.
+ P8: If Djokovic is famous and an athlete, then he is well-paid.
+
+ Note: The problem states: "Djokovic is at the mixer: if Djokovic is a famous athlete, then Djokovic is well-paid." 
+ So P8 is: Famous Djokovic ∧ Athlete Djokovic → WellPaid Djokovic.
+
+ We know Djokovic is at the mixer. By P1, Djokovic is either a GrandSlamChampion or an OscarNominatedActor.
+
+ We will break into two cases.
+
+ Case 1: GrandSlamChampion Djokovic.
+   Then by P2 (since he is at the mixer and a GrandSlamChampion) we have ProfessionalTennisPlayer Djokovic.
+   Then by P4 (and being at the mixer) we get Athlete Djokovic.
+   Then by P6 (and being at the mixer and an athlete) we get Famous Djokovic.
+   So we have Famous Djokovic and Athlete Djokovic, so by P8 we get WellPaid Djokovic.
+   Then by P7 (and being at the mixer) we get LivesInTaxHaven Djokovic.
+
+ Case 2: OscarNominatedActor Djokovic.
+   Then by P3 (since he is at the mixer) we get Celebrity Djokovic.
+   Then by P5 (and being at the mixer) we get WellPaid Djokovic.
+   Then by P7 we get LivesInTaxHaven Djokovic.
+
+ Therefore, in both cases we have the conclusion.
+
+ However, note that in the first case we used P8 to get WellPaid, but in the second case we did not need P8.
+
+ Let's formalize this in Lean.
+
+ We can use `Or.elim` on `P1 Djokovic Djokovic_at_mixer` to split into the two cases.
+
+ In the first case (GrandSlamChampion Djokovic):
+   have t2 : ProfessionalTennisPlayer Djokovic := P2 Djokovic Djokovic_at_mixer h_grand
+   have t3 : Athlete Djokovic := P4 Djokovic Djokovic_at_mixer t2
+   have t4 : Famous Djokovic := P6 Djokovic Djokovic_at_mixer t3
+   have t5 : WellPaid Djokovic := P8 (And.intro t4 t3)
+   exact P7 Djokovic Djokovic_at_mixer t5
+
+ In the second case (OscarNominatedActor Djokovic):
+   have c1 : Celebrity Djokovic := P3 Djokovic Djokovic_at_mixer h_oscar
+   have c2 : WellPaid Djokovic := P5 Djokovic Djokovic_at_mixer c1
+   exact P7 Djokovic Djokovic_at_mixer c2
+
+ Alternatively, we can write a proof term.
+
+ But note: the problem asks to replace the `sorry` with a proof.
+
+ We can do:
+
+ `have h_cases : GrandSlamChampion Djokovic ∨ OscarNominatedActor Djokovic := P1 Djokovic Djokovic_at_mixer`
+
+ Then use `Or.elim` on `h_cases`.
+
+ We can write:
+
+```
+theorem goal : LivesInTaxHaven Djokovic := by
+  have h_cases := P1 Djokovic Djokovic_at_mixer
+  apply Or.elim h_cases
+  · -- Case 1: GrandSlamChampion Djokovic
+    intro h_grand
+    have t2 := P2 Djokovic Djokovic_at_mixer h_grand
+    have t3 := P4 Djokovic Djokovic_at_mixer t2
+    have t4 := P6 Djokovic Djokovic_at_mixer t3
+    have t5 := P8 (And.intro t4 t3)
+    exact P7 Djokovic Djokovic_at_mixer t5
+  · -- Case 2: OscarNominatedActor Djokovic
+    intro h_oscar
+    have c1 := P3 Djokovic Djokovic_at_mixer h_oscar
+    have c2 := P5 Djokovic Djokovic_at_mixer c1
+    exact P7 Djokovic Djokovic_at_mixer c2
+```
+
+ Alternatively, we can use a tactic script without naming the cases.
+
+ But note, the original `sorry` is the theorem statement, and we are to replace it with a proof.
+
+ We can also write a term mode proof, but using `by` with tactics is acceptable.
+
+ However, note that the theorem statement is `LivesInTaxHaven Djokovic`. We must build the proof.
+
+ We'll use the above tactic proof.
+
+ But note: we have not used the `P8` in the second case. That is correct.
+
+ However, observe that in the first case we used `P8` to get `WellPaid Djokovic`. Without `P8`, the first case would not go through because from `Famous` and `Athlete` we don't have a direct way to `WellPaid` except when we are Djokovic and via `P8`. But note that `P5` and `P6` are for celebrities and athletes respectively, but `P5` requires being a celebrity and `P6` only gives famous for athletes. There is no direct link from being an athlete to well paid unless we are Djokovic (via `P8`).
+
+ Therefore, the proof is as above.
+
+ Let's write the complete code.
+
+
+=== RESPONSE ===
+The proof demonstrates that Djokovic must live in a tax haven by considering the two possible cases from premise P1: either Djokovic is a Grand Slam champion or an Oscar-nominated actor. Both cases lead to Djokovic being well-paid either through the celebrity path (Oscar case) or the athlete path (Grand Slam case with P8), and premise P7 completes the proof.
+
+<lean>
+axiom Person : Type
+axiom Djokovic : Person
+
+-- Predicates for attributes and locations
+axiom AtMixer : Person → Prop
+axiom GrandSlamChampion : Person → Prop
+axiom OscarNominatedActor : Person → Prop
+axiom ProfessionalTennisPlayer : Person → Prop
+axiom Celebrity : Person → Prop
+axiom Athlete : Person → Prop
+axiom WellPaid : Person → Prop
+axiom Famous : Person → Prop
+axiom LivesInTaxHaven : Person → Prop
+
+-- Premises
+axiom Djokovic_at_mixer : AtMixer Djokovic
+axiom P1 : ∀ (p : Person), AtMixer p → GrandSlamChampion p ∨ OscarNominatedActor p
+axiom P2 : ∀ (p : Person), AtMixer p → GrandSlamChampion p → ProfessionalTennisPlayer p
+axiom P3 : ∀ (p : Person), AtMixer p → OscarNominatedActor p → Celebrity p
+axiom P4 : ∀ (p : Person), AtMixer p → ProfessionalTennisPlayer p → Athlete p
+axiom P5 : ∀ (p : Person), AtMixer p → Celebrity p → WellPaid p
+axiom P6 : ∀ (p : Person), AtMixer p → Athlete p → Famous p
+axiom P7 : ∀ (p : Person), AtMixer p → WellPaid p → LivesInTaxHaven p
+axiom P8 : Famous Djokovic ∧ Athlete Djokovic → WellPaid Djokovic
+
+-- Conclusion
+theorem goal : LivesInTaxHaven Djokovic := by
+  have cases := P1 Djokovic Djokovic_at_mixer
+  cases cases with
+  | inl grand =>
+    have tennis := P2 Djokovic Djokovic_at_mixer grand
+    have athlete := P4 Djokovic Djokovic_at_mixer tennis
+    have famous := P6 Djokovic Djokovic_at_mixer athlete
+    have wellPaid := P8 ⟨famous, athlete⟩
+    exact P7 Djokovic Djokovic_at_mixer wellPaid
+  | inr oscar =>
+    have celeb := P3 Djokovic Djokovic_at_mixer oscar
+    have wellPaid := P5 Djokovic Djokovic_at_mixer celeb
+    exact P7 Djokovic Djokovic_at_mixer wellPaid
+</lean>
+
+ANSWER: True

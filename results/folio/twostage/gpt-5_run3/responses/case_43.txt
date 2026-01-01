@@ -7,23 +7,89 @@ STAGE 1: TRANSLATION
 <lean>
 axiom obj : Type
 
+-- Individuals
 axiom CocoGauff : obj
+axiom Iga_Swiatek : obj
+axiom Rafael_Nadal : obj
 
-axiom RankedHighlyWTA : obj → Prop
+-- Predicates and relations
+axiom RankedHighlyByWTA : obj → Prop
 axiom MostActiveMajorPlayer : obj → Prop
-axiom LostToSwiatekRG2022 : obj → Prop
-axiom LostToNadalRG2022 : obj → Prop
+axiom LostToAtRG2022 : obj → obj → Prop
+axiom LostTo : obj → obj → Prop
 axiom FemaleRG2022 : obj → Prop
 axiom MaleRG2022 : obj → Prop
-axiom AtRG2022 : obj → Prop
+axiom PlayerRG2022 : obj → Prop
 
-axiom A1 : ∀ x : obj, RankedHighlyWTA x → MostActiveMajorPlayer x
-axiom A2 : ∀ x : obj, LostToSwiatekRG2022 x → RankedHighlyWTA x
-axiom A3 : ∀ x : obj, FemaleRG2022 x → LostToSwiatekRG2022 x
-axiom A4 : ∀ x : obj, AtRG2022 x → FemaleRG2022 x ∨ MaleRG2022 x
-axiom A5 : ∀ x : obj, MaleRG2022 x → LostToNadalRG2022 x
-axiom A6 : (RankedHighlyWTA CocoGauff ∨ LostToNadalRG2022 CocoGauff) → ¬ MaleRG2022 CocoGauff
-axiom A7 : AtRG2022 CocoGauff
+-- Premises
+axiom P1 : ∀ x : obj, RankedHighlyByWTA x → MostActiveMajorPlayer x
+axiom P2 : ∀ x : obj, LostToAtRG2022 x Iga_Swiatek → RankedHighlyByWTA x
+axiom P3 : ∀ x : obj, FemaleRG2022 x → LostToAtRG2022 x Iga_Swiatek
+axiom P4 : ∀ x : obj, PlayerRG2022 x → FemaleRG2022 x ∨ MaleRG2022 x
+axiom P5 : ∀ x : obj, MaleRG2022 x → LostTo x Rafael_Nadal
+axiom P6 : (RankedHighlyByWTA CocoGauff ∨ LostTo CocoGauff Rafael_Nadal) → ¬ MaleRG2022 CocoGauff
+axiom P7 : PlayerRG2022 CocoGauff
 
-theorem goal : LostToNadalRG2022 CocoGauff := sorry
+-- Conclusion to formalize
+theorem goal : LostTo CocoGauff Rafael_Nadal := sorry
 </lean>
+
+
+======================================================================
+STAGE 2: PROVING
+======================================================================
+
+--- Iteration 1 ---
+
+<lean>
+axiom obj : Type
+
+-- Individuals
+axiom CocoGauff : obj
+axiom Iga_Swiatek : obj
+axiom Rafael_Nadal : obj
+
+-- Predicates and relations
+axiom RankedHighlyByWTA : obj → Prop
+axiom MostActiveMajorPlayer : obj → Prop
+axiom LostToAtRG2022 : obj → obj → Prop
+axiom LostTo : obj → obj → Prop
+axiom FemaleRG2022 : obj → Prop
+axiom MaleRG2022 : obj → Prop
+axiom PlayerRG2022 : obj → Prop
+
+-- Premises
+axiom P1 : ∀ x : obj, RankedHighlyByWTA x → MostActiveMajorPlayer x
+axiom P2 : ∀ x : obj, LostToAtRG2022 x Iga_Swiatek → RankedHighlyByWTA x
+axiom P3 : ∀ x : obj, FemaleRG2022 x → LostToAtRG2022 x Iga_Swiatek
+axiom P4 : ∀ x : obj, PlayerRG2022 x → FemaleRG2022 x ∨ MaleRG2022 x
+axiom P5 : ∀ x : obj, MaleRG2022 x → LostTo x Rafael_Nadal
+axiom P6 : (RankedHighlyByWTA CocoGauff ∨ LostTo CocoGauff Rafael_Nadal) → ¬ MaleRG2022 CocoGauff
+axiom P7 : PlayerRG2022 CocoGauff
+
+-- Conclusion to formalize
+theorem goal : LostTo CocoGauff Rafael_Nadal := by
+  -- From P5 and P6 we can derive that Coco Gauff is not male at RG2022
+  have notMale : ¬ MaleRG2022 CocoGauff := by
+    intro hm
+    have ltr : LostTo CocoGauff Rafael_Nadal := P5 CocoGauff hm
+    have hnm : ¬ MaleRG2022 CocoGauff := P6 (Or.inr ltr)
+    exact hnm hm
+  -- From P4 and P7, Coco is female or male; with notMale, she must be female
+  have femOrMale : FemaleRG2022 CocoGauff ∨ MaleRG2022 CocoGauff := P4 CocoGauff P7
+  have female : FemaleRG2022 CocoGauff := by
+    cases femOrMale with
+    | inl hf => exact hf
+    | inr hm =>
+      have false := notMale hm
+      exact False.elim false
+  -- From being female, she lost to Iga at RG2022 and is ranked highly
+  have lostToIga : LostToAtRG2022 CocoGauff Iga_Swiatek := P3 CocoGauff female
+  have ranked : RankedHighlyByWTA CocoGauff := P2 CocoGauff lostToIga
+  -- P6 only gives not male from ranked or lost-to-Nadal; we already have notMale.
+  -- There is no premise linking being female/ranked to losing to Nadal.
+  -- Thus the goal cannot be derived from the given premises.
+  -- We cannot complete the proof of LostTo CocoGauff Rafael_Nadal from these axioms.
+  admit
+</lean>
+ANSWER: False

@@ -2,3 +2,935 @@
 STAGE 1: TRANSLATION
 ======================================================================
 
+--- Iteration 1 ---
+
+=== REASONING ===
+We are given several premises and a conclusion. We need to formalize the logical structure in Lean 4.
+
+ First, we note that we are talking about animals. We'll have a type for animals (or objects). We'll use `Animal` as the type.
+
+ Premises:
+ 1. "All rabbits that can be spotted near the campus are cute."
+    We can break this down:
+      - We have a property `Rabbit : Animal → Prop`
+      - We have a property `SpottedNearCampus : Animal → Prop`
+      - We have a property `Cute : Animal → Prop`
+    So: ∀ a, Rabbit a → SpottedNearCampus a → Cute a
+
+ 2. "Some turtles can be spotted near the campus."
+    We have `Turtle : Animal → Prop`
+    So: ∃ a, Turtle a ∧ SpottedNearCampus a
+
+ 3. "The only animals that can be spotted near the campus are rabbits and squirrels."
+    This means: if an animal can be spotted near the campus, then it is either a rabbit or a squirrel.
+    We'll have `Squirrel : Animal → Prop`
+    So: ∀ a, SpottedNearCampus a → Rabbit a ∨ Squirrel a
+
+ 4. "If something is skittish, then it is not calm."
+    We have `Skittish : Animal → Prop` and `Calm : Animal → Prop`
+    So: ∀ a, Skittish a → ¬ Calm a
+
+ 5. "All the squirrels that can be spotted near the campus are skittish."
+    ∀ a, Squirrel a → SpottedNearCampus a → Skittish a
+
+ 6. "Rockie can be spotted near the campus, and it is calm."
+    We have a constant `Rockie : Animal`
+    So: SpottedNearCampus Rockie ∧ Calm Rockie
+
+ Conclusion: "Rockie is a turtle."
+    So: Turtle Rockie
+
+ However, note that the premises also include that the only animals spotted are rabbits and squirrels. But Rockie is calm and spotted. 
+ Also, if Rockie were a squirrel, then it would be skittish (by premise 5) and then not calm (by premise 4). But Rockie is calm, so it cannot be skittish, hence it cannot be a squirrel (if it were a squirrel and spotted, it would be skittish). Therefore, by premise 3, Rockie must be a rabbit? But the conclusion says Rockie is a turtle.
+
+ There seems to be a contradiction? However, note that premise 2 says there exists a turtle that is spotted, but it doesn't say that every spotted animal is a rabbit or squirrel? Actually premise 3 says "the only animals that can be spotted ... are rabbits and squirrels", meaning that if an animal is spotted then it must be a rabbit or a squirrel. So turtles cannot be spotted? But premise 2 says some turtles can be spotted. 
+
+ This indicates that the premises might be inconsistent? However, our task is just to formalize the given statements.
+
+ We must note: the problem says "the only animals that can be spotted near the campus are rabbits and squirrels". This is usually interpreted as: if an animal is spotted, then it is either a rabbit or a squirrel. It does not necessarily preclude the existence of other animals (like turtles) that might be spotted? But the statement says "the only animals", meaning that the set of animals that can be spotted is exactly the rabbits and squirrels. So if a turtle is spotted, then it must be either a rabbit or a squirrel? That is impossible. 
+
+ However, let's read carefully: "The only animals that can be spotted near the campus are rabbits and squirrels." This is ambiguous. It could mean:
+   (a) The set of animals that can be spotted is a subset of {rabbits, squirrels}.
+   (b) The set of animals that can be spotted is exactly the set of rabbits and squirrels.
+
+ In logic, "the only" usually means that if an animal is spotted then it must be a rabbit or a squirrel. It does not require that every rabbit or squirrel is spotted. So (a) is the meaning.
+
+ But note: premise 2 says there exists a turtle that is spotted. So if we interpret premise 3 as (a), then we have:
+   ∃ a, Turtle a ∧ SpottedNearCampus a   [from premise 2]
+   and from premise 3: SpottedNearCampus a → Rabbit a ∨ Squirrel a.
+   So that turtle must be either a rabbit or a squirrel? That is impossible unless we allow an animal to be both a turtle and a rabbit? 
+
+ This suggests that we need to treat the categories as disjoint? But the problem doesn't say that. We must be cautious.
+
+ Alternatively, the problem might be using exclusive categories? However, in the formalization, we don't enforce disjointness unless stated.
+
+ Since the problem states premises and then a conclusion, we must formalize exactly what is said.
+
+ Let's formalize without assuming disjointness.
+
+ Steps:
+
+ 1. We introduce a type `Animal`.
+ 2. We introduce predicates:
+      - `SpottedNearCampus : Animal → Prop`
+      - `Rabbit : Animal → Prop`
+      - `Cute : Animal → Prop`
+      - `Turtle : Animal → Prop`
+      - `Squirrel : Animal → Prop`
+      - `Skittish : Animal → Prop`
+      - `Calm : Animal → Prop`
+ 3. We have a constant `Rockie : Animal`.
+
+ Now the premises:
+
+  P1: ∀ a, Rabbit a → SpottedNearCampus a → Cute a
+      But note: the premise says "All rabbits that can be spotted ...", so we can also write:
+          ∀ a, (Rabbit a ∧ SpottedNearCampus a) → Cute a
+      Either way is equivalent.
+
+  P2: ∃ a, Turtle a ∧ SpottedNearCampus a
+
+  P3: ∀ a, SpottedNearCampus a → Rabbit a ∨ Squirrel a
+
+  P4: ∀ a, Skittish a → ¬ Calm a
+
+  P5: ∀ a, Squirrel a → SpottedNearCampus a → Skittish a
+
+  P6: SpottedNearCampus Rockie ∧ Calm Rockie
+
+ Conclusion: Turtle Rockie
+
+ However, note that the conclusion is that Rockie is a turtle. But from P3 and P6, we have:
+   SpottedNearCampus Rockie → Rabbit Rockie ∨ Squirrel Rockie.
+
+ And from P5, if Rockie were a squirrel and spotted, then it would be skittish, and then by P4 not calm. But P6 says Rockie is calm. So Rockie cannot be a squirrel. Therefore, Rockie must be a rabbit? But the conclusion is that Rockie is a turtle.
+
+ This seems inconsistent? But wait, the premises also say that the only animals spotted are rabbits and squirrels. So if Rockie is spotted, then it must be a rabbit or a squirrel. And we just saw it can't be a squirrel, so it must be a rabbit. But then how can it be a turtle? Unless we allow an animal to be both a rabbit and a turtle? The premises don't say that these categories are disjoint.
+
+ However, the conclusion states that Rockie is a turtle. So we must formalize without assuming that rabbit and turtle are disjoint? 
+
+ But note: the premises do not state that an animal cannot be both a rabbit and a turtle. So it is possible that Rockie is both a rabbit and a turtle? Then the conclusion would hold.
+
+ Alternatively, the premises might be inconsistent? But our job is to formalize, not to judge consistency.
+
+ So we write:
+
+<lean>
+axiom Animal : Type
+
+axiom SpottedNearCampus : Animal → Prop
+axiom Rabbit : Animal → Prop
+axiom Cute : Animal → Prop
+axiom Turtle : Animal → Prop
+axiom Squirrel : Animal → Prop
+axiom Skittish : Animal → Prop
+axiom Calm : Animal → Prop
+
+axiom Rockie : Animal
+
+-- Premises:
+axiom P1 : ∀ a : Animal, Rabbit a → SpottedNearCampus a → Cute a
+axiom P2 : ∃ a : Animal, Turtle a ∧ SpottedNearCampus a
+axiom P3 : ∀ a : Animal, SpottedNearCampus a → Rabbit a ∨ Squirrel a
+axiom P4 : ∀ a : Animal, Skittish a → ¬ Calm a
+axiom P5 : ∀ a : Animal, Squirrel a → SpottedNearCampus a → Skittish a
+axiom P6 : SpottedNearCampus Rockie ∧ Calm Rockie
+
+-- Conclusion: Rockie is a turtle.
+theorem goal : Turtle Rockie := sorry
+</lean>
+
+However, note that the problem says "All rabbits that can be spotted near the campus are cute." We interpreted as: for any animal, if it is a rabbit and spotted, then it is cute. That is correct.
+
+But wait: the premise "All rabbits that can be spotted near the campus" might be interpreted as: for any rabbit that can be spotted (i.e., we are restricting to rabbits that are spotted), they are cute. That is exactly what we have.
+
+Similarly, for the squirrels: all squirrels that can be spotted are skittish.
+
+But note: the existence premise (P2) does not involve Rockie. Rockie is introduced separately.
+
+One more point: the problem says "Some turtles can be spotted near the campus." We formalized as there exists at least one turtle that is spotted. That is correct.
+
+Now, we have formalized the premises and the conclusion.
+
+However, note that the conclusion is about Rockie being a turtle. We have not included any axiom that forces Rockie to be a turtle. That is the point of the theorem: we are to show it from the premises.
+
+But note: the premises might not entail that Rockie is a turtle? However, the problem asks to formalize the conclusion as the theorem.
+
+So we write the theorem as `Turtle Rockie`.
+
+Let me double-check the premises:
+
+Premise 6: Rockie is spotted and calm.
+
+By premise 3: Rockie must be a rabbit or a squirrel.
+
+If Rockie is a squirrel, then by premise 5 (since Rockie is spotted) we get Skittish Rockie, and then by premise 4, not calm. But Rockie is calm. Contradiction. So Rockie must be a rabbit.
+
+But the conclusion says Rockie is a turtle? How can we get that?
+
+Unless we have an additional premise? The premises do not state that rabbits are not turtles. So Rockie could be both a rabbit and a turtle? Then we would have Turtle Rockie.
+
+But note: the existence of a turtle that is spotted (P2) doesn't tell us anything about Rockie.
+
+So without additional premises (like that rabbits are not turtles) we cannot rule out that Rockie is both a rabbit and a turtle. Therefore, the conclusion might be provable only if we assume that Rockie is a turtle? But that's what we are trying to prove.
+
+Alternatively, the problem might have intended that the categories are disjoint? But it doesn't say.
+
+Given the ambiguity, we stick to the literal formalization.
+
+Therefore, the code above is correct.
+
+But note: the problem says "The only animals that can be spotted near the campus are rabbits and squirrels." This does not say that rabbits and squirrels are mutually exclusive? But we don't need that.
+
+We'll proceed.
+
+One more thing: the premise P1 is about rabbits that are spotted. We wrote it as:
+  ∀ a, Rabbit a → SpottedNearCampus a → Cute a
+This is equivalent to:
+  ∀ a, (Rabbit a ∧ SpottedNearCampus a) → Cute a
+
+Similarly for P5.
+
+So we are good.
+
+Final code:
+
+
+=== RESPONSE ===
+Based on the premises and conclusion provided, here's the Lean 4 formalization:
+
+<lean>
+axiom Animal : Type
+
+axiom SpottedNearCampus : Animal → Prop
+axiom Rabbit : Animal → Prop
+axiom Cute : Animal → Prop
+axiom Turtle : Animal → Prop
+axiom Squirrel : Animal → Prop
+axiom Skittish : Animal → Prop
+axiom Calm : Animal → Prop
+
+axiom Rockie : Animal
+
+-- All rabbits that can be spotted near the campus are cute
+axiom P1 : ∀ a : Animal, Rabbit a → SpottedNearCampus a → Cute a
+
+-- Some turtles can be spotted near the campus
+axiom P2 : ∃ a : Animal, Turtle a ∧ SpottedNearCampus a
+
+-- The only animals that can be spotted near the campus are rabbits and squirrels
+axiom P3 : ∀ a : Animal, SpottedNearCampus a → Rabbit a ∨ Squirrel a
+
+-- If something is skittish, then it is not calm
+axiom P4 : ∀ a : Animal, Skittish a → ¬ Calm a
+
+-- All squirrels that can be spotted near the campus are skittish
+axiom P5 : ∀ a : Animal, Squirrel a → SpottedNearCampus a → Skittish a
+
+-- Rockie can be spotted near the campus and is calm
+axiom P6 : SpottedNearCampus Rockie ∧ Calm Rockie
+
+-- Conclusion: Rockie is a turtle
+theorem goal : Turtle Rockie := sorry
+</lean>
+
+This formalization includes:
+1. A base type `Animal` for all entities
+2. Predicates for properties (SpottedNearCampus, Rabbit, etc.)
+3. Individual constant `Rockie`
+4. Six premises (P1-P6) corresponding to the given statements
+5. A theorem `goal` representing the conclusion (using `sorry` as placeholder)
+
+
+======================================================================
+STAGE 2: PROVING
+======================================================================
+
+--- Iteration 1 ---
+
+=== REASONING ===
+We are given several premises and need to prove that Rockie is a turtle.
+
+ Let's analyze the given axioms:
+
+ P1: ∀ a, Rabbit a → SpottedNearCampus a → Cute a
+ P2: ∃ a, Turtle a ∧ SpottedNearCampus a
+ P3: ∀ a, SpottedNearCampus a → Rabbit a ∨ Squirrel a
+ P4: ∀ a, Skittish a → ¬ Calm a   [i.e., if skittish then not calm]
+ P5: ∀ a, Squirrel a → SpottedNearCampus a → Skittish a
+ P6: SpottedNearCampus Rockie ∧ Calm Rockie
+
+ We are to prove: Turtle Rockie.
+
+ Steps:
+
+ 1. From P6, we know that Rockie is spotted near campus and calm.
+
+ 2. By P3 applied to Rockie (since Rockie is spotted), we have:
+      Rabbit Rockie ∨ Squirrel Rockie
+
+ 3. We need to show that Rockie is a turtle. However, note that the premises do not directly say anything about turtles having to be the only ones with certain properties. Instead, we have P2 that says there exists some turtle that is spotted, but that doesn't necessarily tell us about Rockie.
+
+ 4. Consider the disjunction: Rabbit Rockie ∨ Squirrel Rockie.
+
+    Case 1: Rabbit Rockie.
+        Then by P1 (with a = Rockie, and we have Rabbit Rockie and SpottedNearCampus Rockie) we get Cute Rockie.
+        But this doesn't contradict anything and doesn't help us to get Turtle Rockie.
+
+    Case 2: Squirrel Rockie.
+        Then by P5 (with a = Rockie, Squirrel Rockie and SpottedNearCampus Rockie) we get Skittish Rockie.
+        Then by P4 (with a = Rockie), Skittish Rockie implies ¬ Calm Rockie.
+        However, P6 says Calm Rockie. This is a contradiction.
+
+    Therefore, the case Squirrel Rockie leads to a contradiction.
+
+ 5. Hence, we must have Rabbit Rockie.
+
+ But wait, we have two cases and we eliminated Squirrel Rockie? Then Rockie must be a rabbit? But we are trying to prove it is a turtle.
+
+ However, note that the conclusion is that Rockie is a turtle. But we just concluded that Rockie is a rabbit (if we eliminate squirrel). This is a problem.
+
+ Let me reexamine:
+
+ We have P3: the only animals spotted are rabbits or squirrels. So Rockie is either a rabbit or a squirrel.
+
+ We eliminated squirrel because it leads to a contradiction (since Rockie is calm, but if squirrel then skittish and then not calm).
+
+ Therefore, Rockie must be a rabbit.
+
+ But the theorem we are to prove is Turtle Rockie.
+
+ How can Rockie be both a rabbit and a turtle? The premises do not say that an animal can't be both, but typically we assume disjointness? However, the problem does not state that rabbits and turtles are disjoint.
+
+ Moreover, note that P2 says there exists a turtle that is spotted, but that turtle might be different from Rockie.
+
+ Therefore, we have shown that Rockie must be a rabbit. But we have no axiom that says rabbits are not turtles? Actually, we don't have any disjointness axioms.
+
+ However, the conclusion is that Rockie is a turtle. We have shown that Rockie is a rabbit. Without knowing that rabbits and turtles are disjoint, we cannot conclude that Rockie is not a turtle? But also we have no reason to believe that Rockie is a turtle.
+
+ In fact, the premises do not force Rockie to be a turtle. They force Rockie to be a rabbit. And we don't have any axiom that says that a rabbit is a turtle? So we cannot prove Turtle Rockie.
+
+ But wait, let me check: the problem says "Conclusion: Rockie is a turtle". We have deduced that Rockie is a rabbit. If we assume that no animal can be both a rabbit and a turtle (which is a typical assumption in such problems, but note: the problem does not state it), then Rockie cannot be a turtle.
+
+ However, in the absence of disjointness, we cannot be sure? But note: the problem does not say that rabbits and turtles are disjoint. So it is possible that Rockie is both a rabbit and a turtle? Then the conclusion would be true? But we don't have any axiom that says rabbits are turtles.
+
+ Therefore, we have:
+
+   We proved that Rockie is a rabbit (from the case analysis and contradiction in the squirrel case).
+
+   But we have no axiom that says rabbits are turtles, nor do we have any that says they are not.
+
+   The conclusion is that Rockie is a turtle. We have not proved that, because we only have that Rockie is a rabbit and we don't know if rabbits can be turtles.
+
+   However, note that the problem states: "The only animals that can be spotted near the campus are rabbits and squirrels." This does not mention turtles. But wait, P2 says there exists a turtle that is spotted. So that turtle must be either a rabbit or a squirrel? 
+
+   By P3, any animal spotted must be a rabbit or a squirrel. Therefore, the turtle that is spotted (from P2) must be either a rabbit or a squirrel.
+
+   So if that turtle is a rabbit, then it's okay? But then Rockie, being a rabbit, might be that turtle? 
+
+   However, we don't have any axiom that says Rockie is that particular turtle. 
+
+   So we cannot conclude that Rockie is a turtle.
+
+ Therefore, the conclusion does not follow.
+
+ But wait, let me formalize:
+
+ We have:
+   Rockie is spotted (P6) -> by P3: Rabbit Rockie ∨ Squirrel Rockie.
+
+   Squirrel Rockie leads to contradiction (because then Rockie would be skittish and hence not calm, but P6 says calm).
+
+   Therefore, Rabbit Rockie.
+
+ Now, we want to prove Turtle Rockie.
+
+ We have P2: there exists some animal, say a0, such that Turtle a0 and SpottedNearCampus a0.
+
+ Then by P3 on a0: Rabbit a0 ∨ Squirrel a0.
+
+ So that turtle a0 is either a rabbit or a squirrel.
+
+ But we don't know that Rockie is that animal. So we cannot conclude that Rockie is a turtle.
+
+ Therefore, the theorem as stated is not provable.
+
+ However, note that the problem says: "Rockie can be spotted near the campus, and it is calm." and we are to conclude that Rockie is a turtle.
+
+ But we have shown that Rockie must be a rabbit. And we have no information that Rockie is also a turtle.
+
+ So the conclusion is false? Or uncertain?
+
+ But wait: what if Rockie is that turtle? Then Rockie would be a turtle? But we have shown that Rockie is a rabbit. And if Rockie is the same animal as the one in P2, then we would have Turtle Rockie and Rabbit Rockie.
+
+ However, the premises do not state that Rockie is the only one or that the turtle in P2 is Rockie.
+
+ Therefore, we cannot prove Turtle Rockie.
+
+ So the answer is Uncertain? Or False?
+
+ Actually, the conclusion is that Rockie is a turtle. We have proven that Rockie is a rabbit. If we assume that no animal can be both a rabbit and a turtle, then we have a contradiction? But the premises do not state that. Without disjointness, we cannot rule out that Rockie is both. But then again, we don't have any evidence that Rockie is a turtle.
+
+ Therefore, the conclusion does not necessarily follow.
+
+ However, note: we have eliminated the possibility of Rockie being a squirrel, so Rockie is a rabbit. And we have no information that Rockie is a turtle. So we cannot conclude that Rockie is a turtle.
+
+ Hence, the theorem goal is not provable from the premises.
+
+ But wait, is there a possibility that Rockie is a turtle? Only if Rockie is both a rabbit and a turtle. But we have no axiom that says that rabbits and turtles are disjoint. So it's possible? But the premises do not force Rockie to be a turtle.
+
+ Therefore, we cannot prove the goal.
+
+ So we must return that the goal is not provable? But note: the task is to replace the sorry with a proof term. If we cannot prove it, then we must admit that the conclusion does not follow? However, the problem says: "After your code, provide your final answer: ANSWER: True/False/Uncertain"
+
+ But in the Lean code, we are supposed to provide a proof. However, we have found that the goal is not provable? Then what?
+
+ Let me reexamine the premises:
+
+   P3: The only animals that can be spotted near the campus are rabbits and squirrels.
+
+   This means that if an animal is spotted, then it is either a rabbit or a squirrel.
+
+   Therefore, if Rockie is spotted, then Rockie is a rabbit or a squirrel.
+
+   We eliminated squirrel because:
+
+        If Rockie is a squirrel, then by P5: Rockie is skittish.
+        Then by P4: Rockie is not calm.
+        But P6 says Rockie is calm -> contradiction.
+
+   Therefore, Rockie must be a rabbit.
+
+   Now, we have no premise that says that rabbits are not turtles? So it is possible that Rockie is a turtle? But we don't have any evidence.
+
+   However, note that P2 says there exists a turtle that is spotted. That turtle must be either a rabbit or a squirrel (by P3). So that turtle is a rabbit-turtle or a squirrel-turtle.
+
+   But Rockie is a rabbit. Is Rockie that turtle? We don't know.
+
+   Therefore, we cannot conclude that Rockie is a turtle.
+
+ So the answer should be Uncertain? But note: the problem says "Conclusion: Rockie is a turtle". We have shown that Rockie is a rabbit. Without knowing that rabbits and turtles are disjoint, we cannot rule out that Rockie is also a turtle. But without knowing that Rockie is the same as the turtle in P2, we cannot conclude that Rockie is a turtle.
+
+ Therefore, we cannot prove the goal.
+
+ However, in the Lean code, we are expected to write a proof. But we don't have one. So what to do?
+
+ Alternatively, perhaps I missed something.
+
+ Let me try to see if we can derive a contradiction if we assume that Rockie is not a turtle? 
+
+ We know Rockie is a rabbit. Let us assume that Rockie is not a turtle. Is there a contradiction? 
+
+ We have P2: there exists some animal a0 that is a turtle and spotted. We know a0 is either rabbit or squirrel.
+
+   If a0 is rabbit, then we have Turtle a0 and Rabbit a0 -> no contradiction? Because we haven't said rabbits can't be turtles.
+
+   If a0 is squirrel, then Turtle a0 and Squirrel a0 -> again, no contradiction? Because we haven't said squirrels can't be turtles.
+
+ So no contradiction.
+
+ Therefore, we cannot prove Turtle Rockie.
+
+ But wait, the problem says: "Some turtles can be spotted near the campus." and "The only animals that can be spotted near the campus are rabbits and squirrels." So every turtle that is spotted must be either a rabbit or a squirrel. But that doesn't say anything about Rockie? Rockie is spotted and is a rabbit. That is consistent.
+
+ So the conclusion that Rockie is a turtle is not forced.
+
+ However, note: the problem does not say that Rockie is the only animal or that there is only one turtle. So Rockie might be a rabbit and not a turtle.
+
+ Therefore, the theorem goal is not provable.
+
+ But the task is to provide a proof. How can we do that?
+
+ We must realize that the goal is not provable. Therefore, we cannot replace the sorry with a valid proof term. But the instructions say: "Given validated Lean 4 axiom definitions and a theorem declaration with 'sorry', your task is to provide the complete code with a valid proof."
+
+ However, if we cannot prove it, then we must admit that we cannot? But the problem says "After your code, you MUST provide your final answer: ANSWER: True/False/Uncertain"
+
+ So we can write:
+
+   We found that Rockie must be a rabbit. But we cannot prove that Rockie is a turtle. Therefore, we cannot complete the proof.
+
+ But note: the Lean theorem prover must either prove it or we have to state that it is unprovable? However, in Lean we cannot leave a theorem without a proof. So we must either provide a proof or admit that we cannot.
+
+ However, the instructions say: "Replace 'sorry' with a valid proof term." meaning that we are to fill in a proof if we can. But we cannot.
+
+ Therefore, I must conclude that the premises are insufficient and the goal is not provable.
+
+ But wait, let me try to see if there is a way:
+
+   We have Rockie is spotted and calm -> so Rockie is a rabbit (as above).
+
+   Now, we want to show Turtle Rockie. How?
+
+   We have no axiom that says rabbits are turtles. And we have no axiom that says that the spotted turtle is Rockie.
+
+   Therefore, we cannot.
+
+ So the answer is Uncertain? Meaning that the conclusion might be true or false? 
+
+ However, note: the premises do not force Rockie to be a turtle, so the conclusion does not follow.
+
+ But the problem asks for the answer: True/False/Uncertain.
+
+ Since we cannot prove it, and we cannot disprove it (because it might be that Rockie is both a rabbit and a turtle, and we don't have any contradiction), then the answer is Uncertain.
+
+ However, let me try to disprove it: 
+
+   Suppose we have three animals: 
+        Rockie: who is a rabbit, calm, spotted, and not a turtle.
+        Another animal, say a0: who is a turtle, spotted, and also a rabbit (or squirrel?).
+
+   But note: P3 says every spotted animal is rabbit or squirrel. So the turtle a0 must be rabbit or squirrel.
+
+   Let a0 be a rabbit-turtle: then we have Turtle a0 and Rabbit a0.
+
+   Then the premises:
+
+        P1: for Rockie: Rabbit Rockie -> Spotted -> Cute Rockie -> holds.
+        P2: exists a0: Turtle a0 and Spotted a0 -> holds.
+        P3: holds: Rockie is rabbit, a0 is rabbit -> both are rabbit.
+        P4: holds: we don't have any skittish animal? 
+             For Rockie: calm -> not skittish -> holds.
+             For a0: we haven't said anything about a0 being skittish? 
+                 But note: if a0 is a squirrel then by P5: if spotted then skittish -> but then by P4: not calm. But we haven't said a0 is calm? So okay.
+        P5: holds: if any squirrel is spotted then it must be skittish. We don't have any squirrel in this model? So holds.
+        P6: holds for Rockie.
+
+   Then Rockie is not a turtle -> so the conclusion is false.
+
+   Alternatively, we can make Rockie be both a rabbit and a turtle? Then the conclusion would be true.
+
+   Therefore, the premises do not determine whether Rockie is a turtle or not.
+
+   Hence, the answer is Uncertain.
+
+ Therefore, we cannot write a proof in Lean for the goal. But the problem says to replace the sorry. However, we must be honest: the goal is not provable.
+
+ But note: the problem says "Provide the complete code with 'sorry' replaced by your proof". If we cannot prove it, we might have to leave it as sorry? But that is not allowed.
+
+ Alternatively, we can try to prove the negation? But that is not the goal.
+
+ Since we are forced to provide a proof, and we cannot, we must admit that the goal is not provable. However, the problem expects a Lean code with a proof. 
+
+ But wait: perhaps I made a mistake. Let me try to prove it by contradiction.
+
+   Assume that Rockie is not a turtle: ¬ Turtle Rockie.
+
+   We know Rockie is spotted and calm -> and we know Rockie is a rabbit (as above).
+
+   We also know there exists a turtle a0 that is spotted. Then a0 is either rabbit or squirrel.
+
+   But we don't have any contradiction? Because Rockie is a rabbit and not a turtle, and a0 is a turtle and a rabbit (if we choose a0 to be a rabbit-turtle) -> no contradiction.
+
+   So we cannot get a contradiction.
+
+ Therefore, I conclude that the goal is not provable.
+
+ However, the problem says: "After your code, provide your final answer: ANSWER: True/False/Uncertain"
+
+ So I will write:
+
+   We cannot prove the goal. Therefore, we leave the sorry? But that's not acceptable.
+
+ Alternatively, we can prove something else: that Rockie is a rabbit? But the theorem is about being a turtle.
+
+ Given the instructions, I think I must provide the code that shows the rabbit part and then admit that we cannot prove turtle.
+
+ But note: the theorem is `Turtle Rockie`. We have no proof of that.
+
+ Therefore, I will write a proof that leads to the point where we know Rockie is a rabbit, and then we cannot go further. But that doesn't prove the goal.
+
+ Alternatively, we can try to use the exists from P2? But we don't know that Rockie is the one.
+
+ How about this:
+
+   We have Rockie is spotted -> so by P3: Rabbit Rockie ∨ Squirrel Rockie.
+
+   We do cases on that.
+
+   Case Squirrel Rockie:
+        Then by P5: Skittish Rockie.
+        Then by P4: ¬ Calm Rockie.
+        But P6: Calm Rockie -> contradiction.
+
+   Case Rabbit Rockie:
+        Then we have Rabbit Rockie.
+
+        Now, we want to prove Turtle Rockie. How?
+
+        We have no information. So we cannot close this case.
+
+   Therefore, we cannot prove Turtle Rockie.
+
+ So we are stuck in the Rabbit Rockie case.
+
+ Hence, we cannot prove the goal.
+
+ Given the above, I think the answer is Uncertain.
+
+ But the Lean code must have a proof? Or do we have to change the theorem? No, we cannot change the theorem.
+
+ Therefore, I must admit defeat and say that the goal is not provable. But the problem says "validated Lean 4 axiom definitions", so we must work with what we have.
+
+ However, after careful analysis, I believe there is no proof.
+
+ So I will output the code with a proof that shows a contradiction if we assume Rockie is a squirrel, and then in the rabbit case we leave a sorry? But that is not allowed.
+
+ Alternatively, we can prove that Rockie is not a squirrel, but we cannot prove that it is a turtle.
+
+ But the goal is to prove Turtle Rockie.
+
+ Therefore, I think the intended answer might be that the conclusion is false? But we cannot prove false either.
+
+ Or perhaps I missed an axiom.
+
+ Let me reread the premises:
+
+   "All rabbits that can be spotted near the campus are cute." -> P1
+   "Some turtles can be spotted near the campus." -> P2
+   "The only animals that can be spotted near the campus are rabbits and squirrels." -> P3
+   "If something is skittish, then it is not calm." -> P4
+   "All the squirrels that can be spotted near the campus are skittish." -> P5
+   "Rockie can be spotted near the campus, and it is calm." -> P6
+
+   Conclusion: Rockie is a turtle.
+
+ We have:
+
+   Rockie is calm and spotted.
+
+   By P3: Rockie is rabbit or squirrel.
+
+   If squirrel, then by P5: skittish, then by P4: not calm -> contradiction with P6.
+
+   Therefore, Rockie is a rabbit.
+
+   Now, is it possible for Rockie to be a turtle? Only if Rockie is both rabbit and turtle.
+
+   But the premises do not say that an animal can't be both. However, typically in such logic puzzles, categories are disjoint unless stated otherwise. But here, we are not told.
+
+   Moreover, the conclusion is that Rockie is a turtle. We have shown it is a rabbit. If we assume that rabbit and turtle are disjoint, then we have a contradiction. But we are not given that.
+
+   So without additional axioms, we cannot prove it.
+
+   Therefore, the answer is Uncertain.
+
+ But note: the problem might assume that the categories are disjoint. However, the Lean code does not have an axiom for disjointness.
+
+ Given the axioms, we cannot prove Turtle Rockie.
+
+ So for the Lean code, we cannot provide a proof. But the problem requires a proof. This is a dilemma.
+
+ However, the instructions say: "Replace 'sorry' with a valid proof term." If we cannot, then we must output the code with sorry and then answer Uncertain.
+
+ But the problem says: "Provide the complete code with proof".
+
+ Therefore, I will output the code with a proof that shows a contradiction in the squirrel case and then in the rabbit case, we have to prove Turtle Rockie but we cannot. So we might have to use classical logic or something? But we don't have any information.
+
+ Alternatively, we can try to use the exists from P2 to somehow force Rockie to be the turtle? But we have no axiom that says there is only one animal or that the turtle is the only calm one, etc.
+
+ Therefore, I think the best is to admit that we cannot prove it and answer Uncertain.
+
+ But for the Lean code, we must put something. Let me try to write a proof that gets as far as we can:
+
+   We know Rockie is spotted and calm (P6).
+   By P3, Rockie is rabbit or squirrel.
+   If Rockie is squirrel, then we get a contradiction.
+   So Rockie must be rabbit.
+   But now we want Turtle Rockie.
+
+   We have P2: there exists a turtle that is spotted. Let's call it t.
+   We know t is spotted, so by P3, t is rabbit or squirrel.
+   But that doesn't help us for Rockie.
+
+   So we are stuck.
+
+ Therefore, in Lean, we can write:
+
+   have h_spotted := P6.left
+   have h_calm := P6.right
+
+   have h_animal := P3 Rockie h_spotted  -- Rabbit Rockie ∨ Squirrel Rockie
+
+   cases h_animal with
+   | inl h_rabbit => 
+        -- We have Rabbit Rockie
+        -- But how to prove Turtle Rockie? We can't.
+        admit  -- This is not allowed in a theorem proof
+   | inr h_squirrel =>
+        have h_skittish : Skittish Rockie := P5 Rockie h_squirrel h_spotted
+        have h_not_calm : ¬ Calm Rockie := P4 Rockie h_skittish
+        contradiction
+
+ But the `admit` is not allowed. We need to close the rabbit branch.
+
+ Alternatively, we can try to use the fact that Rockie is rabbit and calm and spotted, but that doesn't give us turtle.
+
+ So we cannot.
+
+ Given the above, I must conclude that the goal is not provable.
+
+ Therefore, I will output the code with a sorry in the rabbit branch, but that is not a valid proof.
+
+ Alternatively, we can use classical logic and the law of excluded middle on Turtle Rockie? But that doesn't help.
+
+ Or we can try to show that the rabbit branch is impossible? But we have no reason.
+
+ Therefore, the answer is Uncertain.
+
+ But the problem says: "Provide the complete code with proof". If we cannot, then we must say so.
+
+ However, after careful thought, I recall that the only animals that can be spotted are rabbits and squirrels. And we have a turtle that is spotted (P2). Therefore, that turtle must be either a rabbit or a squirrel. So if we assume that turtles are not rabbits and not squirrels, then we have a contradiction? But we haven't assumed that.
+
+ But wait: the premises do not state that turtles are distinct from rabbits and squirrels. So it's possible that a turtle is also a rabbit.
+
+ Therefore, no contradiction.
+
+ So we cannot use P2 to get a contradiction.
+
+ Thus, we are stuck.
+
+ I think the intended answer might be that the conclusion is false, but we cannot prove it either.
+
+ Given the instructions, I will output the code with a proof that shows Rockie is not a squirrel, and then in the rabbit branch, we have to admit that we cannot prove Turtle Rockie. But that is not a proof.
+
+ Alternatively, we can try to prove the negation of the goal? But that's not what the theorem says.
+
+ Therefore, I will provide a proof that Rockie is a rabbit, and then note that we have no way to prove it is a turtle, but the theorem is for turtle. So we cannot.
+
+ But the problem says to replace the sorry. We cannot.
+
+ So I must leave it as sorry and then answer Uncertain.
+
+ However, the instructions require a complete proof. 
+
+ After rethinking, I see a way: 
+
+   We have shown that Rockie must be a rabbit. 
+
+   Now, is there any axiom that says that rabbits are not turtles? No.
+
+   But also, is there any axiom that says that every rabbit is a turtle? No.
+
+   Therefore, we cannot conclude.
+
+ So in Lean, we cannot write a proof for `Turtle Rockie`.
+
+ Given the above, I will output the code with a comment and then answer Uncertain.
+
+ But the problem says: "Replace 'sorry' with a valid proof term." If we cannot, then we must output the code as is? But that's not satisfactory.
+
+ Alternatively, we can try to prove it by showing that Rockie cannot be a squirrel and then using the fact that the only other possibility is rabbit, but then we have no way to get to turtle. So we cannot.
+
+ Therefore, I will write in the proof:
+
+   We prove by contradiction that Rockie is not a squirrel, and then we know it is a rabbit. But then we are stuck for the turtle part.
+
+   So we cannot prove the goal.
+
+ But the problem expects a proof term for `Turtle Rockie`.
+
+ I think there is a mistake in the problem or in my reasoning.
+
+ Let me try to see if Rockie could be the turtle from P2? 
+
+   We don't have any axiom that says that the turtle in P2 is calm. Rockie is calm. But the turtle in P2 might not be calm.
+
+   So we cannot identify Rockie with that turtle.
+
+ Therefore, no.
+
+ I give up. The answer is Uncertain.
+
+ So for the Lean code, I will output a proof that only does the part until we get Rabbit Rockie, and then we leave the rest as sorry? But that is not a proof of the goal.
+
+ Alternatively, we can state that the goal is not provable and output the code with sorry.
+
+ Given the instructions, I will output the code with a proof that shows a contradiction in the squirrel case and then in the rabbit case, we have to do something. But we can't.
+
+ Therefore, I will provide a proof using classical.choice or something? But that is not sound.
+
+ I think the correct course is to output the code with sorry and then answer Uncertain.
+
+ But the problem says: "Provide the complete code with proof".
+
+ So I must provide a complete proof or admit defeat.
+
+ However, after careful analysis, I believe the premises are insufficient. Therefore, the answer is Uncertain.
+
+ So I will write in the proof:
+
+   have h_spotted := P6.left
+   have h_calm := P6.right
+   have h_animal := P3 Rockie h_spotted
+   cases h_animal with
+   | inr h_squirrel =>
+        have h_skittish := P5 Rockie h_squirrel h_spotted
+        exact (P4 Rockie h_skittish h_calm).elim
+   | inl h_rabbit =>
+        -- We need to prove Turtle Rockie at this point, but we have no evidence.
+        sorry
+
+ And then we are still sorry in one branch.
+
+ So the proof is not complete.
+
+ Therefore, I cannot provide a complete proof.
+
+ But note: maybe the intended reasoning is that since the only spotted animals are rabbits and squirrels, and turtles are spotted (P2), then turtles must be either rabbits or squirrels. Then, if we assume that turtles are not rabbits and not squirrels, we would have a contradiction. However, the premises do not state that turtles are distinct. So we cannot.
+
+ Moreover, even if we had that turtles are not rabbits and not squirrels, then P2 would yield a contradiction because the spotted turtle would have to be rabbit or squirrel by P3, but also turtle and distinct -> contradiction. Then the premises would be inconsistent. But then we could prove anything, including Turtle Rockie.
+
+ However, we are not given that turtles are distinct from rabbits and squirrels.
+
+ So we cannot.
+
+ Given the above, I will output the code with the proof that covers the squirrel case and then in the rabbit case, we can use the fact that the premises are not strong enough. But that is not a proof of the goal.
+
+ Therefore, I must conclude that the theorem is not provable.
+
+ So for the answer, I will say Uncertain.
+
+ For the Lean code, I will provide a proof that shows that Rockie is not a squirrel, and then in the rabbit case, we have to sorry. But that is not a complete proof.
+
+ Alternatively, we can try to use the following idea:
+
+   We know that Rockie is rabbit. 
+   We also know that there exists a turtle that is spotted. 
+   But that turtle might be Rockie? We don't know.
+
+   However, we have no information that would allow us to conclude that Rockie is that turtle.
+
+   So we cannot.
+
+ I think the best is to output the code with a sorry in the rabbit branch and then in the answer say Uncertain.
+
+ But note: the problem says "valid proof". So if we have a sorry, it is not valid.
+
+ Therefore, I cannot provide a valid proof.
+
+ I will output the code with a proof that only does the squirrel case and then in the rabbit case, we admit defeat by sorry. And then answer Uncertain.
+
+ This is the best I can do.
+
+ However, let me try one more time:
+
+   Perhaps by the fact that Rockie is calm and spotted, and the only calm animals among the spotted ones must be rabbits (because squirrels are skittish and hence not calm), and then maybe we can use P2 to say that there is a turtle that is spotted, but that turtle must be either rabbit or squirrel. If it is rabbit, then it might be calm or not? We don't know.
+
+   But we have no information that links calmness to rabbits. P1 says rabbits that are spotted are cute, but not calmness.
+
+   So we cannot.
+
+ Therefore, I surrender.
+
+ Code with partial proof and one sorry:
+
+<lean>
+axiom Animal : Type
+
+axiom SpottedNearCampus : Animal → Prop
+axiom Rabbit : Animal → Prop
+axiom Cute : Animal → Prop
+axiom Turtle : Animal → Prop
+axiom Squirrel : Animal → Prop
+axiom Skittish : Animal → Prop
+axiom Calm : Animal → Prop
+
+axiom Rockie : Animal
+
+-- All rabbits that can be spotted near the campus are cute
+axiom P1 : ∀ a : Animal, Rabbit a → SpottedNearCampus a → Cute a
+
+-- Some turtles can be spotted near the campus
+axiom P2 : ∃ a : Animal, Turtle a ∧ SpottedNearCampus a
+
+-- The only animals that can be spotted near the campus are rabbits and squirrels
+axiom P3 : ∀ a : Animal, SpottedNearCampus a → Rabbit a ∨ Squirrel a
+
+-- If something is skittish, then it is not calm
+axiom P4 : ∀ a : Animal, Skittish a → ¬ Calm a
+
+-- All squirrels that can be spotted near the campus are skittish
+axiom P5 : ∀ a : Animal, Squirrel a → SpottedNearCampus a → Skittish a
+
+-- Rockie can be spotted near the campus and is calm
+axiom P6 : SpottedNearCampus Rockie ∧ Calm Rockie
+
+-- Conclusion: Rockie is a turtle
+theorem goal : Turtle Rockie := by
+  -- We know Rockie is spotted and calm
+  have h_spotted := P6.left
+  have h_calm := P6.right
+  -- By P3, Rockie is either a rabbit or a squirrel
+  have h_animal := P3 Rockie h_spotted
+  cases h_animal with
+  | inr h_squirrel => 
+      -- If Rockie is a squirrel, then by P5, Rockie is skittish
+      have h_skittish : Skittish Rockie := P5 Rockie h_squirrel h_spotted
+      -- By P4, skittish implies not calm
+      have h_not_calm : ¬ Calm Rockie := P4 Rockie h_skittish
+      -- This contradicts the calmness of Rockie
+      exact (h_not_calm h_calm).elim
+  | inl h_rabbit =>
+      -- At this point, we know Rockie is a rabbit.
+      -- But we need to show that Rockie is a turtle.
+      -- We have no axiom that allows us to conclude that a rabbit is a turtle.
+      -- Also, P2 says there exists a turtle that is spotted, but it might not be Rockie.
+      -- Therefore, we cannot prove Turtle Rockie.
+      sorry  -- We are stuck here.
+</lean>
+
+ But this is not a complete proof.
+
+ Therefore, I must note that the proof is incomplete and the answer is Uncertain.
+
+ However, the problem might have intended to have an additional axiom or there might been a misstep.
+
+ Given the above, I will output the code as above and then answer Uncertain.
+
+ But note: in the squirrel branch, we proved a contradiction, which is fine. In the rabbit branch, we have to prove Turtle Rockie, which we cannot.
+
+ So the theorem is not proved.
+
+ ANSWER: Uncertain
+
+
+=== RESPONSE ===
+The premises establish that Rockie must be either a rabbit or a squirrel because only these animals can be spotted near the campus. If Rockie were a squirrel, it would be skittish (by P5) and therefore not calm (by P4), contradicting the fact that Rockie is calm (by P6). Thus, Rockie must be a rabbit. However, there is no premise linking rabbits to turtles. While some turtles are spotted (P2), they must be either rabbits or squirrels (by P3), but this does not imply that Rockie specifically is a turtle. The premises do not force Rockie to be a turtle, nor do they rule out the possibility, making the conclusion uncertain.
+
+<lean>
+axiom Animal : Type
+
+axiom SpottedNearCampus : Animal → Prop
+axiom Rabbit : Animal → Prop
+axiom Cute : Animal → Prop
+axiom Turtle : Animal → Prop
+axiom Squirrel : Animal → Prop
+axiom Skittish : Animal → Prop
+axiom Calm : Animal → Prop
+
+axiom Rockie : Animal
+
+axiom P1 : ∀ a : Animal, Rabbit a → SpottedNearCampus a → Cute a
+axiom P2 : ∃ a : Animal, Turtle a ∧ SpottedNearCampus a
+axiom P3 : ∀ a : Animal, SpottedNearCampus a → Rabbit a ∨ Squirrel a
+axiom P4 : ∀ a : Animal, Skittish a → ¬ Calm a
+axiom P5 : ∀ a : Animal, Squirrel a → SpottedNearCampus a → Skittish a
+axiom P6 : SpottedNearCampus Rockie ∧ Calm Rockie
+
+theorem goal : Turtle Rockie := by
+  have h_spotted := P6.left
+  have h_calm := P6.right
+  have h_animal := P3 Rockie h_spotted
+  cases h_animal with
+  | inr h_squirrel =>
+      have h_skittish : Skittish Rockie := P5 Rockie h_squirrel h_spotted
+      have h_not_calm := P4 Rockie h_skittish
+      contradiction
+  | inl h_rabbit =>
+      -- Rockie is a rabbit, but no premise proves Rockie is a turtle
+      -- P2 provides a turtle, but it may not be Rockie
+      -- Thus, Turtle Rockie remains unprovable
+      sorry
+</lean>
+
+ANSWER: Uncertain
