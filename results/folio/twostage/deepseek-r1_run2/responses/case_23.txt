@@ -5,368 +5,782 @@ STAGE 1: TRANSLATION
 --- Iteration 1 ---
 
 === REASONING ===
-We are given several premises and a conclusion to formalize.
-
- Let's break down the premises:
-
- 1. "Stranger Things" is a popular Netflix show.
-    We can introduce an axiom: 
-        axiom ST : obj
-        axiom Popular : obj → Prop
-        axiom T1: Popular ST
-
- 2. If a Netflix show is popular, Karen will binge-watch it.
-    We can say:
-        axiom R1: ∀ x : obj, NetflixShow x → Popular x → BingeWatches Karen x
-
-    However, note that we also have to represent the fact that these are Netflix shows. 
-    But the premise says "a Netflix show", so we should have a predicate for being a Netflix show.
-
- 3. If and only if Karen binge-watches a Netflix show, she will download it.
-    This is a biconditional:
-        axiom R2: ∀ x : obj, NetflixShow x → (BingeWatches Karen x ↔ Downloads Karen x)
-
- 4. Karen does not download "Black Mirror."
-    We have:
-        axiom BM : obj
-        axiom T2: ¬ Downloads Karen BM
-
- 5. "Black Mirror" is a Netflix show.
-        axiom T3: NetflixShow BM
-
- 6. If Karen binge-watches a Netflix show, she will share it with Lisa.
-        axiom R3: ∀ x : obj, NetflixShow x → BingeWatches Karen x → SharesWith Karen x Lisa
-
- Conclusion: Karen will share "Black Mirror" with Lisa.
-        goal: SharesWith Karen BM Lisa
-
- However, note that the conclusion is about sharing "Black Mirror", but from the premises we know Karen does not download "Black Mirror", and by the biconditional (premise 3) she did not binge-watch it. Therefore, she won't share it? 
-
- But wait: the task is only to formalize, not to prove. So we just set up the structure.
-
- Let's plan the types:
-
- We need:
-   - A type for entities (objects: shows, and perhaps people? But people can be fixed)
-   - We have two shows: "Stranger Things" and "Black Mirror", and two people: Karen and Lisa.
-
- However, note that the premises and conclusions are only about shows and Karen's actions. 
- We can model:
-
-   axiom obj : Type   // for the shows
-   axiom Person : Type
-   axiom karen : Person
-   axiom lisa : Person
-
- But the actions (BingeWatches, Downloads, SharesWith) are relations between a person and an object (show).
-
- Alternatively, we can fix Karen and Lisa as constants, and only have shows as `obj`. Since the problem only mentions Karen and Lisa, and the actions are specific to Karen and Lisa, we can do:
-
-   constant Person : Type
-   constant karen : Person
-   constant lisa : Person
-
- But note: the conclusion is about sharing with Lisa, and the last premise says "share it with Lisa". So we need a three-place predicate? Actually, sharing is between Karen, the show, and Lisa? Or we can model it as:
-
-   Shares (karen) (x) (lisa)  or  SharesWith karen x lisa
-
- But to simplify, we can have:
-
-   axiom Shares : Person → obj → Person → Prop
-
- However, the problem says: "she will share it with Lisa", meaning that the sharing is from Karen to Lisa about the show.
-
- Alternatively, we can think of sharing the show with Lisa. Then:
-
-   Shares : Person → obj → Person → Prop
-
- But note: in premise 6, it says "she will share it with Lisa", meaning that the show is the one being shared and Lisa is the recipient.
-
- So:
-
-   BingeWatches : Person → obj → Prop
-   Downloads : Person → obj → Prop
-   SharesWith : Person → obj → Person → Prop   (or perhaps Shares: Person → Person → obj → Prop? I'll choose:)
-
-   Let me define:
-      BingeWatches (p : Person) (s : obj) : Prop
-      Downloads (p : Person) (s : obj) : Prop
-      SharesWith (p : Person) (s : obj) (recipient : Person) : Prop
-
- Then premise 6 becomes:
-      ∀ s : obj, NetflixShow s → BingeWatches Karen s → SharesWith Karen s Lisa
-
- However, note that the problem says "If Karen binge-watches a Netflix show, she will share it with Lisa." The "it" refers to the show. So we can model as above.
-
- But also, we have the biconditional: "If and only if Karen binge-watches a Netflix show, she will download it." This implies for every Netflix show: binge-watching and downloading are equivalent.
+We are given several premises and a conclusion. We need to formalize them in Lean 4.
 
  Steps:
+ 1. Identify the types and predicates.
+ 2. Declare constants for the specific objects: "Stranger Things" and "Black Mirror".
+ 3. Declare predicates for:
+      - Being a Netflix show: `NetflixShow : obj → Prop`
+      - Being popular: `Popular : obj → Prop`
+      - Karen binge-watches: `BingeWatches : obj → Prop`
+      - Karen downloads: `Downloads : obj → Prop`
+      - Karen shares with Lisa: `SharesWithLisa : obj → Prop`
 
-  - We'll declare a type for shows: `obj`
-  - We'll declare a type for persons: `Person`, and two constants: karen and lisa.
-  - We'll have a predicate for Netflix shows: `NetflixShow : obj → Prop`
-  - We'll have two show constants: `ST` (Stranger Things) and `BM` (Black Mirror)
-  - BingeWatches, Downloads, and SharesWith as above.
+ 4. The premises:
+      P1: "Stranger Things" is a popular Netflix show. 
+          We can break this into two parts? But note: we are told it is a Netflix show and it is popular.
+          Actually, the premise says: "Stranger Things" is a popular Netflix show. So we can have:
+          axiom P1a : NetflixShow StrangerThings
+          axiom P1b : Popular StrangerThings
 
- But note: premise 2 says "If a Netflix show is popular, Karen will binge-watch it." So it's conditional on being a Netflix show and popular. However, we cannot assume every show is a Netflix show. Therefore, we have to use `NetflixShow x` in the axiom.
+      However, note that the second premise: "If a Netflix show is popular, Karen will binge-watch it."
+          So we have: ∀ x, NetflixShow x → Popular x → BingeWatches x
 
- Alternatively, we might only have Netflix shows as the objects? But the premises mention "Stranger Things" and "Black Mirror" as Netflix shows, so we have to account for the predicate.
+      But wait, the premise says: "If a Netflix show is popular, Karen will binge-watch it." 
+          So: ∀ x, NetflixShow x → (Popular x → BingeWatches x)
 
- Let me write the axioms:
+      Alternatively, we can combine: ∀ x, NetflixShow x ∧ Popular x → BingeWatches x
+      But the natural language is: if (it is a Netflix show and popular) then ...? Actually, the condition is "a Netflix show is popular" meaning we are assuming it is a Netflix show and that it is popular.
 
-   axiom obj : Type
-   axiom Person : Type
-   axiom karen : Person
-   axiom lisa : Person
+      However, note the way the premise is phrased: "If a Netflix show is popular, ...". This is typically interpreted as:
+          ∀ x, (NetflixShow x ∧ Popular x) → BingeWatches x
+      But in logic, we can also write:
+          ∀ x, NetflixShow x → (Popular x → BingeWatches x)
 
-   -- Predicates:
-   axiom NetflixShow : obj → Prop
-   axiom Popular : obj → Prop
-   axiom BingeWatches : Person → obj → Prop
-   axiom Downloads : Person → obj → Prop
-   axiom SharesWith : Person → obj → Person → Prop
+      Both are equivalent. We'll use the latter because it is easier to use in Lean.
 
-   -- Specific shows:
-   axiom ST : obj
-   axiom BM : obj
+ 5. Third premise: "If and only if Karen binge-watches a Netflix show, she will download it."
+          This is: ∀ x, NetflixShow x → (BingeWatches x ↔ Downloads x)
 
-   -- Premise 1: "Stranger Things" is a popular Netflix show.
-   axiom ST_netflix : NetflixShow ST
-   axiom ST_popular : Popular ST
+      However, note: the premise says "if and only if Karen binge-watches a Netflix show, she will download it". 
+          This might be interpreted as: for any Netflix show, binge-watching is equivalent to downloading.
+          So: ∀ x, NetflixShow x → (BingeWatches x ↔ Downloads x)
 
-   -- Premise 2: If a Netflix show is popular, Karen will binge-watch it.
-   axiom binge_condition : ∀ x : obj, NetflixShow x → Popular x → BingeWatches karen x
+ 6. Fourth premise: Karen does not download "Black Mirror."
+          ¬ Downloads BlackMirror
 
-   -- Premise 3: If and only if Karen binge-watches a Netflix show, she will download it.
-   axiom biconditional : ∀ x : obj, NetflixShow x → (BingeWatches karen x ↔ Downloads karen x)
+ 7. Fifth premise: "Black Mirror" is a Netflix show.
+          NetflixShow BlackMirror
 
-   -- Premise 4: Karen does not download "Black Mirror."
-   axiom no_download_BM : ¬ Downloads karen BM
+ 8. Sixth premise: If Karen binge-watches a Netflix show, she will share it with Lisa.
+          This is: ∀ x, NetflixShow x → BingeWatches x → SharesWithLisa x
 
-   -- Premise 5: "Black Mirror" is a Netflix show.
-   axiom BM_netflix : NetflixShow BM
+ 9. Conclusion: Karen will share "Black Mirror" with Lisa.
+          SharesWithLisa BlackMirror
 
-   -- Premise 6: If Karen binge-watches a Netflix show, she will share it with Lisa.
-   axiom share_condition : ∀ x : obj, NetflixShow x → BingeWatches karen x → SharesWith karen x lisa
+ However, note: we are not to prove it, just formalize. So we will write a theorem with `sorry`.
 
-   -- Conclusion: Karen will share "Black Mirror" with Lisa.
-   theorem goal : SharesWith karen BM lisa := sorry
+ Important: We must declare the type of objects. Let's have:
+     `axiom obj : Type`
 
- However, note that the premises also give the information that Karen does not download "Black Mirror", and by the biconditional, she does not binge-watch it. So the premise 6 will not apply. Therefore, the goal should be unprovable? But again, we are only formalizing.
+ Then declare the specific shows:
+     `axiom StrangerThings : obj`
+     `axiom BlackMirror : obj`
 
- But wait: the conclusion is that she *will* share. However, from the premises we can see that she does not binge-watch Black Mirror, so she won't share it. This is a contradiction? Actually, the premises do not force the conclusion to be true. In fact, the conclusion is false. But again, we are just formalizing.
+ Now the predicates:
 
- However, note: the user asks to formalize the conclusion as a theorem. We must do that.
+     `axiom NetflixShow : obj → Prop`
+     `axiom Popular : obj → Prop`
+     `axiom BingeWatches : obj → Prop`
+     `axiom Downloads : obj → Prop`
+     `axiom SharesWithLisa : obj → Prop`
 
- One issue: in premise 3, it says "if and only if Karen binge-watches a Netflix show, she will download it". The phrasing is a bit ambiguous. It might be interpreted: 
-     ∀ x : obj, NetflixShow x → (BingeWatches karen x ↔ Downloads karen x)
+ Now the premises:
 
- But note: the "if and only if" is about the same show: if she binge-watches the show then she downloads it, and if she downloads the show then she binge-watches it.
+     P1: "Stranger Things" is a popular Netflix show.
+         We break into two axioms? Actually, we can have two separate axioms for the two properties, but note that we don't have a direct link between being a Netflix show and being popular except for Stranger Things. However, the second premise talks about any Netflix show that is popular.
 
- This seems correct.
+     So:
+         axiom P1_netflix : NetflixShow StrangerThings
+         axiom P1_popular : Popular StrangerThings
 
- We have the constant `BM` which is a show and we have `BM_netflix`, so we can use the biconditional on BM.
+     P2: ∀ x : obj, NetflixShow x → (Popular x → BingeWatches x)
 
- Also, note: the issue that the conclusion is not provable is not a problem for the formalization.
+     P3: ∀ x : obj, NetflixShow x → (BingeWatches x ↔ Downloads x)
 
- But there is a problem: in our formalization, we have to define `ST` and `BM` as constants of type `obj`. We did that.
+     P4: ¬ Downloads BlackMirror
 
- However, we can also notice that "Stranger Things" is not used in the conclusion. So technically we don't need it? But the premises state it. We must include it.
+     P5: NetflixShow BlackMirror
 
- But what if we don't have the `ST_popular` axiom? Then we cannot derive that Karen binge-watches ST. But again, we are only formalizing.
+     P6: ∀ x : obj, NetflixShow x → BingeWatches x → SharesWithLisa x
 
- Since the conclusion is about BM, and the premises include information about ST and BM, we include both.
+ Conclusion:
+     theorem goal : SharesWithLisa BlackMirror := sorry
 
- Now, what about the goal? The goal is that Karen shares BM with Lisa. But we have the share condition: only if she binge-watches it. But we know from the biconditional and no_download_BM that she doesn't binge-watch BM. So the goal should be false. However, we are writing it as a theorem and we use `sorry` meaning we are not providing a proof.
+ But wait: the conclusion is about "Black Mirror", and we have P5 and P4. Also note that from P3 and P5, we have:
+     BingeWatches BlackMirror ↔ Downloads BlackMirror
+     Since Downloads BlackMirror is false (P4), then BingeWatches BlackMirror is false.
 
- The user may be aware that this is a valid formalization even if the theorem is actually false? Actually, the problem says "formalize the logical structure", and we are faithfully representing the premises and conclusion.
+ Then P6: for BlackMirror, we have NetflixShow BlackMirror (P5) and then BingeWatches BlackMirror → SharesWithLisa BlackMirror.
+     Since BingeWatches BlackMirror is false, we cannot get SharesWithLisa BlackMirror? 
+
+ However, note the conclusion we are formalizing is: "Karen will share 'Black Mirror' with Lisa", which would be SharesWithLisa BlackMirror.
+
+ But the premises seem to lead to the opposite? 
+
+ Remember: we are not proving, just formalizing. So we write the theorem as stated in the conclusion.
 
  Let's write the code accordingly.
 
- IMPORTANT: We must ensure that everything type-checks in Lean.
+ Important: We must ensure that all axioms are declared correctly.
 
- Alternative: Instead of having `Person` as a type, we could fix that Karen and Lisa are the only persons we care about. Then we could avoid defining `Person` and just have:
-
-   constant karen : Person   -- but then we need Person to be a Type
-
- But we are already doing that.
-
- Alternatively, we can avoid introducing a Person type if we only care about Karen and Lisa. However, the problem does not mention any other person, but the relations are defined for persons. Since the problem does not mention any other person, it would be safe to have:
-
-   constant Person : Type
-   constants karen lisa : Person
-
- But we can also combine this by having:
-
-   axiom obj : Type
-   axiom Person : Type
-   axiom karen : Person
-   axiom lisa : Person
-
- However, we might be able to avoid introducing Person by having:
-
-   We note that the problem only mentions Karen and Lisa. The actions are always by Karen or with Lisa. So we could model:
-
-     BingeWatches : obj → Prop   (meaning: Karen binge-watches the show)
-     Downloads : obj → Prop       (meaning: Karen downloads the show)
-     SharesWith : obj → Prop      (meaning: Karen shares the show with Lisa)
-
- But then premise 6 also says "she will share it with Lisa", so we don't need to mention Lisa in the predicate as a variable. And premise 3 doesn't mention Lisa. So we could do:
-
-   alternative_approach:
-
-      axiom obj : Type
-      axiom NetflixShow : obj → Prop
-      axiom Popular : obj → Prop
-      axiom BingeWatches : obj → Prop   // meaning by Karen
-      axiom Downloads : obj → Prop       // meaning by Karen
-      axiom SharesWithLisa : obj → Prop  // meaning Karen shares the show with Lisa
-
-      axiom ST : obj
-      axiom ST_netflix : NetflixShow ST
-      axiom ST_popular : Popular ST
-
-      axiom binge_condition : ∀ x : obj, NetflixShow x → Popular x → BingeWatches x
-
-      axiom biconditional : ∀ x : obj, NetflixShow x → (BingeWatches x ↔ Downloads x)
-
-      axiom BM : obj
-      axiom no_download_BM : ¬ Downloads BM
-      axiom BM_netflix : NetflixShow BM
-
-      axiom share_condition : ∀ x : obj, NetflixShow x → BingeWatches x → SharesWithLisa x
-
-      theorem goal : SharesWithLisa BM := sorry
-
- This is more concise and captures the same information. Since the problem is only about Karen and Lisa, and the actions of Karen, we don't need to generalize to arbitrary persons.
-
- However, the premise 3 says "If and only if Karen binge-watches a Netflix show, she will download it." This is about Karen, so we don't need to mention Lisa. The download and binge-watch are by Karen.
-
- Also, premise 6: "If Karen binge-watches a Netflix show, she will share it with Lisa." This is fixed: sharing is with Lisa.
-
- Therefore, we can use this simplified model.
-
- Which one to choose? The problem says "Karen will share 'Black Mirror' with Lisa." In the simplified model, we have:
-
-   SharesWithLisa BM
-
- This is acceptable.
-
- But note: the problem does not preclude other people. However, to keep it simple and because the problem only talks about Karen and Lisa, we choose the simplified model.
-
- This reduces the number of axioms and types.
-
- Let me write the code accordingly:
-
-<lean>
-axiom obj : Type
-
--- Predicates for shows
-axiom NetflixShow : obj → Prop
-axiom Popular : obj → Prop
-axiom BingeWatches : obj → Prop   -- Karen binge-watches the show
-axiom Downloads : obj → Prop       -- Karen downloads the show
-axiom SharesWithLisa : obj → Prop  -- Karen shares the show with Lisa
-
--- Specific show constants
-axiom ST : obj  -- "Stranger Things"
-axiom BM : obj  -- "Black Mirror"
-
--- Premise 1: "Stranger Things" is a popular Netflix show.
-axiom ST_netflix : NetflixShow ST
-axiom ST_popular : Popular ST
-
--- Premise 2: If a Netflix show is popular, Karen will binge-watch it.
-axiom binge_condition : ∀ x : obj, NetflixShow x → Popular x → BingeWatches x
-
--- Premise 3: If and only if Karen binge-watches a Netflix show, she will download it.
-axiom biconditional : ∀ x : obj, NetflixShow x → (BingeWatches x ↔ Downloads x)
-
--- Premise 4: Karen does not download "Black Mirror."
-axiom no_download_BM : ¬ Downloads BM
-
--- Premise 5: "Black Mirror" is a Netflix show.
-axiom BM_netflix : NetflixShow BM
-
--- Premise 6: If Karen binge-watches a Netflix show, she will share it with Lisa.
-axiom share_condition : ∀ x : obj, NetflixShow x → BingeWatches x → SharesWithLisa x
-
--- Conclusion: Karen will share "Black Mirror" with Lisa.
-theorem goal : SharesWithLisa BM := sorry
-</lean>
-
- However, note that in the conclusion, we are saying Karen shares BM with Lisa. But we have a premise that states she only shares the show if she binge-watches it, and she doesn't binge-watch BM (since she doesn't download BM, and by the biconditional they are equivalent for Netflix shows, and BM is a Netflix show). Therefore, we are representing the conclusion as a theorem that we cannot prove (and actually it is false).
-
- But again, we are only formalizing.
-
- Alternatively, we might have misunderstood the biconditional? The premise says: "If and only if Karen binge-watches a Netflix show, she will download it." This might be ambiguous: does it mean for the same show, or does it mean in general? The meaning is typically for the same show.
-
- However, the language: "a Netflix show" in the antecedent and "it" in the consequent must refer to the same show.
-
- Therefore, the formalization is correct.
-
- Let me note: we have not used the premise about Stranger Things in the formalization of the conclusion? Actually, we have, but it's irrelevant for the conclusion about BM. However, we are including all premises.
-
- So, we'll output the above.
-
- But note: the problem says "Premises: ..." and then lists all, so we are including them all.
-
- One more thing: in the simplified model, we have no way to represent the possibility of sharing with someone else? But the problem doesn't ask for that. We are only concerned with sharing with Lisa.
-
- Therefore, I think this is acceptable.
-
- Alternatively, if we want to be more general, we can model with Person. But the problem doesn't require generalization beyond the given context.
-
- We choose the simpler model.
-
- Now, we write the code.
-
- IMPORTANT: In Lean, we must avoid using reserved words. The names we chose are safe.
-
- Final code:
+ Let me write the Lean code:
 
 
 === RESPONSE ===
-To formalize the given premises and conclusion in Lean 4, we define the necessary types, predicates, and axioms based on the logical structure. Here's the formalization:
+Based on the premises and conclusion provided, here's the Lean 4 formalization:
 
 <lean>
 axiom obj : Type
-
+axiom StrangerThings : obj
+axiom BlackMirror : obj
 axiom NetflixShow : obj → Prop
 axiom Popular : obj → Prop
 axiom BingeWatches : obj → Prop
 axiom Downloads : obj → Prop
 axiom SharesWithLisa : obj → Prop
 
-axiom StrangerThings : obj
-axiom BlackMirror : obj
+-- Premise: "Stranger Things" is a popular Netflix show
+axiom P1 : NetflixShow StrangerThings ∧ Popular StrangerThings
 
-axiom premise1 : NetflixShow StrangerThings ∧ Popular StrangerThings
-axiom premise2 : ∀ s : obj, NetflixShow s → Popular s → BingeWatches s
-axiom premise3 : ∀ s : obj, NetflixShow s → (BingeWatches s ↔ Downloads s)
-axiom premise4 : ¬ Downloads BlackMirror
-axiom premise5 : NetflixShow BlackMirror
-axiom premise6 : ∀ s : obj, NetflixShow s → BingeWatches s → SharesWithLisa s
+-- Premise: If a Netflix show is popular, Karen will binge-watch it
+axiom P2 : ∀ x : obj, NetflixShow x → Popular x → BingeWatches x
 
-theorem conclusion : SharesWithLisa BlackMirror := sorry
+-- Premise: If and only if Karen binge-watches a Netflix show, she will download it
+axiom P3 : ∀ x : obj, NetflixShow x → (BingeWatches x ↔ Downloads x)
+
+-- Premise: Karen does not download "Black Mirror"
+axiom P4 : ¬ Downloads BlackMirror
+
+-- Premise: "Black Mirror" is a Netflix show
+axiom P5 : NetflixShow BlackMirror
+
+-- Premise: If Karen binge-watches a Netflix show, she will share it with Lisa
+axiom P6 : ∀ x : obj, NetflixShow x → BingeWatches x → SharesWithLisa x
+
+-- Conclusion: Karen will share "Black Mirror" with Lisa
+theorem goal : SharesWithLisa BlackMirror := sorry
 </lean>
 
-**Explanation:**
-- `obj` represents the type of shows
-- Predicates:
-  - `NetflixShow s`: Show `s` is a Netflix show
-  - `Popular s`: Show `s` is popular
-  - `BingeWatches s`: Karen binge-watches show `s`
-  - `Downloads s`: Karen downloads show `s`
-  - `SharesWithLisa s`: Karen shares show `s` with Lisa
-- Show constants: `StrangerThings` and `BlackMirror`
-- Axioms correspond to premises:
-  - `premise1`: "Stranger Things" is a popular Netflix show (conjunction)
-  - `premise2`: Popular Netflix shows are binge-watched by Karen
-  - `premise3`: Binge-watching and downloading are equivalent for Netflix shows
-  - `premise4`: Karen doesn't download Black Mirror
-  - `premise5`: Black Mirror is a Netflix show
-  - `premise6`: Binge-watched Netflix shows are shared with Lisa
-- `theorem conclusion`: Formalizes the conclusion that Karen shares Black Mirror with Lisa (using `sorry` as placeholder proof)
+Key aspects of this formalization:
+1. Declared `obj` as the base type for all entities
+2. Created distinct objects for both shows (`StrangerThings`, `BlackMirror`)
+3. Defined five predicates capturing the properties and actions:
+   - `NetflixShow` for show platform
+   - `Popular` for popularity
+   - `BingeWatches`, `Downloads`, `SharesWithLisa` for Karen's actions
+4. Each premise is translated to a separate axiom:
+   - P1 uses conjunction for compound properties
+   - P2 and P6 use implication chains
+   - P3 uses bidirectional implication (↔) for "if and only if"
+   - P4 uses negation for "does not download"
+   - P5 is a simple property assertion
+5. The conclusion is formalized as `SharesWithLisa BlackMirror` with `sorry` placeholder
 
-This formalization exactly captures the logical structure of the premises and conclusion while maintaining Lean 4 syntax requirements.
+
+======================================================================
+STAGE 2: PROVING
+======================================================================
+
+--- Iteration 1 ---
+
+=== REASONING ===
+We are given the goal: SharesWithLisa BlackMirror
+ We have the premises:
+
+ P1: NetflixShow StrangerThings ∧ Popular StrangerThings
+ P2: ∀ x, NetflixShow x → Popular x → BingeWatches x
+ P3: ∀ x, NetflixShow x → (BingeWatches x ↔ Downloads x)
+ P4: ¬ Downloads BlackMirror
+ P5: NetflixShow BlackMirror
+ P6: ∀ x, NetflixShow x → BingeWatches x → SharesWithLisa x
+
+ We want to prove SharesWithLisa BlackMirror.
+
+ Notice that by P6, to get SharesWithLisa BlackMirror we need:
+   NetflixShow BlackMirror and BingeWatches BlackMirror.
+
+ We have NetflixShow BlackMirror by P5.
+
+ So we need BingeWatches BlackMirror.
+
+ Now, look at P3: for BlackMirror, since NetflixShow BlackMirror (by P5), we have:
+   BingeWatches BlackMirror ↔ Downloads BlackMirror
+
+ But we have P4: ¬ Downloads BlackMirror, so Downloads BlackMirror is false.
+
+ Therefore, BingeWatches BlackMirror must be false (by the ↔).
+
+ Hence we cannot prove BingeWatches BlackMirror. In fact, we have evidence against it.
+
+ Therefore, the theorem goal (SharesWithLisa BlackMirror) cannot be proven.
+
+ However, note that the conclusion in the original problem is "Karen will share 'Black Mirror' with Lisa", which we are trying to prove as the theorem.
+
+ But from the above, we see that we cannot prove BingeWatches BlackMirror, and in fact we have a proof that ¬BingeWatches BlackMirror.
+
+ How do we get that?
+
+ Steps:
+
+ 1. From P3 and P5: 
+      BingeWatches BlackMirror ↔ Downloads BlackMirror
+ 2. From P4: ¬Downloads BlackMirror
+ 3. Therefore: ¬BingeWatches BlackMirror.
+
+ Then P6 requires BingeWatches BlackMirror to get SharesWithLisa BlackMirror, but we have ¬BingeWatches BlackMirror.
+
+ So we cannot prove SharesWithLisa BlackMirror.
+
+ Therefore, the theorem as stated is false? But wait, the theorem is the conclusion we are trying to prove.
+
+ However, in the Lean code, we are asked to prove the theorem. Since we have a counterexample? Actually, we have a model:
+
+ We know:
+   NetflixShow BlackMirror (P5)
+   ¬Downloads BlackMirror (P4)
+   and by P3: NetflixShow BlackMirror → (BingeWatches BlackMirror ↔ Downloads BlackMirror)
+   so we get: BingeWatches BlackMirror ↔ false, hence ¬BingeWatches BlackMirror.
+
+ Then P6: for BlackMirror, we have:
+   NetflixShow BlackMirror → BingeWatches BlackMirror → SharesWithLisa BlackMirror
+   but since BingeWatches BlackMirror is false, the implication is true (vacuously) but we cannot get the consequent.
+
+ Therefore, we cannot prove SharesWithLisa BlackMirror.
+
+ But note: the original problem asks for the conclusion. We have to see if the conclusion follows from the premises.
+
+ The conclusion does not follow because we have a premise that Karen does not download Black Mirror, and by the biconditional, she does not binge-watch it, and then we cannot get that she shares it.
+
+ However, in the Lean code, we are to write a proof. But we cannot prove SharesWithLisa BlackMirror.
+
+ Therefore, we must conclude that the theorem is not provable? But wait, the task says: replace sorry with a valid proof term.
+
+ However, if the theorem is false, we cannot prove it. But note: the problem says "Provide the complete code with a valid proof" and if the theorem is false then we cannot provide a proof.
+
+ But wait: the premises might be inconsistent? Let's check:
+
+ We have P1: about StrangerThings, which is separate. For StrangerThings:
+   NetflixShow StrangerThings and Popular StrangerThings (P1)
+   Then by P2: BingeWatches StrangerThings
+   Then by P3: Downloads StrangerThings (since NetflixShow StrangerThings)
+
+ And for BlackMirror: we have ¬Downloads BlackMirror and ¬BingeWatches BlackMirror.
+
+ There is no contradiction because StrangerThings and BlackMirror are distinct.
+
+ Therefore, the premises are consistent and we have a model where SharesWithLisa BlackMirror is false.
+
+ Hence, the theorem goal is not provable.
+
+ But the task says: "Given validated Lean 4 axiom definitions and a theorem declaration with 'sorry', your task is to provide the complete code with a valid proof."
+
+ However, in this case, we cannot prove the theorem because it is false.
+
+ But note: the problem says "After your code, provide your answer: ANSWER: True/False/Uncertain"
+
+ So we must output the code and then the answer.
+
+ How to handle in Lean?
+
+ We cannot prove a false statement. Therefore, we must leave the theorem unproven? But the task says to replace sorry.
+
+ Alternatively, we might try to prove the negation? But the theorem statement is fixed.
+
+ Let me reexamine the premises:
+
+ Premise: "If and only if Karen binge-watches a Netflix show, she will download it."
+   This is: ∀ x, NetflixShow x → (BingeWatches x ↔ Downloads x)
+
+ Premise: Karen does not download "Black Mirror" → ¬Downloads BlackMirror
+
+ Premise: "Black Mirror" is a Netflix show → NetflixShow BlackMirror
+
+ Therefore: for BlackMirror, we have (BingeWatches BlackMirror ↔ Downloads BlackMirror) → (BingeWatches BlackMirror ↔ false) → ¬BingeWatches BlackMirror.
+
+ Then the premise P6: ∀ x, NetflixShow x → BingeWatches x → SharesWithLisa x
+   For BlackMirror: we have NetflixShow BlackMirror and ¬BingeWatches BlackMirror, so the premise P6 does not give SharesWithLisa BlackMirror.
+
+ Therefore, the conclusion "Karen will share 'Black Mirror' with Lisa" is false.
+
+ So the answer should be False.
+
+ However, the Lean theorem is stated as:
+
+   theorem goal : SharesWithLisa BlackMirror := ...
+
+ We cannot prove it. Therefore, we must not be able to replace sorry with a proof.
+
+ But wait: the problem says "Replace 'sorry' with a valid proof term". If the theorem is false, then we cannot.
+
+ This seems to be a contradiction.
+
+ However, note: the problem says "Given validated Lean 4 axiom definitions". The axioms are validated? Meaning they are consistent? But they are.
+
+ And the theorem is not provable.
+
+ Therefore, we must output the code without a proof? But the task says to replace sorry.
+
+ Alternatively, perhaps we made a mistake.
+
+ Let me try to derive:
+
+  We want SharesWithLisa BlackMirror.
+
+  By P6: we need NetflixShow BlackMirror and BingeWatches BlackMirror.
+
+  We have NetflixShow BlackMirror (P5).
+
+  So we need BingeWatches BlackMirror.
+
+  Now, by P3: for BlackMirror, we have:
+      BingeWatches BlackMirror ↔ Downloads BlackMirror
+  But we have P4: ¬Downloads BlackMirror, so we need Downloads BlackMirror to be true? But it's false.
+
+  Therefore, we cannot get BingeWatches BlackMirror.
+
+ Hence, we cannot prove the goal.
+
+ But note: the problem says "Conclusion: Karen will share 'Black Mirror' with Lisa". And we are to say if the conclusion follows.
+
+ It does not follow. Therefore, the theorem is false.
+
+ However, in Lean, we are to write a proof. Since we cannot, we must leave it as sorry? But the task says to replace sorry.
+
+ Alternatively, we can prove the negation? But the theorem is stated as the positive.
+
+ After careful thought, I realize: the premises are such that the conclusion is false. Therefore, the theorem as stated is false and cannot be proven.
+
+ But the task says: "Provide the complete code with a valid proof". If we cannot, then we must not be able to complete the task.
+
+ However, note the example: the example had a true theorem and we provided a proof.
+
+ So for this problem, since the theorem is false, we must output the answer as False.
+
+ But the code: we cannot write a proof. Therefore, we must leave it as sorry? But that violates the task.
+
+ Alternatively, we can use a proof by contradiction? But we have a direct counterexample in the premises.
+
+ Actually, we can prove the negation of the goal? But the theorem is stated as goal, so we cannot change it.
+
+ I think there is a misunderstanding: the problem says "After your code, you MUST provide your final answer: ANSWER: True/False/Uncertain"
+
+ So for the Lean code, we are to replace sorry only if we can prove it. Otherwise, we must state that we cannot.
+
+ But the task says: "Replace 'sorry' with a valid proof term". If we cannot, then we cannot complete the task.
+
+ However, note: the problem says "Given validated Lean 4 axiom definitions and a theorem declaration with 'sorry'", meaning the axioms are fixed and the theorem is what we are to prove.
+
+ Since we cannot prove it, we must not be able to.
+
+ Therefore, I think the intended answer is that the conclusion is False.
+
+ But how to represent that in Lean? We cannot prove a false statement.
+
+ Alternatively, we can prove the negation of the goal? But the theorem is named `goal` and is of type `SharesWithLisa BlackMirror`.
+
+ We have the option to prove `¬ SharesWithLisa BlackMirror`? But that is not the theorem.
+
+ After re-reading the problem: "Conclusion: Karen will share 'Black Mirror' with Lisa." and we are to say True/False/Uncertain.
+
+ So the answer is False.
+
+ But for the Lean code, we are stuck.
+
+ However, note: the problem says "Provide the complete code with proof". If we cannot prove it, then we cannot provide a proof.
+
+ Therefore, I must conclude that the theorem is not provable, and hence the answer is False.
+
+ But the Lean code must be provided. How? We can leave it as sorry? But the task says to replace sorry.
+
+ Alternatively, we can use `by_contradiction` and derive a contradiction? But we don't have a contradiction.
+
+ Let me try:
+
+  Assume goal: SharesWithLisa BlackMirror.
+
+  By P6, we have: for BlackMirror, if NetflixShow BlackMirror and BingeWatches BlackMirror then SharesWithLisa BlackMirror.
+
+  We have NetflixShow BlackMirror (P5). So we must have BingeWatches BlackMirror.
+
+  Then by P3 (for BlackMirror): Downloads BlackMirror.
+
+  But P4 says ¬Downloads BlackMirror -> contradiction.
+
+ So we can prove the goal by contradiction? Wait, no:
+
+  We assumed SharesWithLisa BlackMirror, then by P6 we get BingeWatches BlackMirror? Actually, P6 is an implication, not an equivalence.
+
+  P6: ∀ x, NetflixShow x → BingeWatches x → SharesWithLisa x
+
+  It does not say that SharesWithLisa x implies BingeWatches x.
+
+  So we cannot invert P6.
+
+  Therefore, we cannot get BingeWatches BlackMirror from SharesWithLisa BlackMirror.
+
+ So that approach fails.
+
+ Alternatively, we can try to prove that BingeWatches BlackMirror is false and then note that P6 doesn't give SharesWithLisa BlackMirror? But that doesn't prove the negation of SharesWithLisa BlackMirror, only that it might be false.
+
+ We don't have any axiom that says if Karen doesn't binge-watch then she doesn't share.
+
+ Therefore, we cannot prove SharesWithLisa BlackMirror, and we also cannot prove ¬SharesWithLisa BlackMirror.
+
+ So the truth value of SharesWithLisa BlackMirror is not determined? But wait, we have:
+
+   SharesWithLisa BlackMirror can only be true if BingeWatches BlackMirror is true (by P6).
+
+   But we have that BingeWatches BlackMirror is false.
+
+   Therefore, SharesWithLisa BlackMirror is false.
+
+ But in Lean, we cannot prove a negative without having the necessary axioms.
+
+ We have no axiom that says: if she doesn't binge-watch then she doesn't share.
+
+ So we cannot prove ¬SharesWithLisa BlackMirror either.
+
+ Therefore, the theorem goal is not provable from the given axioms.
+
+ But the problem says: "If Karen binge-watches a Netflix show, she will share it with Lisa." (P6) -> this is only an implication, not an equivalence.
+
+ So we don't have the converse.
+
+ Hence, we cannot prove SharesWithLisa BlackMirror, and we also cannot prove its negation.
+
+ However, from the premises, we know that SharesWithLisa BlackMirror is false because the necessary condition (BingeWatches BlackMirror) is false? But that is not how logic works.
+
+ In the absence of the converse of P6, we cannot conclude that she doesn't share.
+
+ Therefore, the conclusion is uncertain? But wait, we have no premise that would make SharesWithLisa BlackMirror true without binge-watching.
+
+ And we have that binge-watching is false, so by the only available rule (P6) we cannot derive SharesWithLisa BlackMirror.
+
+ But that doesn't mean it is false; it might be true for other reasons. However, the premises do not provide any other way for SharesWithLisa to be true.
+
+ So in the minimal model, SharesWithLisa BlackMirror is false.
+
+ But in formal logic, we only have what is given. And we are not given any other way for SharesWithLisa to hold.
+
+ Therefore, we cannot prove SharesWithLisa BlackMirror.
+
+ However, the problem asks for the answer: True/False/Uncertain.
+
+ Given that we have no way to prove SharesWithLisa BlackMirror, and the necessary condition (binge-watching) is not satisfied, the conclusion is false.
+
+ But without the converse of P6, we cannot formally prove ¬SharesWithLisa BlackMirror.
+
+ So the status of the theorem is that it is false, but we cannot prove it (the negation) either.
+
+ This is confusing.
+
+ Let me try to build a model:
+
+  Objects: [StrangerThings, BlackMirror]
+
+  NetflixShow: both are.
+
+  Popular: StrangerThings is popular, BlackMirror is not (but we don't have information about BlackMirror's popularity?).
+
+  We have P2: for any x, if it is a Netflix show and popular, then binge-watches.
+
+  For StrangerThings: binge-watches -> true.
+
+  For BlackMirror: we don't have Popular BlackMirror? So it might be not popular.
+
+  P3: for any Netflix show, binge-watches iff downloads.
+
+  For StrangerThings: downloads -> true.
+  For BlackMirror: downloads -> false (by P4), so binge-watches -> false.
+
+  P6: for any Netflix show, if binge-watches then shares.
+
+  For StrangerThings: shares -> true.
+  For BlackMirror: since binge-watches is false, the implication is true regardless of the value of shares.
+
+  So SharesWithLisa BlackMirror could be true or false? 
+
+  But wait, we have no premise that forces SharesWithLisa BlackMirror to be true or false when not binge-watching.
+
+  Therefore, in one model we can set SharesWithLisa BlackMirror to true, and in another to false.
+
+  Both models satisfy the premises:
+
+    Model 1: SharesWithLisa BlackMirror = true.
+      Then P6 for BlackMirror: NetflixShow BlackMirror is true, BingeWatches BlackMirror is false -> the implication (false -> true) is true.
+
+    Model 2: SharesWithLisa BlackMirror = false.
+      Then P6 for BlackMirror: false -> anything is true.
+
+  So the truth value of SharesWithLisa BlackMirror is not determined by the premises.
+
+  Therefore, the conclusion is Uncertain.
+
+  But earlier I thought that since binge-watching is false, and P6 only gives shares when binge-watching, then shares must be false. But that is not correct because P6 does not say that sharing only happens when binge-watching.
+
+  In fact, P6 says: if she binge-watches then she shares. It does not say that if she doesn't binge-watch then she doesn't share.
+
+  So SharesWithLisa BlackMirror might be true for other reasons.
+
+  Therefore, the conclusion is not necessarily true, but it might be true or false.
+
+  Hence, the answer is Uncertain.
+
+  But the original problem says: "If and only if Karen binge-watches a Netflix show, she will download it." That biconditional only relates binge-watching and downloading, not sharing.
+
+  And for sharing, we only have one direction.
+
+  So we have no information that would force SharesWithLisa BlackMirror to be true or false.
+
+  Therefore, the theorem goal (SharesWithLisa BlackMirror) is not provable, and its negation is also not provable.
+
+  So in the Lean code, we cannot replace sorry with a proof.
+
+  But the task says to replace sorry with a valid proof term if we can.
+
+  Since we cannot, we must leave it as sorry? But that is not what the task says.
+
+  Alternatively, we can try to see if there is any way to prove it.
+
+  Let me try to derive:
+
+    We have no premise that says Karen shares Black Mirror without binge-watching.
+
+    We have no premise that forces sharing for any show except when binge-watching.
+
+    Therefore, we cannot prove SharesWithLisa BlackMirror.
+
+  So the proof term does not exist.
+
+  But the problem says: "Provide the complete code with 'sorry' replaced by your proof." -> if we cannot, then we must not be able to.
+
+  However, the problem also says: "After your code, you MUST provide your final answer: ANSWER: True/False/Uncertain"
+
+  So for the code, we leave it as sorry? But that is not allowed.
+
+  Or we can output the code with sorry and then the answer Uncertain.
+
+  But the task says to replace sorry.
+
+  I am in a dilemma.
+
+  Let me double-check the premises:
+
+    Premise: "If and only if Karen binge-watches a Netflix show, she will download it." -> only about download, not about sharing.
+
+    Premise: "If Karen binge-watches a Netflix show, she will share it with Lisa." -> only the implication.
+
+    There is no premise that says she might share without binge-watching.
+
+    But also no premise that says she only shares when she binge-watches.
+
+  Therefore, the conclusion might be true or false.
+
+  So the answer is Uncertain.
+
+  For the Lean code, since we cannot prove the theorem, we cannot replace sorry.
+
+  But the task says to replace sorry with a valid proof term. If we cannot, then we must output the code unchanged? But that has sorry.
+
+  Or we can use a tactic that fails? But that would not be a valid proof.
+
+  I think the only honest thing is to output the code with sorry and then answer Uncertain.
+
+  However, the task says: "Replace 'sorry' with a valid proof term". If we leave it as sorry, we are not replacing it.
+
+  Alternatively, we can try to use `by_contra` and then show that it is not provable? But that would not be a proof of the goal.
+
+  After careful thought, I realize that the problem might have intended the sharing to be only when binge-watching, but the premise does not say that.
+
+  Given the premises, the conclusion is not entailed.
+
+  Therefore, the theorem is not provable.
+
+  So in the Lean code, we cannot provide a proof.
+
+  But the task says "validated Lean 4 axiom definitions", and then a theorem declaration with sorry. If the theorem is not provable, then we cannot.
+
+  I think the best is to output the code unchanged (with sorry) and then answer Uncertain.
+
+  However, the task says to replace sorry. So perhaps we should provide a proof of False? That is not possible.
+
+  Another idea: can we prove it using the other show? But StrangerThings is separate.
+
+  There is no connection between the two shows.
+
+  So we cannot.
+
+  Therefore, I will output the code with sorry and then answer Uncertain.
+
+  But the task says to replace sorry. So this is not following the task.
+
+  Alternatively, we can provide a proof using classical logic? But even then, we don't have information.
+
+  We can do:
+
+    have H : ¬ BingeWatches BlackMirror := by 
+      intro h
+      have H_download : Downloads BlackMirror := (P3 BlackMirror P5).mp h
+      exact P4 H_download
+
+    But then we have ¬ BingeWatches BlackMirror, which is not directly useful for proving SharesWithLisa BlackMirror.
+
+  We might try:
+
+    have H_share : ? // we don't know
+
+  So I think the answer is that the theorem is not provable.
+
+  Given the above, I will output the code with sorry and then answer Uncertain.
+
+  But note: the problem says "Provide the complete code with proof". If we leave sorry, it is not a proof.
+
+  However, I see no other way.
+
+  Perhaps the problem has a typo? Let me reread the original problem.
+
+  Premises:
+    "Stranger Things" is a popular Netflix show. -> P1
+    If a Netflix show is popular, Karen will binge-watch it. -> P2
+    If and only if Karen binge-watches a Netflix show, she will download it. -> P3
+    Karen does not download "Black Mirror." -> P4
+    "Black Mirror" is a Netflix show. -> P5
+    If Karen binge-watches a Netflix show, she will share it with Lisa. -> P6
+
+  Conclusion: Karen will share "Black Mirror" with Lisa.
+
+  We know from P4 and P5 and P3 that Karen does not binge-watch Black Mirror.
+
+  Then from P6: binge-watching implies sharing, but we cannot conclude sharing from not binge-watching.
+
+  So the conclusion does not follow.
+
+  Therefore, the answer is that the conclusion is Uncertain? Or False? 
+
+  In logic, if the premises do not force the conclusion to be true, then the argument is invalid. But the conclusion might be true or false.
+
+  However, in the context of the problem, we are to say if the conclusion follows. It does not follow.
+
+  So the answer is False (meaning the conclusion does not follow) or Uncertain (meaning we don't know if it is true or false)?
+
+  The problem says: "Conclusion: ...", and we are to say if it is True, False, or Uncertain.
+
+  The conclusion itself is a statement: "Karen will share 'Black Mirror' with Lisa."
+
+  We have shown that it is not necessarily true, and in fact it might be false in some models and true in others.
+
+  Therefore, we are uncertain about its truth value.
+
+  So the answer is Uncertain.
+
+  For the Lean code, since we cannot prove it, we leave it as sorry.
+
+  But the task says to replace sorry. This is a conflict.
+
+  Given the instructions, I will output the code with sorry and then answer Uncertain.
+
+  Alternatively, if the task expects a proof when possible, and when not possible to leave sorry, then we do that.
+
+  I think that is the best we can do.
+
+  So the complete code is the same as given, with sorry.
+
+  And then answer: Uncertain.
+
+  But note: the task says "Replace 'sorry' with a valid proof term", so if we leave it as sorry, we are not replacing it.
+
+  However, since we cannot, we have to.
+
+  Perhaps the problem is that the premises are not sufficient, and that is the answer.
+
+  I will now output:
+
+<lean>
+axiom obj : Type
+axiom StrangerThings : obj
+axiom BlackMirror : obj
+axiom NetflixShow : obj → Prop
+axiom Popular : obj → Prop
+axiom BingeWatches : obj → Prop
+axiom Downloads : obj → Prop
+axiom SharesWithLisa : obj → Prop
+
+-- Premise: "Stranger Things" is a popular Netflix show
+axiom P1 : NetflixShow StrangerThings ∧ Popular StrangerThings
+
+-- Premise: If a Netflix show is popular, Karen will binge-watch it
+axiom P2 : ∀ x : obj, NetflixShow x → Popular x → BingeWatches x
+
+-- Premise: If and only if Karen binge-watches a Netflix show, she will download it
+axiom P3 : ∀ x : obj, NetflixShow x → (BingeWatches x ↔ Downloads x)
+
+-- Premise: Karen does not download "Black Mirror"
+axiom P4 : ¬ Downloads BlackMirror
+
+-- Premise: "Black Mirror" is a Netflix show
+axiom P5 : NetflixShow BlackMirror
+
+-- Premise: If Karen binge-watches a Netflix show, she will share it with Lisa
+axiom P6 : ∀ x : obj, NetflixShow x → BingeWatches x → SharesWithLisa x
+
+-- Conclusion: Karen will share "Black Mirror" with Lisa
+theorem goal : SharesWithLisa BlackMirror := sorry
+</lean>
+
+ANSWER: Uncertain
+
+ But note: the problem might expect us to realize that the conclusion is not provable and hence answer False for the theorem being true? But the theorem is the conclusion.
+
+ I think Uncertain is the correct answer for the truth value of the conclusion.
+
+ However, the problem says: "Conclusion: ...", and then we are to say True/False/Uncertain.
+
+ True: if the conclusion must be true.
+ False: if the conclusion must be false.
+ Uncertain: if it might be true or false.
+
+ In this case, it might be true or false, so Uncertain.
+
+ Therefore, I will output the code with sorry and answer Uncertain.
+
+
+=== RESPONSE ===
+The given premises do not provide sufficient information to prove that Karen will share "Black Mirror" with Lisa. Here's the analysis:
+
+1. From `P3` and `P5`, we have:  
+   `BingeWatches BlackMirror ↔ Downloads BlackMirror`  
+   Since `P4` states `¬Downloads BlackMirror`, it follows that `¬BingeWatches BlackMirror`.
+
+2. Premise `P6` states:  
+   `∀x, NetflixShow x → BingeWatches x → SharesWithLisa x`  
+   This only guarantees sharing occurs if binge-watching occurs. Since binge-watching did not occur for "Black Mirror", we cannot conclude sharing occurred.
+
+3. There are no premises indicating that sharing can occur without binge-watching. Thus, the truth value of `SharesWithLisa BlackMirror` remains undetermined—it could be true or false without violating any premises.
+
+Therefore, the theorem `SharesWithLisa BlackMirror` is **not provable** from the given axioms, and the conclusion's truth value is uncertain.
+
+<lean>
+axiom obj : Type
+axiom StrangerThings : obj
+axiom BlackMirror : obj
+axiom NetflixShow : obj → Prop
+axiom Popular : obj → Prop
+axiom BingeWatches : obj → Prop
+axiom Downloads : obj → Prop
+axiom SharesWithLisa : obj → Prop
+
+-- Premise: "Stranger Things" is a popular Netflix show
+axiom P1 : NetflixShow StrangerThings ∧ Popular StrangerThings
+
+-- Premise: If a Netflix show is popular, Karen will binge-watch it
+axiom P2 : ∀ x : obj, NetflixShow x → Popular x → BingeWatches x
+
+-- Premise: If and only if Karen binge-watches a Netflix show, she will download it
+axiom P3 : ∀ x : obj, NetflixShow x → (BingeWatches x ↔ Downloads x)
+
+-- Premise: Karen does not download "Black Mirror"
+axiom P4 : ¬ Downloads BlackMirror
+
+-- Premise: "Black Mirror" is a Netflix show
+axiom P5 : NetflixShow BlackMirror
+
+-- Premise: If Karen binge-watches a Netflix show, she will share it with Lisa
+axiom P6 : ∀ x : obj, NetflixShow x → BingeWatches x → SharesWithLisa x
+
+-- Conclusion: Karen will share "Black Mirror" with Lisa
+theorem goal : SharesWithLisa BlackMirror := sorry
+</lean>
+
+ANSWER: Uncertain
