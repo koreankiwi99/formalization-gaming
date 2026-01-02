@@ -1,0 +1,129 @@
+The reasoning problem has been translated into Lean 4, and the statement has been proven true based on the given context. The proof involves case analysis of Bonnie's attributes derived from the premises, showing that the conclusion follows in all scenarios.
+
+<lean>
+axiom Person : Type
+axiom Bonnie : Person
+
+axiom AttendsEngaged : Person → Prop
+axiom PerformsOften : Person → Prop
+axiom InactiveDisinterested : Person → Prop
+axiom Chaperones : Person → Prop
+axiom IsStudent : Person → Prop
+axiom YoungChildOrTeenager : Person → Prop
+axiom WishFurther : Person → Prop
+
+-- Premise 1: People who perform often are engaged
+axiom A1 : ∀ p : Person, PerformsOften p → AttendsEngaged p
+
+-- Premise 2: Members either perform often or are inactive
+axiom A2 : ∀ p : Person, PerformsOften p ∨ InactiveDisinterested p
+
+-- Premise 3: Chaperones are not students
+axiom A3 : ∀ p : Person, Chaperones p → ¬ IsStudent p
+
+-- Premise 4: Inactive members chaperone dances
+axiom A4 : ∀ p : Person, InactiveDisinterested p → Chaperones p
+
+-- Premise 5: Young members who wish to further careers are students
+axiom A5 : ∀ p : Person, YoungChildOrTeenager p → WishFurther p → IsStudent p
+
+-- Bonnie specific: XOR of (engaged and student) OR (neither)
+axiom BonnieFact : 
+  (AttendsEngaged Bonnie ∧ IsStudent Bonnie) ∨ 
+  (¬ AttendsEngaged Bonnie ∧ ¬ IsStudent Bonnie)
+
+-- Target statement proof
+theorem target : 
+  ((YoungChildOrTeenager Bonnie ∧ WishFurther Bonnie ∧ Chaperones Bonnie) ∨ 
+   ¬(YoungChildOrTeenager Bonnie ∧ WishFurther Bonnie)) → 
+  (IsStudent Bonnie ∨ InactiveDisinterested Bonnie) := by
+  intro h -- Assume the antecedent
+  cases h with
+  | inl h₁ => 
+      -- Case: Young, wishes, and chaperones
+      have ⟨h_young, h_wish, _⟩ := h₁
+      exact Or.inl (A5 Bonnie h_young h_wish)
+  | inr notP => 
+      -- Case: Not (young and wishes)
+      cases BonnieFact with
+      | inl ⟨_, h_student⟩ => 
+          exact Or.inl h_student
+      | inr ⟨not_engaged, not_student⟩ =>
+          -- Eliminate option where Bonnie performs often
+          have h_case : PerformsOften Bonnie ∨ InactiveDisinterested Bonnie := A2 Bonnie
+          cases h_case with
+          | inl h_perform =>
+              have : AttendsEngaged Bonnie := A1 Bonnie h_perform
+              contradiction
+          | inr h_inactive => 
+              exact Or.inr h_inactive
+</lean>
+
+ANSWER: True
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors were addressed by restructuring the pattern matching to avoid nested angle brackets and explicitly handling conjunctions. The proof demonstrates that the conclusion follows from the premises in all cases:
+
+1. For the case where Bonnie is young, wishes to further her career, and chaperones, we derive a contradiction (A5 makes her a student, but A3 forbids student chaperones).
+2. For the case where Bonnie isn't both young and career-focused:
+   - If she's engaged and a student (BonnieFact), we directly conclude she's a student.
+   - If she's neither engaged nor a student:
+     * If she performs often, A1 makes her engaged - contradiction.
+     * If she's inactive, we directly conclude she's inactive.
+
+<lean>
+axiom Person : Type
+axiom Bonnie : Person
+
+axiom AttendsEngaged : Person → Prop
+axiom PerformsOften : Person → Prop
+axiom InactiveDisinterested : Person → Prop
+axiom Chaperones : Person → Prop
+axiom IsStudent : Person → Prop
+axiom YoungChildOrTeenager : Person → Prop
+axiom WishFurther : Person → Prop
+
+axiom A1 : ∀ p : Person, PerformsOften p → AttendsEngaged p
+axiom A2 : ∀ p : Person, PerformsOften p ∨ InactiveDisinterested p
+axiom A3 : ∀ p : Person, Chaperones p → ¬ IsStudent p
+axiom A4 : ∀ p : Person, InactiveDisinterested p → Chaperones p
+axiom A5 : ∀ p : Person, YoungChildOrTeenager p → WishFurther p → IsStudent p
+
+axiom BonnieFact : 
+  (AttendsEngaged Bonnie ∧ IsStudent Bonnie) ∨ 
+  (¬ AttendsEngaged Bonnie ∧ ¬ IsStudent Bonnie)
+
+theorem target : 
+  ((YoungChildOrTeenager Bonnie ∧ WishFurther Bonnie ∧ Chaperones Bonnie) ∨ 
+   ¬(YoungChildOrTeenager Bonnie ∧ WishFurther Bonnie)) → 
+  (IsStudent Bonnie ∨ InactiveDisinterested Bonnie) := by
+  intro h
+  cases h with
+  | inl h1 => 
+      cases h1 with
+      | intro h_young h_rest =>
+          cases h_rest with
+          | intro h_wish h_chaperones =>
+              have h_student := A5 Bonnie h_young h_wish
+              have not_student := A3 Bonnie h_chaperones
+              contradiction
+  | inr _ => 
+      cases BonnieFact with
+      | inl h_engaged_student =>
+          cases h_engaged_student with
+          | intro _ h_student => exact Or.inl h_student
+      | inr h_not_engaged_not_student =>
+          cases h_not_engaged_not_student with
+          | intro not_engaged not_student =>
+              have h_case := A2 Bonnie
+              cases h_case with
+              | inl h_perform => 
+                  have : AttendsEngaged Bonnie := A1 Bonnie h_perform
+                  contradiction
+              | inr h_inactive => exact Or.inr h_inactive
+</lean>
+
+ANSWER: True
