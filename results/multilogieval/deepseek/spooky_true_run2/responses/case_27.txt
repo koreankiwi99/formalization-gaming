@@ -1,0 +1,48 @@
+The reasoning involves translating the natural language context into logical axioms and then attempting to prove whether the conclusion "If John's coworkers are not hungry, then he is diligent" follows. The premises are:
+
+1. If it's close to lunchtime, then John's coworkers are hungry: `close_to_lunchtime → coworkers_hungry john`
+2. If John prepares well for the presentation, he is ready for the meeting: `prepare_well john → ready_for_meeting john`
+3. Either it's close to lunchtime, or John is not ready for the meeting (the third disjunct is redundant): `close_to_lunchtime ∨ ¬ready_for_meeting john`
+4. Diligence implies preparation: `∀ p, diligent p → prepare_well p`
+
+Assuming `¬coworkers_hungry john` (John's coworkers are not hungry), we derive:
+- `¬close_to_lunchtime` (from premise 1 by contraposition)
+- `¬ready_for_meeting john` (from premise 3 and `¬close_to_lunchtime`)
+- `¬prepare_well john` (from premise 2 and `¬ready_for_meeting john` by contraposition)
+- `¬diligent john` (from premise 4 and `¬prepare_well john` by contraposition)
+
+This shows that the assumption `¬coworkers_hungry john` leads to `¬diligent john`, not `diligent john`. Therefore, the conclusion "John is diligent if his coworkers are not hungry" cannot be proven from the premises. The Lean code below models this reasoning and confirms the proof fails.
+
+<lean>
+axiom Person : Type
+axiom john : Person
+axiom close_to_lunchtime : Prop
+axiom coworkers_hungry : Person → Prop
+axiom prepare_well : Person → Prop
+axiom ready_for_meeting : Person → Prop
+axiom diligent : Person → Prop
+
+-- Premise 1: If close to lunch, John's coworkers are hungry.
+axiom P1 : close_to_lunchtime → coworkers_hungry john
+-- Premise 2: If John prepares well, he is ready for the meeting.
+axiom P2 : prepare_well john → ready_for_meeting john
+-- Premise 3: Either close to lunch, or not ready for meeting (third disjunct is redundant).
+axiom P3 : close_to_lunchtime ∨ ¬ready_for_meeting john
+-- Premise 4: Diligence implies preparation.
+axiom P4 : ∀ p : Person, diligent p → prepare_well p
+
+-- Attempt to prove: If coworkers not hungry, then John is diligent.
+theorem target : ¬coworkers_hungry john → diligent john :=
+  fun h_no_hungry : ¬coworkers_hungry john =>
+    have h_no_lunch : ¬close_to_lunchtime := fun h_lunch => h_no_hungry (P1 h_lunch)
+    have h_not_ready : ¬ready_for_meeting john :=
+      Or.elim P3
+        (fun h_lunch => False.elim (h_no_lunch h_lunch))
+        (fun h_not_ready => h_not_ready)
+    have h_no_prep : ¬prepare_well john := fun h_prep => h_not_ready (P2 h_prep)
+    have h_not_diligent : ¬diligent john := fun h_diligent => h_no_prep (P4 john h_diligent)
+    -- Cannot construct a proof of `diligent john` from the premises
+    sorry -- Proof fails here
+</lean>
+
+ANSWER: Failure

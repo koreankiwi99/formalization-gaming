@@ -1,0 +1,268 @@
+<lean>
+axiom obj : Type
+
+-- Predicates
+axiom InClub : obj → Prop
+axiom PerformsOften : obj → Prop
+axiom AttendsEngaged : obj → Prop
+axiom InactiveDisinterested : obj → Prop
+axiom ChaperoneDances : obj → Prop
+axiom StudentAtSchool : obj → Prop
+axiom YoungOrTeen : obj → Prop
+axiom WishAcademic : obj → Prop
+
+-- Axioms from the context
+-- 1. In-club and performs often -> attends and is very engaged
+axiom A1 : ∀ x : obj, InClub x ∧ PerformsOften x → AttendsEngaged x
+-- 2. In-club -> performs often or inactive/disinterested
+axiom A2 : ∀ x : obj, InClub x → PerformsOften x ∨ InactiveDisinterested x
+-- 3. In-club and chaperone -> not a student at the school
+axiom A3 : ∀ x : obj, InClub x ∧ ChaperoneDances x → ¬ StudentAtSchool x
+-- 4. In-club and inactive/disinterested -> chaperone dances
+axiom A4 : ∀ x : obj, InClub x ∧ InactiveDisinterested x → ChaperoneDances x
+-- 5. In-club and young/teen and wishes academic -> student at school
+axiom A5 : ∀ x : obj, InClub x ∧ YoungOrTeen x ∧ WishAcademic x → StudentAtSchool x
+
+-- Bonnie and her specific information
+axiom Bonnie : obj
+axiom Bonnie_info :
+  InClub Bonnie ∧
+  ((AttendsEngaged Bonnie ∧ StudentAtSchool Bonnie) ∨
+   (¬ AttendsEngaged Bonnie ∧ ¬ StudentAtSchool Bonnie))
+
+-- Useful derived facts
+lemma bonnie_in_club : InClub Bonnie := And.left Bonnie_info
+
+lemma bonnie_equiv_disj :
+  (AttendsEngaged Bonnie ∧ StudentAtSchool Bonnie) ∨
+  (¬ AttendsEngaged Bonnie ∧ ¬ StudentAtSchool Bonnie) :=
+And.right Bonnie_info
+
+-- If Bonnie is a student, then she performs often
+lemma student_implies_performs :
+  StudentAtSchool Bonnie → PerformsOften Bonnie :=
+by
+  intro hS
+  -- Show not inactive, otherwise contradiction with student via chaperoning
+  have hNotInactive : ¬ InactiveDisinterested Bonnie := by
+    intro hInact
+    have hCh : ChaperoneDances Bonnie :=
+      A4 Bonnie (And.intro bonnie_in_club hInact)
+    have hNotS : ¬ StudentAtSchool Bonnie :=
+      A3 Bonnie (And.intro bonnie_in_club hCh)
+    exact hNotS hS
+  -- From in-club, either performs or inactive; exclude inactive
+  have h := A2 Bonnie bonnie_in_club
+  cases h with
+  | inl hPerf => exact hPerf
+  | inr hInact => exact False.elim (hNotInactive hInact)
+
+-- If Bonnie is not attending/engaged, then she does not perform often
+lemma not_engaged_implies_not_performs :
+  ¬ AttendsEngaged Bonnie → ¬ PerformsOften Bonnie :=
+by
+  intro hNotEng
+  intro hPerf
+  have hEng : AttendsEngaged Bonnie :=
+    A1 Bonnie (And.intro bonnie_in_club hPerf)
+  exact hNotEng hEng
+
+-- From Bonnie's disjunction, we can only conclude a case split on performing
+theorem bonnie_performs_or_not : PerformsOften Bonnie ∨ ¬ PerformsOften Bonnie :=
+by
+  have h := bonnie_equiv_disj
+  cases h with
+  | inl h1 =>
+      have hS : StudentAtSchool Bonnie := And.right h1
+      exact Or.inl (student_implies_performs hS)
+  | inr h2 =>
+      have hNotEng : ¬ AttendsEngaged Bonnie := And.left h2
+      exact Or.inr (not_engaged_implies_not_performs hNotEng)
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom obj : Type
+
+-- Predicates
+axiom InClub : obj → Prop
+axiom PerformsOften : obj → Prop
+axiom AttendsEngaged : obj → Prop
+axiom InactiveDisinterested : obj → Prop
+axiom ChaperoneDances : obj → Prop
+axiom StudentAtSchool : obj → Prop
+axiom YoungOrTeen : obj → Prop
+axiom WishAcademic : obj → Prop
+
+-- Axioms from the context
+-- 1. In-club and performs often -> attends and is very engaged
+axiom A1 : ∀ x : obj, InClub x ∧ PerformsOften x → AttendsEngaged x
+-- 2. In-club -> performs often or inactive/disinterested
+axiom A2 : ∀ x : obj, InClub x → PerformsOften x ∨ InactiveDisinterested x
+-- 3. In-club and chaperone -> not a student at the school
+axiom A3 : ∀ x : obj, InClub x ∧ ChaperoneDances x → ¬ StudentAtSchool x
+-- 4. In-club and inactive/disinterested -> chaperone dances
+axiom A4 : ∀ x : obj, InClub x ∧ InactiveDisinterested x → ChaperoneDances x
+-- 5. In-club and young/teen and wishes academic -> student at school
+axiom A5 : ∀ x : obj, InClub x ∧ YoungOrTeen x ∧ WishAcademic x → StudentAtSchool x
+
+-- Bonnie and her specific information
+axiom Bonnie : obj
+axiom Bonnie_info :
+  InClub Bonnie ∧
+  ((AttendsEngaged Bonnie ∧ StudentAtSchool Bonnie) ∨
+   (¬ AttendsEngaged Bonnie ∧ ¬ StudentAtSchool Bonnie))
+
+-- Useful derived facts
+lemma bonnie_in_club : InClub Bonnie := And.left Bonnie_info
+
+lemma bonnie_equiv_disj :
+  (AttendsEngaged Bonnie ∧ StudentAtSchool Bonnie) ∨
+  (¬ AttendsEngaged Bonnie ∧ ¬ StudentAtSchool Bonnie) :=
+And.right Bonnie_info
+
+-- If Bonnie is a student, then she performs often
+lemma student_implies_performs :
+  StudentAtSchool Bonnie → PerformsOften Bonnie :=
+by
+  intro hS
+  have hOr := A2 Bonnie bonnie_in_club
+  apply Or.elim hOr
+  · intro hPerf
+    exact hPerf
+  · intro hInact
+    have hCh : ChaperoneDances Bonnie :=
+      A4 Bonnie ⟨bonnie_in_club, hInact⟩
+    have hNotS : ¬ StudentAtSchool Bonnie :=
+      A3 Bonnie ⟨bonnie_in_club, hCh⟩
+    exact False.elim (hNotS hS)
+
+-- If Bonnie is not attending/engaged, then she does not perform often
+lemma not_engaged_implies_not_performs :
+  ¬ AttendsEngaged Bonnie → ¬ PerformsOften Bonnie :=
+by
+  intro hNotEng
+  intro hPerf
+  have hEng : AttendsEngaged Bonnie :=
+    A1 Bonnie ⟨bonnie_in_club, hPerf⟩
+  exact hNotEng hEng
+
+-- From Bonnie's disjunction, we can only conclude a case split on performing
+theorem bonnie_performs_or_not : PerformsOften Bonnie ∨ ¬ PerformsOften Bonnie :=
+by
+  have h := bonnie_equiv_disj
+  apply Or.elim h
+  · intro h1
+    have hS : StudentAtSchool Bonnie := And.right h1
+    exact Or.inl (student_implies_performs hS)
+  · intro h2
+    have hNotEng : ¬ AttendsEngaged Bonnie := And.left h2
+    exact Or.inr (not_engaged_implies_not_performs hNotEng)
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+<lean>
+axiom obj : Type
+
+-- Predicates
+axiom InClub : obj → Prop
+axiom PerformsOften : obj → Prop
+axiom AttendsEngaged : obj → Prop
+axiom InactiveDisinterested : obj → Prop
+axiom ChaperoneDances : obj → Prop
+axiom StudentAtSchool : obj → Prop
+axiom YoungOrTeen : obj → Prop
+axiom WishAcademic : obj → Prop
+
+-- Axioms from the context
+-- 1. In-club and performs often -> attends and is very engaged
+axiom A1 : ∀ x : obj, InClub x ∧ PerformsOften x → AttendsEngaged x
+-- 2. In-club -> performs often or inactive/disinterested
+axiom A2 : ∀ x : obj, InClub x → PerformsOften x ∨ InactiveDisinterested x
+-- 3. In-club and chaperone -> not a student at the school
+axiom A3 : ∀ x : obj, InClub x ∧ ChaperoneDances x → ¬ StudentAtSchool x
+-- 4. In-club and inactive/disinterested -> chaperone dances
+axiom A4 : ∀ x : obj, InClub x ∧ InactiveDisinterested x → ChaperoneDances x
+-- 5. In-club and young/teen and wishes academic -> student at school
+axiom A5 : ∀ x : obj, InClub x ∧ YoungOrTeen x ∧ WishAcademic x → StudentAtSchool x
+
+-- Bonnie and her specific information
+axiom Bonnie : obj
+axiom Bonnie_info :
+  InClub Bonnie ∧
+  ((AttendsEngaged Bonnie ∧ StudentAtSchool Bonnie) ∨
+   (¬ AttendsEngaged Bonnie ∧ ¬ StudentAtSchool Bonnie))
+
+-- Derived: Bonnie is in the club
+theorem bonnie_in_club : InClub Bonnie := And.left Bonnie_info
+
+-- From Bonnie's specific info, engaged ↔ student
+theorem bonnie_engaged_to_student :
+  AttendsEngaged Bonnie → StudentAtSchool Bonnie :=
+by
+  intro hEng
+  have h := And.right Bonnie_info
+  apply Or.elim h
+  · intro h1
+    exact h1.right
+  · intro h2
+    exact False.elim (h2.left hEng)
+
+theorem bonnie_student_to_engaged :
+  StudentAtSchool Bonnie → AttendsEngaged Bonnie :=
+by
+  intro hS
+  have h := And.right Bonnie_info
+  apply Or.elim h
+  · intro h1
+    exact h1.left
+  · intro h2
+    exact False.elim (h2.right hS)
+
+-- If Bonnie is a student, then she performs often (since the inactive branch contradicts student)
+theorem bonnie_student_implies_performs :
+  StudentAtSchool Bonnie → PerformsOften Bonnie :=
+by
+  intro hS
+  have hOr := A2 Bonnie bonnie_in_club
+  apply Or.elim hOr
+  · intro hPerf
+    exact hPerf
+  · intro hInact
+    have hCh : ChaperoneDances Bonnie := A4 Bonnie ⟨bonnie_in_club, hInact⟩
+    have hNotS : ¬ StudentAtSchool Bonnie := A3 Bonnie ⟨bonnie_in_club, hCh⟩
+    exact False.elim (hNotS hS)
+
+-- If Bonnie is not attending/engaged, then she does not perform often
+theorem bonnie_not_engaged_implies_not_performs :
+  ¬ AttendsEngaged Bonnie → ¬ PerformsOften Bonnie :=
+by
+  intro hNotEng
+  intro hPerf
+  have hEng : AttendsEngaged Bonnie := A1 Bonnie ⟨bonnie_in_club, hPerf⟩
+  exact hNotEng hEng
+
+-- From Bonnie's disjunction, we can only conclude a case split on performing
+theorem bonnie_performs_or_not : PerformsOften Bonnie ∨ ¬ PerformsOften Bonnie :=
+by
+  have h := And.right Bonnie_info
+  apply Or.elim h
+  · intro h1
+    have hS : StudentAtSchool Bonnie := And.right h1
+    exact Or.inl (bonnie_student_implies_performs hS)
+  · intro h2
+    have hNotEng : ¬ AttendsEngaged Bonnie := And.left h2
+    exact Or.inr (bonnie_not_engaged_implies_not_performs hNotEng)
+</lean>
+
+ANSWER: Failure

@@ -1,45 +1,45 @@
-The premises lead to the conclusion that James takes the database course (due to working in the lab, which requires taking a class with Professor David, which in turn requires taking the database course). Additionally, James does not have a part-time job (since he works in the lab, and the disjunction in premise 7 forces the absence of a part-time job). Therefore, the disjunction "James takes the database course or has a part-time job" is true (because the first disjunct is true). Attempting to prove the negation of this conclusion (i.e., that James neither takes the database course nor has a part-time job) fails because it contradicts the derived fact that James takes the database course.
-
 <lean>
-axiom obj : Type
-axiom James : obj
+axiom Student : Type
 
-axiom works_in_library : obj → Prop
-axiom from_CS_dept : obj → Prop
-axiom has_part_time_job : obj → Prop
-axiom takes_database_course : obj → Prop
-axiom takes_class_with_David : obj → Prop
-axiom works_in_lab : obj → Prop
+-- Predicates
+axiom works_in_library : Student → Prop
+axiom from_CS_dept : Student → Prop
+axiom has_pt_job : Student → Prop
+axiom takes_db_course : Student → Prop
+axiom takes_class_with_David : Student → Prop
+axiom works_in_lab : Student → Prop
 
-axiom A1 : ∀ s, works_in_library s → ¬ from_CS_dept s
-axiom A2 : ∀ s, has_part_time_job s → works_in_library s
-axiom A3 : ∀ s, takes_database_course s → from_CS_dept s
-axiom A4 : ∀ s, takes_class_with_David s → takes_database_course s
-axiom A5 : ∀ s, works_in_lab s → takes_class_with_David s
-axiom A6 : works_in_lab James
-axiom A7 : ¬ works_in_lab James ∨ ¬ has_part_time_job James
+-- Constants
+axiom James : Student
 
-theorem disprove : False := by
-  -- Prove James takes database course
-  have h_class : takes_class_with_David James := A5 James A6
-  have h_db : takes_database_course James := A4 James h_class
-  -- Prove James has no part-time job
-  have h_no_job : ¬ has_part_time_job James := by 
-    cases A7 with
-    | inl not_works => contradiction
-    | inr not_job => exact not_job
-  -- Attempt to prove negation of conclusion: ¬(h_db ∨ has_part_time_job James)
-  -- This would require both ¬h_db and ¬has_part_time_job James
-  -- But ¬h_db contradicts h_db
-  have neg_conclusion : ¬ (takes_database_course James ∨ has_part_time_job James) := 
-    fun h => 
-      have ⟨not_db, _⟩ := Classical.not_or.mp h
-      not_db h_db
-  -- The conclusion is true (left disjunct holds)
-  have conclusion : takes_database_course James ∨ has_part_time_job James := Or.inl h_db
-  -- Applying negated conclusion to true conclusion yields False
-  exact neg_conclusion conclusion
+-- Premises
+axiom P1 : ∀ s : Student, works_in_library s → ¬ from_CS_dept s
+axiom P2 : ∀ s : Student, has_pt_job s → works_in_library s
+axiom P3 : ∀ s : Student, takes_db_course s → from_CS_dept s
+axiom P4 : ∀ s : Student, takes_class_with_David s → takes_db_course s
+axiom P5 : ∀ s : Student, works_in_lab s → takes_class_with_David s
+axiom P6 : works_in_lab James
+axiom P7 : ¬ works_in_lab James ∨ ¬ has_pt_job James
 
+-- Proving James doesn't have a part-time job
+lemma no_job : ¬ has_pt_job James := by
+  cases P7 with
+  | inl h => exact False.elim (h P6)
+  | inr h => exact h
+
+-- Proving James takes the database course
+lemma takes_db : takes_db_course James := by
+  have class_with_David : takes_class_with_David James := P5 James P6
+  exact P4 James class_with_David
+
+-- Attempt to prove negation of conclusion: ¬(takes_db_course James ∨ has_pt_job James)
+theorem neg_conclusion : ¬(takes_db_course James ∨ has_pt_job James) :=
+  fun h => 
+    Or.elim h
+      (fun hdb => ?hole1)  -- No contradiction: takes_db implies hdb is true
+      (fun hjob => no_job hjob)  -- Contradiction here works, but left branch fails
+
+-- The ?hole1 remains unprovable since no contradiction (we have takes_db James)
 </lean>
 
 ANSWER: Failure
@@ -48,4 +48,126 @@ ANSWER: Failure
 ITERATION 2
 ======================================================================
 
+The compilation errors occurred due to an incomplete proof attempt in the `neg_conclusion` theorem, specifically the presence of a placeholder `?hole1` and incorrect function application. After correcting the code and reanalyzing the premises, the following observations are made:
 
+1. **Premise Interpretation**:  
+   - Premise 7 ("James doesn't work in the lab or have a part-time job") is interpreted as `¬ works_in_lab James ∨ ¬ has_pt_job James` to avoid contradiction with Premise 6 (James works in the lab).
+
+2. **Key Lemmas**:  
+   - `no_job`: James has no part-time job (derived from Premise 7 and Premise 6).  
+   - `takes_db`: James takes the database course (via lab work → David's class → database course).  
+
+3. **Conclusion Analysis**:  
+   The statement to evaluate is `takes_db_course James ∨ has_pt_job James`. Since `takes_db` proves James takes the database course, the disjunction is **true**. Therefore, its negation **cannot be proven**.
+
+Corrected Lean code:
+<lean>
+axiom Student : Type
+
+-- Predicates
+axiom works_in_library : Student → Prop
+axiom from_CS_dept : Student → Prop
+axiom has_pt_job : Student → Prop
+axiom takes_db_course : Student → Prop
+axiom takes_class_with_David : Student → Prop
+axiom works_in_lab : Student → Prop
+
+-- Constants
+axiom James : Student
+
+-- Premises
+axiom P1 : ∀ s : Student, works_in_library s → ¬ from_CS_dept s
+axiom P2 : ∀ s : Student, has_pt_job s → works_in_library s
+axiom P3 : ∀ s : Student, takes_db_course s → from_CS_dept s
+axiom P4 : ∀ s : Student, takes_class_with_David s → takes_db_course s
+axiom P5 : ∀ s : Student, works_in_lab s → takes_class_with_David s
+axiom P6 : works_in_lab James
+axiom P7 : ¬ works_in_lab James ∨ ¬ has_pt_job James
+
+-- James has no part-time job
+lemma no_job : ¬ has_pt_job James := by
+  cases P7 with
+  | inl h => exact False.elim (h P6)
+  | inr h => exact h
+
+-- James takes the database course
+lemma takes_db : takes_db_course James := by
+  have class_with_David : takes_class_with_David James := P5 James P6
+  exact P4 James class_with_David
+
+-- Attempt to prove negation of conclusion fails
+theorem neg_conclusion : ¬(takes_db_course James ∨ has_pt_job James) := 
+  fun h => Or.elim h
+    (fun hdb => 
+      -- No contradiction: takes_db_course James is provable and consistent
+      False.elim (no_job (by assumption))  -- Placeholder, but actually unreachable contradiction
+    )
+    (fun hjob => no_job hjob)
+</lean>
+
+**Result**: The negation of the conclusion cannot be proven because:
+- `takes_db` confirms James takes the database course, making the disjunction true.
+- No premises link lab work to library work or contradict `takes_db_course James`.
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The compilation errors occurred due to incorrect function application and unresolved placeholders in the proof. After careful analysis:
+
+1. The premises establish:
+   - James works in the lab (P6)
+   - Lab work implies taking David's class (P5)
+   - David's class implies taking database course (P4)
+   - Therefore, James takes database course (`takes_db`)
+
+2. Premise 7 ("James doesn't work in lab or have part-time job") combined with P6 proves James has no part-time job (`no_job`)
+
+3. The conclusion "James takes database course or has part-time job" is TRUE because `takes_db` proves the left disjunct.
+
+4. Attempting to prove the NEGATION of this conclusion fails because:
+   - No premises connect lab work to library work
+   - No contradiction exists for James taking database course
+   - The part-time job branch contradicts `no_job` but the database course branch has no contradiction
+
+Corrected Lean code:
+<lean>
+axiom Student : Type
+
+-- Predicates
+axiom works_in_library : Student → Prop
+axiom from_CS_dept : Student → Prop
+axiom has_pt_job : Student → Prop
+axiom takes_db_course : Student → Prop
+axiom takes_class_with_David : Student → Prop
+axiom works_in_lab : Student → Prop
+
+-- Constants
+axiom James : Student
+
+-- Premises
+axiom P1 : ∀ s : Student, works_in_library s → ¬ from_CS_dept s
+axiom P2 : ∀ s : Student, has_pt_job s → works_in_library s
+axiom P3 : ∀ s : Student, takes_db_course s → from_CS_dept s
+axiom P4 : ∀ s : Student, takes_class_with_David s → takes_db_course s
+axiom P5 : ∀ s : Student, works_in_lab s → takes_class_with_David s
+axiom P6 : works_in_lab James
+axiom P7 : ¬ works_in_lab James ∨ ¬ has_pt_job James
+
+-- James has no part-time job
+lemma no_job : ¬ has_pt_job James := by
+  cases P7 with
+  | inl h => exact False.elim (h P6)
+  | inr h => exact h
+
+-- James takes database course
+lemma takes_db : takes_db_course James := by
+  have h1 : takes_class_with_David James := P5 James P6
+  exact P4 James h1
+
+-- Cannot prove negation of conclusion
+</lean>
+
+ANSWER: Failure

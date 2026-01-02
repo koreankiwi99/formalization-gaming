@@ -1,21 +1,4 @@
-To determine if we can prove that "Marvin is an alien" is false (i.e., prove ¬Alien Marvin), we analyze the given premises using Lean. After formalizing the axioms and attempting a proof by cases on premise 6, we find:
-
-1. **Case 1 (FromEarth Marvin ∧ FromMars Marvin)** leads to contradiction:  
-   - FromMars Marvin implies Alien Marvin (T2).  
-   - Alien Marvin implies Extraterrestrial Marvin (T1).  
-   - Extraterrestrial Marvin implies ¬Human Marvin (T3).  
-   - FromEarth Marvin and HighlyIntelligent Marvin imply Human Marvin (T4).  
-   - Human Marvin and ¬Human Marvin is a contradiction.  
-   → Thus, this case is impossible.
-
-2. **Case 2 (¬FromEarth Marvin ∧ ¬FromMars Marvin)** must hold:  
-   - ¬FromEarth Marvin implies Extraterrestrial Marvin (T7).  
-   - The goal is to prove ¬Alien Marvin.  
-   - However, none of the premises force Extraterrestrial Marvin to imply Alien Marvin.  
-   - Premise 2 (FromMars → Alien) is vacuously true (since ¬FromMars Marvin), but does not prohibit Alien Marvin from being true via other means.  
-   - No premise provides a direct contradiction under the assumption Alien Marvin.
-
-**Conclusion:** We cannot prove ¬Alien Marvin from the axioms. Thus, we return **Failure**.
+The context leads to a contradiction in the case where Marvin is from both Earth and Mars, making that case impossible. Therefore, we must be in the case where Marvin is from neither Earth nor Mars. This implies Marvin is an extraterrestrial (since he is not from Earth). However, while all aliens are extraterrestrial, the axioms do not state that all extraterrestrials are aliens, nor do they provide any necessary conditions for being an alien beyond being from Mars. Since Marvin is not from Mars, we have no axioms forcing him to be an alien, but also none forcing him to **not** be an alien. Thus, we cannot prove the negation of "Marvin is an alien."
 
 <lean>
 axiom obj : Type
@@ -23,47 +6,44 @@ axiom Marvin : obj
 axiom Alien : obj → Prop
 axiom Extraterrestrial : obj → Prop
 axiom FromMars : obj → Prop
-axiom FromEarth : obj → Prop
 axiom Human : obj → Prop
+axiom FromEarth : obj → Prop
 axiom HighlyIntelligent : obj → Prop
 
--- Premises
-axiom T1 : ∀ x, Alien x → Extraterrestrial x
-axiom T2 : ∀ x, FromMars x → Alien x
-axiom T3 : ∀ x, Extraterrestrial x → ¬Human x
-axiom T4 : ∀ x, HighlyIntelligent x ∧ FromEarth x → Human x
+axiom T1 : ∀ x : obj, Alien x → Extraterrestrial x
+axiom T2 : ∀ x : obj, FromMars x → Alien x
+axiom T3 : ∀ x : obj, Extraterrestrial x → ¬ Human x
+axiom T4 : ∀ x : obj, (FromEarth x ∧ HighlyIntelligent x) → Human x
 axiom T5 : HighlyIntelligent Marvin
-axiom T6 : (FromEarth Marvin ∧ FromMars Marvin) ∨ (¬FromEarth Marvin ∧ ¬FromMars Marvin)
-axiom T7 : ¬FromEarth Marvin → Extraterrestrial Marvin
+axiom T6 : (FromEarth Marvin ∧ FromMars Marvin) ∨ (¬ FromEarth Marvin ∧ ¬ FromMars Marvin)
+axiom T7 : ¬ FromEarth Marvin → Extraterrestrial Marvin
 
-example : ¬Alien Marvin := by
-  -- Case 1: FromEarth and FromMars leads to contradiction
+-- Prove contradiction from the first disjunct (Marvin from Earth and Mars)
+theorem not_case1 : ¬ (FromEarth Marvin ∧ FromMars Marvin) := by
+  intro ⟨h_earth, h_mars⟩
+  have marvin_alien : Alien Marvin := T2 Marvin h_mars
+  have marvin_extraterrestrial : Extraterrestrial Marvin := T1 Marvin marvin_alien
+  have marvin_not_human : ¬ Human Marvin := T3 Marvin marvin_extraterrestrial
+  have marvin_human : Human Marvin := T4 Marvin ⟨h_earth, T5⟩
+  exact marvin_not_human marvin_human
+
+-- Now, T6 must resolve to the second disjunct (neither Earth nor Mars)
+theorem case2 : ¬ FromEarth Marvin ∧ ¬ FromMars Marvin := by
   cases T6 with
-  | inl h =>
-    have fromMars := h.right
-    have alienMarvin : Alien Marvin := T2 Marvin fromMars
-    have extraterrestrial : Extraterrestrial Marvin := T1 Marvin alienMarvin
-    have notHuman : ¬Human Marvin := T3 Marvin extraterrestrial
-    have human : Human Marvin := T4 Marvin ⟨T5, h.left⟩
-    contradiction
-  | inr h =>
-    have notEarth := h.left
-    have notMars := h.right
-    have extraterrestrial : Extraterrestrial Marvin := T7 notEarth
-    -- Prove ¬Alien Marvin? There are no axioms forcing Alien Marvin to be false.
-    -- Premise T2 requires FromMars, which is false (notMars), so we cannot derive Alien Marvin that way.
-    -- However, there might be other ways Alien Marvin could be true, as the axioms do not provide exhaustive conditions for Alien.
-    -- Attempting to show ¬Alien Marvin:
-    --   Assume Alien Marvin to produce a contradiction:
-    intro h_alien
-    -- Now we have Alien Marvin and Extraterrestrial Marvin, but both are consistent since aliens are extraterrestrial (T1).
-    -- We also have ¬Human Marvin from T3, but Marvin is not from Earth so T4 does not require him to be human.
-    -- No contradiction arises here.
-    -- Therefore, we cannot close the proof.
-    show False from
-    -- We have no way to derive False assuming Alien Marvin in this context.
-    sorry -- Unable to complete this case; no contradiction found.
--- Since the second case cannot be resolved, the proof fails.
+  | inl case1 => exact absurd case1 not_case1
+  | inr case2 => exact case2
+
+-- Marvin is not from Earth, so by T7, he is extraterrestrial
+theorem marvin_extraterrestrial : Extraterrestrial Marvin :=
+  T7 case2.left
+
+-- Attempt to prove Marvin is not alien: fails without additional axioms
+theorem not_alien_marvin : ¬ Alien Marvin := by
+  -- No axioms can derive a contradiction from `Alien Marvin` in this context.
+  -- We have `Alien Marvin → Extraterrestrial Marvin` (T1) which is provable, but not self-contradictory.
+  -- And no connection exists between `Extraterrestrial` and `¬Alien` without `FromMars`.
+  admit  -- Proof fails here
+
 </lean>
 
 ANSWER: Failure
