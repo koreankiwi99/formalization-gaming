@@ -68,14 +68,34 @@ async def analyze_case(case: dict, client: AsyncOpenAI, prompt_template: str,
         premises = format_premises(case.get('premises', []))
         conclusion = case.get('conclusion', 'N/A')
 
-        # Format prompt
-        prompt = prompt_template.format(
-            premises=premises[:3000],
-            conclusion=conclusion,
-            ground_truth=case.get('ground_truth', 'N/A'),
-            prediction=case.get('prediction', 'N/A'),
-            lean_code=lean_code[:5000]
-        )
+        # Extract direction from source (e.g., divergent_TRUE -> TRUE)
+        source = case.get('source', '')
+        if 'TRUE' in source.upper():
+            direction = 'TRUE (proving the conclusion holds)'
+        elif 'FALSE' in source.upper():
+            direction = 'FALSE (proving the negation of conclusion)'
+        else:
+            direction = ''
+
+        # Format prompt - use direction only if placeholder exists in template
+        try:
+            prompt = prompt_template.format(
+                premises=premises,
+                conclusion=conclusion,
+                ground_truth=case.get('ground_truth', 'N/A'),
+                prediction=case.get('prediction', 'N/A'),
+                direction=direction,
+                lean_code=lean_code
+            )
+        except KeyError:
+            # Template doesn't have direction placeholder
+            prompt = prompt_template.format(
+                premises=premises,
+                conclusion=conclusion,
+                ground_truth=case.get('ground_truth', 'N/A'),
+                prediction=case.get('prediction', 'N/A'),
+                lean_code=lean_code
+            )
 
         # Build messages
         if system_prompt:
@@ -87,12 +107,19 @@ async def analyze_case(case: dict, client: AsyncOpenAI, prompt_template: str,
             messages = [{"role": "user", "content": prompt}]
 
         try:
-            response = await client.chat.completions.create(
-                model=model,
-                messages=messages,
-                temperature=0,
-                max_tokens=2048
-            )
+            # o3/o1 models use different parameters (no temperature, no max_tokens)
+            if model.startswith('o3') or model.startswith('o1'):
+                response = await client.chat.completions.create(
+                    model=model,
+                    messages=messages
+                )
+            else:
+                response = await client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    temperature=0,
+                    max_tokens=2048
+                )
 
             response_text = response.choices[0].message.content
 
@@ -130,7 +157,7 @@ async def main():
     parser.add_argument('--prompt', required=True, help='Path to user prompt template file')
     parser.add_argument('--system_prompt', help='Path to system prompt file (optional)')
     parser.add_argument('--output', help='Output CSV path')
-    parser.add_argument('--model', default='gpt-4o', help='Model to use for analysis')
+    parser.add_argument('--model', default='o3', help='Model to use for analysis')
     parser.add_argument('--concurrency', type=int, default=10, help='Concurrent API calls')
     parser.add_argument('--limit', type=int, default=0, help='Limit cases to analyze (0=all)')
 
@@ -138,12 +165,26 @@ async def main():
 
     # Load environment
     load_dotenv()
-    api_key = os.environ.get('OPENAI_API_KEY')
-    if not api_key:
-        print("Error: OPENAI_API_KEY not set")
-        sys.exit(1)
 
-    client = AsyncOpenAI(api_key=api_key)
+    # Determine provider based on model name
+    if args.model.startswith('anthropic/') or args.model.startswith('claude'):
+        # Use OpenRouter for Claude models
+        api_key = os.environ.get('OPENROUTER_API_KEY')
+        if not api_key:
+            print("Error: OPENROUTER_API_KEY not set")
+            sys.exit(1)
+        client = AsyncOpenAI(
+            api_key=api_key,
+            base_url="https://openrouter.ai/api/v1"
+        )
+        print(f"Using OpenRouter API for model: {args.model}")
+    else:
+        # Use OpenAI API
+        api_key = os.environ.get('OPENAI_API_KEY')
+        if not api_key:
+            print("Error: OPENAI_API_KEY not set")
+            sys.exit(1)
+        client = AsyncOpenAI(api_key=api_key)
 
     # Load prompt templates
     print(f"Loading user prompt from: {args.prompt}")
@@ -198,10 +239,21 @@ async def main():
         # Handle errors array (v9 format)
         errors = result.get('errors', [])
         if errors:
-            # Collect all error categories and subtypes
-            categories = [e.get('category') for e in errors if e.get('category')]
-            subtypes = [e.get('subtype') for e in errors if e.get('subtype')]
-            explanations = [e.get('explanation', '') for e in errors if e.get('explanation')]
+            # Handle both dict format and string format
+            categories = []
+            subtypes = []
+            explanations = []
+            for e in errors:
+                if isinstance(e, dict):
+                    if e.get('category'):
+                        categories.append(e.get('category'))
+                    if e.get('subtype'):
+                        subtypes.append(e.get('subtype'))
+                    if e.get('explanation'):
+                        explanations.append(e.get('explanation'))
+                elif isinstance(e, str):
+                    # o3 sometimes returns just category strings
+                    categories.append(e)
 
             row['error_count'] = len(errors)
             row['categories'] = '|'.join(categories)
@@ -209,8 +261,15 @@ async def main():
             row['explanation'] = ' | '.join(explanations[:2])  # First 2 explanations
 
             # Primary error (first one)
-            row['primary_category'] = errors[0].get('category') if errors else None
-            row['primary_subtype'] = errors[0].get('subtype') if errors else None
+            if errors and isinstance(errors[0], dict):
+                row['primary_category'] = errors[0].get('category')
+                row['primary_subtype'] = errors[0].get('subtype')
+            elif errors and isinstance(errors[0], str):
+                row['primary_category'] = errors[0]
+                row['primary_subtype'] = None
+            else:
+                row['primary_category'] = None
+                row['primary_subtype'] = None
         else:
             row['error_count'] = 0
             row['categories'] = ''
@@ -218,6 +277,10 @@ async def main():
             row['explanation'] = ''
             row['primary_category'] = None
             row['primary_subtype'] = None
+
+        # Premise contradiction (v27+)
+        row['premise_contradiction'] = result.get('premise_contradiction', False)
+        row['premise_contradiction_note'] = result.get('premise_contradiction_note', '')
 
         # Handle parse/API errors
         if 'parse_error' in result:
