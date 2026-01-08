@@ -157,7 +157,7 @@ async def main():
     parser.add_argument('--prompt', required=True, help='Path to user prompt template file')
     parser.add_argument('--system_prompt', help='Path to system prompt file (optional)')
     parser.add_argument('--output', help='Output CSV path')
-    parser.add_argument('--model', default='o3', help='Model to use for analysis')
+    parser.add_argument('--model', default='anthropic/claude-opus-4.5', help='Model to use for analysis')
     parser.add_argument('--concurrency', type=int, default=10, help='Concurrent API calls')
     parser.add_argument('--limit', type=int, default=0, help='Limit cases to analyze (0=all)')
 
