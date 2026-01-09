@@ -165,16 +165,34 @@ for dataset in DATASETS:
 
                     if t_proved and f_proved:
                         premises, conclusion = get_premises_conclusion(dataset, t_entry)
+                        gt = t_entry.get('ground_truth', '')
+                        gt_norm = str(gt).lower()
+                        gt_norm = {'true': 'true', 'false': 'false', 'yes': 'true', 'no': 'false'}.get(gt_norm, gt_norm)
+
+                        # Split into TRUE and FALSE entries with matches_gt field
                         divergent_cases.append({
-                            'source': 'divergent',
+                            'source': 'divergent_TRUE',
                             'dataset': dataset,
                             'model': model,
-                            'condition_pair': prefix,
+                            'condition': f'{prefix}_true',
                             'case_idx': case_idx,
                             'run': run,
-                            'ground_truth': t_entry.get('ground_truth'),
-                            'true_lean_code': t_entry.get('lean_code', ''),
-                            'false_lean_code': f_entry.get('lean_code', ''),
+                            'ground_truth': gt,
+                            'matches_gt': gt_norm == 'true',
+                            'lean_code': t_entry.get('lean_code', ''),
+                            'premises': premises,
+                            'conclusion': conclusion
+                        })
+                        divergent_cases.append({
+                            'source': 'divergent_FALSE',
+                            'dataset': dataset,
+                            'model': model,
+                            'condition': f'{prefix}_false',
+                            'case_idx': case_idx,
+                            'run': run,
+                            'ground_truth': gt,
+                            'matches_gt': gt_norm == 'false',
+                            'lean_code': f_entry.get('lean_code', ''),
                             'premises': premises,
                             'conclusion': conclusion
                         })
@@ -186,9 +204,7 @@ print(f"Cases with empty premises: {empty_premises}")
 # Build divergent keys for exclusion
 divergent_keys = set()
 for c in divergent_cases:
-    prefix = c['condition_pair']
-    divergent_keys.add((c['dataset'], c['model'], f'{prefix}_true', c['case_idx'], c['run']))
-    divergent_keys.add((c['dataset'], c['model'], f'{prefix}_false', c['case_idx'], c['run']))
+    divergent_keys.add((c['dataset'], c['model'], c['condition'], c['case_idx'], c['run']))
 
 wrong_direction_filtered = [c for c in wrong_direction_cases
                            if (c['dataset'], c['model'], c['condition'], c['case_idx'], c['run']) not in divergent_keys]
