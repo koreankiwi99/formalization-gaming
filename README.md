@@ -77,7 +77,7 @@ PYTHONPATH=src:$PYTHONPATH python src/analysis/evaluate_faithfulness.py \
 |---------------|-----------|
 | Table 3 (Main Results) | `results/folio/`, `results/multilogieval/` |
 | Table 7 (Fabrication) | `notebooks/5.fabrication_analysis.ipynb` |
-| Figure 3 (Sankey) | `results/prediction_error_fig/sankey_v15_*.png` |
+| Figure 3 (Sankey) | `results/prediction_error_fig/sankey_*.png` |
 | Appendix H (Dataset Errors) | `samples/dataset_errors/` |
 | Appendix E (LLM-as-Judge Prompt) | `prompts/error-classification/v26_*.txt` |
 
